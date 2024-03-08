@@ -4,21 +4,25 @@
         "_id": {
             "bsonType": "objectId"
         },
-        "isComplete": {
+        "isLost": {
             "bsonType": "bool"
         },
         "owner_id": {
             "bsonType": "string"
         },
-        "summary": {
+        "name": {
+            "bsonType": "string"
+        },
+        "description": {
             "bsonType": "string"
         }
     },
     "required": [
         "_id",
         "owner_id",
-        "summary",
-        "isComplete"
+        "name",
+        "description",
+        "isLost"
     ],
     "title": "Item"
 }

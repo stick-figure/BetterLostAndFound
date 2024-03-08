@@ -3,7 +3,7 @@ import {BSON} from 'realm';
 import {useUser, useRealm, useQuery} from '@realm/react';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {Alert, FlatList, StyleSheet, Switch, Text, View} from 'react-native';
-import {Button, Overlay, ListItem} from '@rneui/base';
+import {Button, Overlay, ListItem, ScreenWidth} from '@rneui/base';
 import {dataExplorerLink} from '../atlasConfig.json';
 
 import {CreateToDoPrompt} from './CreateToDoPrompt';
@@ -55,15 +55,16 @@ export function ItemListView() {
     }
   }, [realm, user, showAllItems]);
 
-  // createItem() takes in a summary and then creates an Item object with that summary
+  // createItem() takes in a description and then creates an Item object with that description
   const createItem = useCallback(
-    ({summary}: {summary: string}) => {
+    ({name, description}: {name: string, description: string}) => {
       // if the realm exists, create an Item
       realm.write(() => {
         console.log(dataExplorerMessage);
 
         return new Item(realm, {
-          summary,
+          name,
+          description,
           owner_id: user?.id,
         });
       });
@@ -78,7 +79,7 @@ export function ItemListView() {
       const item = realm.objectForPrimaryKey(Item, id); // search for a realm object with a primary key that is an objectId
       if (item) {
         if (item.owner_id !== user?.id) {
-          Alert.alert("You can't delete someone else's task!");
+          Alert.alert("You can't delete someone else's item!");
         } else {
           realm.write(() => {
             realm.delete(item);
@@ -89,17 +90,17 @@ export function ItemListView() {
     },
     [realm, user],
   );
-  // toggleItemIsComplete() updates an Item with a particular _id to be 'completed'
-  const toggleItemIsComplete = useCallback(
+  // toggleItemIsLost() updates an Item with a particular _id to be 'completed'
+  const toggleItemIsLost = useCallback(
     (id: BSON.ObjectId) => {
-      // if the realm exists, get the Item with a particular _id and update it's 'isCompleted' field
+      // if the realm exists, get the Item with a particular _id and update it's 'isLost' field
       const item = realm.objectForPrimaryKey(Item, id); // search for a realm object with a primary key that is an objectId
       if (item) {
         if (item.owner_id !== user?.id) {
-          Alert.alert("You can't modify someone else's task!");
+          Alert.alert("You can't modify someone else's item!");
         } else {
           realm.write(() => {
-            item.isComplete = !item.isComplete;
+            item.isLost = !item.isLost;
           });
           console.log(dataExplorerMessage);
         }
@@ -107,12 +108,11 @@ export function ItemListView() {
     },
     [realm, user],
   );
-
   return (
     <SafeAreaProvider>
       <View style={styles.viewWrapper}>
         <View style={styles.toggleRow}>
-          <Text style={styles.toggleText}>Show All Tasks</Text>
+          <Text style={styles.toggleText}>Show All Items</Text>
           <Switch
             trackColor={{true: '#00ED64'}}
             onValueChange={() => {
@@ -131,9 +131,9 @@ export function ItemListView() {
           overlayStyle={styles.overlay}
           onBackdropPress={() => setShowNewItemOverlay(false)}>
           <CreateToDoPrompt
-            onSubmit={({summary}) => {
+            onSubmit={({name, description}) => {
               setShowNewItemOverlay(false);
-              createItem({summary});
+              createItem({name, description});
             }}
           />
         </Overlay>
@@ -141,32 +141,51 @@ export function ItemListView() {
           keyExtractor={item => item._id.toString()}
           data={items}
           renderItem={({item}) => (
-            <ListItem key={`${item._id}`} bottomDivider topDivider>
-              <ListItem.Title style={styles.itemTitle}>
-                {item.summary}
-              </ListItem.Title>
-              <ListItem.Subtitle style={styles.itemSubtitle}>
-                <Text>{item.owner_id === user?.id ? '(mine)' : ''}</Text>
-              </ListItem.Subtitle>
-              <ListItem.Content>
-                {!item.isComplete && (
+            <View>
+              {item.owner_id === user?.id ? 
+              <ListItem.Swipeable key={`${item._id}`} bottomDivider topDivider
+                leftWidth={120}
+                rightWidth={120}
+                leftContent={(action) => (
                   <Button
-                    title="Mark done"
+                    title={item.isLost ? "Mark as missing" : "Mark as found"}
                     type="clear"
-                    onPress={() => toggleItemIsComplete(item._id)}
+                    onPress={() => toggleItemIsLost(item._id)}
                   />
                 )}
-                <Button
-                  title="Delete"
-                  type="clear"
-                  onPress={() => deleteItem(item._id)}
-                />
-              </ListItem.Content>
-            </ListItem>
+                rightContent={(action) => (
+                  <Button
+                    title="Delete"
+                    type="clear"
+                    onPress={() => deleteItem(item._id)}
+                  />
+              )}>
+                <ListItem.Title style={styles.itemTitle}>
+                  {item.name}
+                </ListItem.Title>
+                <ListItem.Subtitle style={styles.itemSubtitle}>
+                  <Text>{item.owner_id === user?.id ? '(mine)' : ''}</Text>
+                </ListItem.Subtitle>
+                <ListItem.Content>
+                  <Text>{item.description}</Text>
+                </ListItem.Content>
+                <ListItem.Chevron />
+              </ListItem.Swipeable> :
+              
+              <ListItem key={`${item._id}`} bottomDivider topDivider>
+                <ListItem.Title style={styles.itemTitle}>
+                  {item.name}
+                </ListItem.Title>
+                <ListItem.Content>
+                  <Text>{item.description}</Text>
+                </ListItem.Content>
+              </ListItem>
+              }
+            </View>
           )}
         />
         <Button
-          title="Add To-Do"
+          title="Add Item"
           buttonStyle={styles.addToDoButton}
           onPress={() => setShowNewItemOverlay(true)}
         />
@@ -205,7 +224,7 @@ const styles = StyleSheet.create({
   },
   itemSubtitle: {
     color: '#979797',
-    flex: 1,
+    flex: 0,
   },
   toggleRow: {
     flexDirection: 'row',

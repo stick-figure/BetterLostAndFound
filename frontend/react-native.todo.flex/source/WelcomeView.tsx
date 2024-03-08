@@ -123,4 +123,7 @@ const styles = StyleSheet.create({
   secondaryButton: {
     color: colors.primary,
   },
+  showHideButton: {
+    color: colors.secondary,
+  },
 });

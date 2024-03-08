@@ -36,7 +36,7 @@ export const App = () => {
         <NavigationContainer>
           <Stack.Navigator>
             <Stack.Screen
-              name="Your To-Do List"
+              name="My Items"
               component={ItemListView}
               options={{
                 headerTitleAlign: 'center',

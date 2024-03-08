@@ -4,26 +4,32 @@ import {Text, Input, Button} from '@rneui/base';
 import {colors} from './Colors';
 
 type Props = {
-  onSubmit: ({summary}: {summary: string}) => void;
+  onSubmit: ({name, description}: {name: string, description: string}) => void;
 };
 
 export function CreateToDoPrompt(props: Props): React.ReactElement<Props> {
   const {onSubmit} = props;
-  const [summary, setSummary] = useState('');
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
 
   return (
     <View style={styles.modalWrapper}>
       <Text h4 style={styles.addItemTitle}>
-        Add To-Do Item
+        Add Item
       </Text>
       <Input
-        placeholder="What do you want to do?"
-        onChangeText={(text: string) => setSummary(text)}
+        placeholder="What is this item called?"
+        onChangeText={(text: string) => setName(text)}
+      />
+      <Input
+        placeholder="Describe some identifying features"
+        onChangeText={(text: string) => setDescription(text)}
       />
       <Button
         title="Save"
         buttonStyle={styles.saveButton}
-        onPress={() => onSubmit({summary})}
+        disabled={!name || !description}
+        onPress={() => onSubmit({name, description})}
       />
     </View>
   );
