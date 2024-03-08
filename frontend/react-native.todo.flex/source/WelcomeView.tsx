@@ -44,7 +44,7 @@ export function WelcomeView(): React.ReactElement {
   return (
     <SafeAreaProvider>
       <View style={styles.viewWrapper}>
-        <Text style={styles.title}>My Sync App</Text>
+        <Text style={styles.title}>Better Lost And Found</Text>
         <Text style={styles.subtitle}>
           Please log in or register with a Device Sync user account. This is
           separate from your Atlas Cloud login.
