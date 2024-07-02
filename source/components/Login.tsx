@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native'
 import { Input, Button } from 'react-native-elements';
 import { auth } from '../../firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import Icon from 'react-native-vector-icons/FontAwesome';
 
-const Login = ({navigation}: {navigation: any}) => {
+export function Login({navigation}: {navigation: any}) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
@@ -16,14 +16,18 @@ const Login = ({navigation}: {navigation: any}) => {
     const signin = () => {
       signInWithEmailAndPassword(auth, email, password)
         .then((userCredential) => {
-          navigation.navigate('Chat');
+            navigation.navigate('HomeTab', {screen: 'Home'});
         })
         .catch((error) => {
-          const errorCode = error.code;
-          const errorMessage = error.message;
-          console.log(errorMessage);
+            console.log(typeof(error));
+            const errorCode = error.code;
+            const errorMessage = error.message;
+            navigation.navigate("Error", {code: error.code, message: errorMessage});
         });
     };
+
+    useEffect(() => {
+    });
 
     return (
         <View style={styles.container}>
@@ -47,6 +51,7 @@ const Login = ({navigation}: {navigation: any}) => {
         </View>
     )
 }
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,

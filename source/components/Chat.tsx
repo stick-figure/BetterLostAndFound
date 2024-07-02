@@ -10,13 +10,14 @@ import {
     ImageProps as DefaultImageProps,
     ImageURISource,
   } from 'react-native';
-  
-  type ImageProps = DefaultImageProps & {
-    source: ImageURISource;
-  };
+import { colors } from '../assets/Colors';
+
+type ImageProps = DefaultImageProps & {
+source: ImageURISource;
+};
   
 
-const Chat = ({ navigation }: {navigation: any}) => {
+export function ChatScreen({ navigation }: {navigation: any}) {
     const [messages, setMessages] = useState<IMessage[]>([]);
     const signOutNow = () => {
         signOut(auth).then(() => {
@@ -44,7 +45,7 @@ const Chat = ({ navigation }: {navigation: any}) => {
                 }}
                     onPress={signOutNow}
                 >
-                    <Text>logout</Text>
+                    <Text style={styles.headerRightText}>Logout</Text>
                 </TouchableOpacity>
             )
         })
@@ -86,4 +87,20 @@ const Chat = ({ navigation }: {navigation: any}) => {
     );
 }
 
-export default Chat;
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        alignItems: 'center',
+        padding: 10,
+        marginTop: 100,
+    },
+    headerRightText: {
+        color: colors.text,
+    },
+    button: {
+        width: 370,
+        marginTop: 10
+    }
+});
+
+export default ChatScreen;
