@@ -25,8 +25,12 @@ export function ChatScreen({ navigation }: {navigation: any}) {
             navigation.replace('Login');
         }).catch((error) => {
             // An error happened.
+            const errorCode = error.code;
+            const errorMessage = error.message;
+            navigation.navigate("Error", {code: errorCode, message: errorMessage});
         });
     }
+    
     useLayoutEffect(() => {
         navigation.setOptions({
             headerLeft: () => (
@@ -34,7 +38,7 @@ export function ChatScreen({ navigation }: {navigation: any}) {
                     <Avatar
                         rounded
                         source={{
-                            uri: auth?.currentUser?.photoURL as string,
+                            uri: auth?.currentUser?.photoURL ?? 'https://gravatar.com/avatar/94d45dbdba988afacf30d916e7aaad69?s=200&d=mp&r=x',
                         }}
                     />
                 </View>
@@ -81,7 +85,7 @@ export function ChatScreen({ navigation }: {navigation: any}) {
             user={{
                 _id: auth?.currentUser?.email ?? "user@example.com",
                 name: auth?.currentUser?.displayName ?? "Unknown User",
-                avatar: auth?.currentUser?.photoURL as string
+                avatar: auth?.currentUser?.photoURL ?? 'https://gravatar.com/avatar/94d45dbdba988afacf30d916e7aaad69?s=200&d=mp&r=x',
             }}
         />
     );

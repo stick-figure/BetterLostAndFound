@@ -5,7 +5,7 @@ import { auth } from '../../firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import Icon from 'react-native-vector-icons/FontAwesome';
 
-export function Login({navigation}: {navigation: any}) {
+export function LoginScreen({navigation}: {navigation: any}) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
@@ -19,10 +19,9 @@ export function Login({navigation}: {navigation: any}) {
             navigation.navigate('HomeTab', {screen: 'Home'});
         })
         .catch((error) => {
-            console.log(typeof(error));
             const errorCode = error.code;
             const errorMessage = error.message;
-            navigation.navigate("Error", {code: error.code, message: errorMessage});
+            navigation.navigate("Error", {code: errorCode, message: errorMessage});
         });
     };
 
@@ -49,7 +48,7 @@ export function Login({navigation}: {navigation: any}) {
             <Button title="Log In" style={styles.button} onPress={signin} />
             <Button title="Sign Up" style={styles.button} onPress={openRegisterScreen} />
         </View>
-    )
+    );
 }
 
 const styles = StyleSheet.create({
@@ -65,4 +64,4 @@ const styles = StyleSheet.create({
     }
 });
 
-export default Login;
+export default LoginScreen;

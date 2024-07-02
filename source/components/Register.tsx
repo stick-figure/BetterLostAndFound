@@ -4,14 +4,14 @@ import { Input, Button } from 'react-native-elements';
 import { auth } from '../../firebase';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 
-const Register = () => {
+export function RegisterScreen({navigation}: {navigation: any}) {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [avatar, setAvatar] = useState('');
 
     const register = () => {
-      createUserWithEmailAndPassword(auth, email, password)
+        createUserWithEmailAndPassword(auth, email, password)
         .then((userCredential) => {
             // Registered
             const user = userCredential.user;
@@ -23,14 +23,18 @@ const Register = () => {
               console.log('Registered, please login.');
             })
             .catch((error) => {
-                console.log(error.message);
+                const errorCode = error.code;
+                const errorMessage = error.message;
+                navigation.navigate("Error", {code: errorCode, message: errorMessage});
             })
         })
         .catch((error) => {
             const errorCode = error.code;
             const errorMessage = error.message;
-            console.log(errorMessage);
+            navigation.navigate("Error", {code: errorCode, message: errorMessage});
         });
+
+        
     }
 
     return (
@@ -76,4 +80,4 @@ const styles = StyleSheet.create({
     }
 });
 
-export default Register;
+export default RegisterScreen;

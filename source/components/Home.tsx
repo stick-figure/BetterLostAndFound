@@ -1,11 +1,12 @@
 import { View, Button, StyleSheet, Text } from "react-native";
-import { Input } from "react-native-elements";
+import { FAB, Input } from "react-native-elements";
 
 
 export function HomeScreen({navigation}: {navigation: any}) {
     return (
         <View style={styles.container}>
             <Text>Home</Text>
+
         </View>
     );
 }
