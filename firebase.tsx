@@ -2,6 +2,7 @@ import { initializeApp, getApp } from 'firebase/app';
 import { initializeFirestore } from 'firebase/firestore';
 import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
+import firebase from 'firebase/compat/app';
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -20,6 +21,6 @@ const app = initializeApp(firebaseConfig);
 const auth = initializeAuth(app, {
   persistence: getReactNativePersistence(ReactNativeAsyncStorage)
 });
-const db = initializeFirestore(app, {experimentalForceLongPolling: true});
 
+const db = initializeFirestore(app, {experimentalForceLongPolling: true});
 export { db, auth };

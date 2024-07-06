@@ -54,9 +54,7 @@ export function ChatScreen({ navigation }: {navigation: any}) {
             )
         })
 
-        const q = query(collection(db, 'chats'), orderBy('createdAt', 'desc'));
-        
-        const unsubscribe = onSnapshot(q, (snapshot) => setMessages(
+        const unsubscribe = onSnapshot(query(collection(db, 'chats'), orderBy('createdAt', 'desc')), (snapshot) => setMessages(
             snapshot.docs.map(doc => ({
                 _id: doc.data()._id,
                 createdAt: doc.data().createdAt.toDate(),

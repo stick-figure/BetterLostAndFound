@@ -16,7 +16,7 @@ export function LoginScreen({navigation}: {navigation: any}) {
     const signin = () => {
       signInWithEmailAndPassword(auth, email, password)
         .then((userCredential) => {
-            navigation.navigate('HomeTab', {screen: 'Home'});
+            navigation.replace('Home Tab', {screen: 'Home'});
         })
         .catch((error) => {
             const errorCode = error.code;
