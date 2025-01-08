@@ -9,7 +9,7 @@ export function ErrorScreen({navigation, route}: {navigation: any, route: any}) 
             <Text>{route.params!.message}</Text>
             <View style={styles.button}>
                 <Button
-                title="Go Back"
+                title="erm what the sigma"
                 onPress={() => navigation.goBack()} />
             </View>
         </View>

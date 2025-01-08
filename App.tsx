@@ -17,11 +17,12 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ErrorScreen } from './source/components/Error';
 import { LoadingScreen } from './source/components/Loading';
 import { MyItemsScreen } from './source/components/MyItems';
-import AddItemScreen from './source/components/AddItem';
+import { AddItemScreen } from './source/components/AddItem';
 import NotificationsScreen from './source/components/Notifications';
-import ScanCodeScreen from './source/components/ScanCode';
+import { ScanCodeScreen } from './source/components/ScanCode';
 import { ReturnItemScreen } from './source/components/ReturnItem';
-import ItemInfoScreen from './source/components/ItemInfo';
+import {ItemInfoScreen, ItemInfoRouteParams } from './source/components/ItemInfo';
+import { SettingsScreen } from './source/components/Settings';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -31,7 +32,8 @@ function HomeTab() {
     <Tab.Navigator>
       <Tab.Screen name='Home' component={HomeScreen} />
       <Tab.Screen name='My Items' component={MyItemsScreen} />
-      <Tab.Screen name='Chat' component={ChatScreen} />
+      <Tab.Screen name='Settings' component={SettingsScreen} />
+      {/*<Tab.Screen name='Chat' component={ChatScreen} />*/}
     </Tab.Navigator>
   );
 }
@@ -46,32 +48,40 @@ export function App() {
           } else {
             isLoggedIn = false;
           }
-      })
+      });
   });
 
   return (
     <SafeAreaProvider>
       <NavigationContainer>
+
+        {/* Auth screens */}
         <Stack.Navigator> 
+          <Stack.Group screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="Register" component={RegisterScreen} />
+          </Stack.Group>
+
           {/* Screens for logged in users */}
           <Stack.Group>
             <Stack.Screen name="Home Tab" options={{headerShown: false}} component={HomeTab} />
 
             <Stack.Screen name="Add Item" component={AddItemScreen} />
             <Stack.Screen name="Return Item" component={ReturnItemScreen} />
-            <Stack.Screen name="Item Info" component={ItemInfoScreen} />
+            <Stack.Screen name="Item Info" options={({ route }) => ({ 
+                title: (route!.params as ItemInfoRouteParams).itemName,
+                headerBackTitle: "My Items",
+              })} 
+              component={ItemInfoScreen} />
             <Stack.Screen name="Scan Code" component={ScanCodeScreen} />
           </Stack.Group>
-          {/* Auth screens */}
-          <Stack.Group screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="Login" component={LoginScreen} />
-            <Stack.Screen name="Register" component={RegisterScreen} />
-          </Stack.Group>
+
           {/* Common modal screens */}
           <Stack.Group screenOptions={{ presentation: 'modal' }}>
             <Stack.Screen name="Error" component={ErrorScreen} />
             <Stack.Screen name="Loading" component={LoadingScreen} />
           </Stack.Group>
+
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>

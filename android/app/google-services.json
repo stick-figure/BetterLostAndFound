@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "813333392211",
+    "project_id": "better-lost-and-found",
+    "storage_bucket": "better-lost-and-found.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:813333392211:android:c66f3e6bd389d0b3528fa6",
+        "android_client_info": {
+          "package_name": "com.betterlostandfound"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB9WDIiQ1W4lT1a6GAZoPeUM4onqYiKZOk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,26 +1,111 @@
-import { onSnapshot, query, collection, orderBy, where } from "firebase/firestore";
-import { useState, useLayoutEffect } from "react";
-import { View, Text, Button, StyleSheet } from "react-native";
-import { db } from "../../firebase";
-import firebase from "firebase/compat/app";
+import { collection, deleteDoc, deleteField, doc, DocumentReference, getDoc, onSnapshot, updateDoc } from "firebase/firestore";
+import { useState, useEffect } from "react";
+import { View, Text, Button, StyleSheet, Pressable } from "react-native";
+import { auth, db } from "../../firebase";
+import { Image } from "react-native-elements";
+import { deleteObject, getDownloadURL, getStorage, ref, StorageReference } from "firebase/storage";
+import { TouchableOpacity } from "react-native-gesture-handler";
+import { lightThemeColors } from "../assets/Colors";
+
+export type ItemInfoRouteParams = {
+    itemId: string,
+    itemName: string,
+}
 
 export function ItemInfoScreen({navigation, route}: {navigation: any, route: any}) {
-    const [item, setItem] = useState({});
 
-    useLayoutEffect(
-        () => {
-            const unsubscribe = onSnapshot(query(collection(db, "items"), where(firebase.firestore.FieldPath.documentId(), '==', route.params!.itemId)), (snapshot) => {
-                console.log(snapshot.docs[0].data);
-            });
-    
-            return () => {
-              unsubscribe();
-            };
+    const [item, setItem] = useState({
+        _id: "",
+        name: "",
+        description: "",
+        owner: "",
+        isLost: false,
+    });
+    const [imageSrc, setImageSrc] = useState(require("../assets/defaultimg.jpg"));
+    const [itemRef, setItemRef] = useState<DocumentReference>();
+    const [imageRef, setImageRef] = useState<StorageReference>();
+
+    const deleteItem = () => {
+        navigation.navigate("Loading");
+        deleteObject(imageRef!).then(() => {
+            // File deleted successfully
+            
+        }).catch((error) => {
+            console.log(error);
+            // Uh-oh, an error occurred!
+        });
+
+        deleteDoc(itemRef!).then(() => {
+            navigation.navigate("My Items")
+        }).catch((error) => {console.log(error)});
+    }
+    const [isCurrentUser, setIsCurrentUser] = useState(false);
+
+    useEffect(() => {/*TODO 
+        const checkUser = async () => {
+        const user = auth.currentUser;
+        if (user) {
+            const userDoc = await collection("users").doc(user.uid).get();
+            if (userDoc.exists) {
+            setIsCurrentUser(true);
+            }
         }
-    )
+        };
+    
+        checkUser();*/
+
+
+        getDoc(doc(collection(db, "items"), route.params!.itemId)).then((snapshot) => {
+            setItem({
+                _id: route.params!.itemId,
+                name: snapshot.get("name") as string,
+                description: snapshot.get("description") as string,
+                owner: snapshot.get("owner") as string,
+                isLost: snapshot.get("name") as boolean,
+            });
+            setItemRef(snapshot.ref);
+            const storage = getStorage();
+            const imageRef = ref(storage, 'images/items/' + route.params!.itemId);
+            setImageRef(imageRef);
+            try {
+                getDownloadURL(imageRef!).then((url) => {
+                    console.log(url);
+                    setImageSrc({uri: url});
+                }).catch((error) => {
+                    console.warn(error);
+                });
+            } catch (error) {
+                console.error('Error getting download URL:', error);
+            }
+        });
+    }, []);
+    
+    if (item == null) {
+        return (
+            <View style={styles.container}>
+                <Text>um what the sigma</Text>
+            </View>
+        );
+    }
+    
     return (
         <View style={styles.container}>
-            <Text>{route.params!.itemId}</Text>
+            <Image 
+                style={styles.itemImage}
+                source={imageSrc}/>
+            <Text>{item.description}</Text>
+            <View style={{width: "100%", alignContent: "center"}}>
+                <TouchableOpacity
+                    onPress={deleteItem}
+                    style={styles.markAsLostButton}>
+                    <Text style={styles.text}>Mark as lost</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    onPress={deleteItem}
+                    style={styles.deleteItemButton}>
+                    <Text style={styles.text}>Delete item</Text>
+                </TouchableOpacity>
+            </View>
         </View>
     )
 }
@@ -28,11 +113,33 @@ export function ItemInfoScreen({navigation, route}: {navigation: any, route: any
 
 const styles = StyleSheet.create({
     container: {
-
+        flex: 1,
     },
-    button: {
-        
-    }
+    text: {
+        textAlign: 'left',
+        color: "#FFF",
+        fontSize: 15,
+    },
+    itemImage: {
+        width: "90%",
+        marginTop: 12,
+        marginBottom: 12,
+        aspectRatio: 1/1,
+    },
+    markAsLostButton: {
+        backgroundColor: lightThemeColors.primary,
+        padding: 10,
+        width: "90%",
+        borderRadius: 5,
+        alignItems: 'center',
+    },
+    deleteItemButton: {
+        backgroundColor: lightThemeColors.red,
+        padding: 10,
+        width: "25%", 
+        borderRadius: 5,
+        alignItems: 'center',
+    },
 });
 
 export default ItemInfoScreen;

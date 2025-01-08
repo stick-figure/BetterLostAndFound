@@ -5,7 +5,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { auth, db } from "../../firebase";
 import firebase from "firebase/compat/app";
 import { FAB, ListItem } from "react-native-elements";
-import { colors } from "../assets/Colors";
+import { lightThemeColors } from "../assets/Colors";
 
 
 export function MyItemsScreen({ navigation }: {navigation: any}) {
@@ -18,8 +18,8 @@ export function MyItemsScreen({ navigation }: {navigation: any}) {
     }]);
 
 
-    useLayoutEffect(() => {
-        const unsubscribe = onSnapshot(query(collection(db, 'items'), where("owner", "==", auth.currentUser?.email)), (snapshot: { docs: any[]; }) => setItems(
+    useEffect(() => {
+        const unsubscribe = onSnapshot(query(collection(db, 'items'), where("owner", "==", auth.currentUser?.uid)), (snapshot: { docs: any[]; }) => setItems(
             snapshot.docs.map(((doc) => ({
                 _id: doc.id,
                 name: doc.data().name,
@@ -43,17 +43,17 @@ export function MyItemsScreen({ navigation }: {navigation: any}) {
                         data={items}
                         renderItem={({ item }) => (
                             <TouchableOpacity 
-                                key={item._id.toString()} 
-                                onPress={() => console.log("clicked")}>
+                                key={item._id.toString()}
+                                onPress={() => {navigation.navigate("Item Info", {itemId: item._id, itemName: item.name})}}>
                                     <ListItem key={`${item._id}`} bottomDivider topDivider>
                                         <ListItem.Title style={styles.itemTitle}>
-                                            {item.name}
+                                            <Text style={styles.itemTitle}>{item.name}</Text>
                                         </ListItem.Title>
                                         <ListItem.Subtitle style={styles.itemSubtitle}>
                                             
                                         </ListItem.Subtitle>
                                         <ListItem.Content>
-                                            <Text style={styles.itemContent}>aaa</Text>
+                                            <Text style={styles.itemContent}>{item.description}</Text>
                                         </ListItem.Content>
                                     </ListItem>
                             </TouchableOpacity>
@@ -79,19 +79,20 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     itemTitle: {
+        color: lightThemeColors.textLight,
         flex: 1,
     },
     itemSubtitle: {
-        color: colors.text,
+        color: lightThemeColors.textLight,
         flex: 0,
     },
     itemContent: {
-        color: colors.text,
+        color: lightThemeColors.textLight,
     },
     fab: {
         borderRadius: 90,
         alignItems: "center",
-        backgroundColor: colors.primary,
+        backgroundColor: lightThemeColors.primary,
     },
 });
 

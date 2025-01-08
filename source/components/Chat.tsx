@@ -10,7 +10,7 @@ import {
     ImageProps as DefaultImageProps,
     ImageURISource,
   } from 'react-native';
-import { colors } from '../assets/Colors';
+import { lightThemeColors } from '../assets/Colors';
 
 type ImageProps = DefaultImageProps & {
 source: ImageURISource;
@@ -31,7 +31,7 @@ export function ChatScreen({ navigation }: {navigation: any}) {
         });
     }
     
-    useLayoutEffect(() => {
+    useEffect(() => {
         navigation.setOptions({
             headerLeft: () => (
                 <View style={{ marginLeft: 20 }}>
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
         marginTop: 100,
     },
     headerRightText: {
-        color: colors.text,
+        color: lightThemeColors.textLight,
     },
     button: {
         width: 370,
