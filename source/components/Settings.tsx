@@ -5,6 +5,7 @@ import { signOut } from "firebase/auth";
 
 export function SettingsScreen({navigation}: {navigation: any}) {
     const signOutNow = () => {
+        navigation.navigate("Loading");
         signOut(auth).then(() => {
             // Sign-out successful.
             navigation.replace("Login");

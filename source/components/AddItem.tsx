@@ -74,7 +74,7 @@ export function AddItemScreen({ navigation, route }: {navigation: any, route: an
 
       const docRef = addDoc(collection(db, "items"), itemData);
       docRef.then((dRef) => {
-        uploadImage(dRef.id).then(()=>{
+        uploadImage(dRef.id).then(() => {
           navigation.navigate("My Items");
         });
       });
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
       color: lightThemeColors.textLight,
     },
     imagePressableContainer: {
-      width: "90%",
+      width: "100%",
       alignItems: 'center',
     },
     imageContainer: {

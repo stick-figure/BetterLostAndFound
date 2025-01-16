@@ -24,6 +24,7 @@ export function HomeScreen({navigation}: {navigation: any}) {
                 navigation.replace('Login');
             }
         });
+        
         const unsubscribe = onSnapshot(query(collection(db, 'items')), (snapshot: { docs: any[]; }) => setItems(
             snapshot.docs.map(((doc) => ({
                 _id: doc.id,
@@ -47,7 +48,7 @@ export function HomeScreen({navigation}: {navigation: any}) {
                 <Text style={styles.text}>Return Item</Text>
             </TouchableOpacity>
             <FlatList 
-            horizontal={true}
+            horizontal={false}
             keyExtractor={item => item._id.toString()}
             data={items}
             renderItem={({ item }) => (

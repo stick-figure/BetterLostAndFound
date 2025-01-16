@@ -121,8 +121,7 @@ const styles = StyleSheet.create({
         fontSize: 15,
     },
     itemImage: {
-        width: "90%",
-        marginTop: 12,
+        width: "100%",
         marginBottom: 12,
         aspectRatio: 1/1,
     },

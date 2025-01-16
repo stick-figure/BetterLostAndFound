@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, Image, Text } from 'react-native'
 import { Input, Button } from 'react-native-elements';
 import { auth, db } from '../../firebase';
@@ -7,13 +7,18 @@ import { addDoc, collection, doc, setDoc } from 'firebase/firestore';
 import { getDownloadURL, getStorage, ref, uploadBytes } from '@firebase/storage';
 import { launchCamera, launchImageLibrary, MediaType } from 'react-native-image-picker';
 
-export function RegisterScreen({navigation}: {navigation: any}) {
+export function RegisterScreen({navigation, route}: {navigation: any, route: any}) {
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
     const [pfpSrc, setPfpSrc] = useState({uri:""});
     const [registering, setRegistering] = useState(false);
+
+    useEffect(() => {
+        setEmail(route.params!.email);
+        setPassword(route.params!.password);
+    })
 
     const register = () => {
         setRegistering(true);
@@ -169,7 +174,6 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         padding: 10,
-        marginTop: 100,
     },
     button: {
         width: 370,
