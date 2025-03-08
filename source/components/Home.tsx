@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { View, Button, StyleSheet, Text, FlatList } from "react-native";
+import { View, Button, StyleSheet, Text, FlatList, Image } from "react-native";
 import { FAB, Input, ListItem } from "react-native-elements";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { lightThemeColors } from "../assets/Colors";
 import { onSnapshot, query, collection, where } from "firebase/firestore";
 import { db, auth } from "../../firebase";
+import { getStorage, ref, getDownloadURL } from "firebase/storage";
 
 export function HomeScreen({navigation}: {navigation: any}) {
     const [items, setItems] = useState([{
@@ -13,6 +14,11 @@ export function HomeScreen({navigation}: {navigation: any}) {
         description: "",
         owner: "",
         isLost: false,
+        imageSrc: "",
+    }]);
+
+    const [lostPosts, setLostPosts] = useState([{
+
     }]);
 
 
@@ -20,54 +26,65 @@ export function HomeScreen({navigation}: {navigation: any}) {
         auth.onAuthStateChanged((user) => {
             if (user) {
                 
-            } else {
+            } else {    
                 navigation.replace('Login');
             }
         });
         
-        const unsubscribe = onSnapshot(query(collection(db, 'items')), (snapshot: { docs: any[]; }) => setItems(
-            snapshot.docs.map(((doc) => ({
-                _id: doc.id,
-                name: doc.data().name,
-                description: doc.data().description,
-                owner: doc.data().owner,
-                isLost: doc.data().isLost,
+        const unsubscribe = onSnapshot(query(collection(db, 'items')), (snapshot: { docs: any[]; }) => {
+            setItems(snapshot.docs.map(((doc) => {
+                const myItem = {
+                    _id: doc.id,
+                    name: doc.data().name,
+                    description: doc.data().description,
+                    owner: doc.data().owner,
+                    isLost: doc.data().isLost,
+                    imageSrc: "",
+                }
+                const storage = getStorage();
+                const imageRef = ref(storage, 'images/items/' + myItem._id);
+                try {
+                    getDownloadURL(imageRef!).then((url) => {
+                        console.log(url);
+                        myItem.imageSrc = url;
+                    }).catch((error) => {
+                        console.warn(error);
+                    });
+                } catch (error) {
+                    console.error('Error getting download URL:', error);
+                }
+                return myItem;
             })))
-        ));
+        });
 
-        return () => {
-          unsubscribe();
-        };
-    });
+        return unsubscribe;
+    }, []);
 
     return (
         <View style={styles.container}>
             <TouchableOpacity 
-                onPress={()=> navigation.navigate("Return Item")}
+                onPress={() => navigation.navigate("Return Item")}
                 style={styles.returnItemButton}>
-                <Text style={styles.text}>Return Item</Text>
+                <Text style={styles.text}>Report Found Item i am a sigma boy sigma boy sigma boy</Text>
             </TouchableOpacity>
+            <Text>Im 2 days into skibidi and im 3 kai cenat behind</Text>
             <FlatList 
-            horizontal={false}
+            horizontal={true}
             keyExtractor={item => item._id.toString()}
             data={items}
             renderItem={({ item }) => (
                 <TouchableOpacity
                     key={item._id.toString()}
-                    onPress={() => {}}>
-                        <ListItem key={`${item._id}`} bottomDivider topDivider>
-                            <ListItem.Title style={styles.itemTitle}>
-                                <Text style={styles.itemTitle}>{item.name}</Text>
-                            </ListItem.Title>
-                            <ListItem.Subtitle style={styles.itemSubtitle}>
-                            <Text style={styles.itemTitle}>{item.owner}</Text>
-                            </ListItem.Subtitle>
-                            <ListItem.Content>
-                                <Text style={styles.itemContent}>{item.description}</Text>
-                            </ListItem.Content>
-                        </ListItem>
+                    onPress={() => {}}
+                    style={styles.item}>
+                    <Image 
+                    style={styles.itemImage}
+                    source={{"uri": item.imageSrc}}/>
+                    <Text style={styles.itemTitle}>{item.name}</Text>
+                    <Text style={styles.itemContent}>{item.description}</Text>
                 </TouchableOpacity>
                 )}
+            style={styles.list}
             />
             <Text>Home</Text>
             
@@ -84,10 +101,18 @@ const styles = StyleSheet.create({
     text: {
         textAlign: "center",
         color: lightThemeColors.textDark,
-        fontSize: 18,
+//        fontSize: 18,
+    },
+    item: {
+        backgroundColor: "white",
+        width: 90,
+        height: 80,
     },
     itemTitle: {
         color: lightThemeColors.textLight,
+    },
+    itemImage: {
+
     },
     itemSubtitle: {
         color: lightThemeColors.textLight,
@@ -101,6 +126,9 @@ const styles = StyleSheet.create({
         padding: 10,
         backgroundColor: lightThemeColors.primary,
         borderRadius: 7,
+    },
+    list: {
+        height: 50,
     },
 });
 export default HomeScreen;

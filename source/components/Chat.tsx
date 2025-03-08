@@ -31,7 +31,7 @@ export function ChatScreen({ navigation }: {navigation: any}) {
         });
     }
     
-    useEffect(() => {
+    useLayoutEffect(() => {
         navigation.setOptions({
             headerLeft: () => (
                 <View style={{ marginLeft: 20 }}>

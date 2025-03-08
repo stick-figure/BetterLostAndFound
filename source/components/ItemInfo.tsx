@@ -87,6 +87,29 @@ export function ItemInfoScreen({navigation, route}: {navigation: any, route: any
             </View>
         );
     }
+
+    if (item.owner == auth.currentUser?.uid) {
+        return (
+            <View style={styles.container}>
+                <Image 
+                    style={styles.itemImage}
+                    source={imageSrc} />
+                <Text>{item.description}</Text>
+                <View style={{width: "100%", alignContent: "center"}}>
+                    <TouchableOpacity
+                        onPress={deleteItem}
+                        style={styles.markAsLostButton}>
+                        <Text style={styles.text}>Mark as lost</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        onPress={deleteItem}
+                        style={styles.deleteItemButton}>
+                        <Text style={styles.text}>Delete item</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+        )
+    }
     
     return (
         <View style={styles.container}>
@@ -94,6 +117,7 @@ export function ItemInfoScreen({navigation, route}: {navigation: any, route: any
                 style={styles.itemImage}
                 source={imageSrc}/>
             <Text>{item.description}</Text>
+            <Text>Item Owner: {item.owner}</Text>
             <View style={{width: "100%", alignContent: "center"}}>
                 <TouchableOpacity
                     onPress={deleteItem}

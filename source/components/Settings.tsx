@@ -1,12 +1,24 @@
 import { Text, TouchableOpacity, View } from "react-native";
 import { auth } from "../../firebase";
-import { signOut } from "firebase/auth";
+import { deleteUser, signOut } from "firebase/auth";
 
 
 export function SettingsScreen({navigation}: {navigation: any}) {
     const signOutNow = () => {
         navigation.navigate("Loading");
         signOut(auth).then(() => {
+            // Sign-out successful.
+            navigation.replace("Login");
+        }).catch((error) => {
+            // An error happened.
+            const errorCode = error.code;
+            const errorMessage = error.message;
+            navigation.navigate("Error", {code: errorCode, message: errorMessage});
+        });
+    }
+    const deleteAccount = () => {
+        navigation.navigate("Loading");
+        deleteUser(auth.currentUser!).then(() => {
             // Sign-out successful.
             navigation.replace("Login");
         }).catch((error) => {
@@ -24,6 +36,10 @@ export function SettingsScreen({navigation}: {navigation: any}) {
             >
                 <Text>Sign out now</Text>
         </TouchableOpacity>
-        
+        <TouchableOpacity
+            onPress={deleteAccount}
+            >
+                <Text>Delete account</Text>
+        </TouchableOpacity>
     </View>);
 }
