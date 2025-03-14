@@ -12,47 +12,41 @@ export function RegisterScreen({navigation, route}: {navigation: any, route: any
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
-    const [pfpSrc, setPfpSrc] = useState({uri:""});
+    const [pfpSrc, setPfpSrc] = useState(require("../assets/defaultpfp.jpg"));
     const [registering, setRegistering] = useState(false);
 
     useEffect(() => {
         setEmail(route.params!.email);
         setPassword(route.params!.password);
-    })
+    }, [route]);
 
     const register = () => {
         setRegistering(true);
-        navigation.navigate("Loading");
 
-        createUserWithEmailAndPassword(auth, email, password)
-        .then((userCredential) => {
+//        navigation.navigate("Loading");
+
+        createUserWithEmailAndPassword(auth, email, password).then((userCredential) => {
             // Registered
             const user = userCredential.user;
             uploadImage(user.uid).then((pfpUrl) => {
-                updateProfile(user, {
+                return updateProfile(user, {
                     displayName: name,
-                    photoURL: pfpUrl ? pfpUrl : require("../assets/defaultpfp.jpg"),
-                }).then(() => {
-                    const userData = {
-                        name: name,
-                        email: email,
-                        pfpUrl: user.photoURL,
-                        emailVertified: false,
-                        online: false,
-                    };
-                    
-                    setDoc(doc(db, "users", user.uid), userData).then(() => {
-                        navigation.navigate("Home Tab", {screen: "Home"});
-                    });
-    
-                }).catch((error) => {
-                    const errorCode = error.code;
-                    const errorMessage = error.message;
-                    navigation.navigate("Error", {code: errorCode, message: errorMessage});
+                    photoURL: pfpUrl ? pfpUrl : require("../assets/defaultpfp.jpg").uri,
                 });
+            }).then(() => {
+                const userData = {
+                    name: name,
+                    email: email,
+                    pfpUrl: user.photoURL,
+                    emailVertified: false,
+                    online: false,
+                    createdAt: Date.now(),
+                };
+                
+                return setDoc(doc(db, "users", user.uid), userData);
+            }).then(() => {
+                navigation.replace("Home Tab", {screen: "Home"});
             });
-            
-
         }).catch((error) => {
             const errorCode = error.code;
             const errorMessage = error.message;
@@ -106,43 +100,28 @@ export function RegisterScreen({navigation, route}: {navigation: any, route: any
 
     const uploadImage = async (imageId: string) => {
         return new Promise((resolve, reject) => {
-            fetch(pfpSrc.uri).then((response) => {
-                response.blob().then((blob) => {
-                    const storage = getStorage();
-                    const imageRef = ref(storage, "images/pfps/" + imageId);
-                    
-                    uploadBytes(imageRef, blob).then((snapshot) => {
-                        console.log(imageRef);
-                        getDownloadURL(imageRef!).then((url) => {
-                            console.log(url);
-                            resolve(url);
-                        }).catch((error) => {
-                            console.warn(error);
-                        });
-                    }).catch((error) => {
-                        const errorCode = error.code;
-                        const errorMessage = error.message;
-                        navigation.navigate("Error", {code: errorCode, message: errorMessage});
-                    });
-                });
+            const storage = getStorage();
+            const imageRef = ref(storage, "images/pfps/" + imageId);
+            
+            fetch(pfpSrc.uri).then((response) => response.blob()).then((blob) => {
+                return uploadBytes(imageRef, blob);
+            }).catch((error) => {
+                const errorCode = error.code;
+                const errorMessage = error.message;
+                navigation.navigate("Error", {code: errorCode, message: errorMessage});
             });
-        });
+        })
         
     }
 
     return (
         <View style={styles.container}>
-            {pfpSrc.uri == "" ? (
-                <Image 
-                    style={styles.pfpImage}
-                    source={require("../assets/defaultpfp.jpg")}
-                />
-            ) : (
-                <Image 
-                    style={styles.pfpImage}
-                    source={pfpSrc}
-                />
-            )}
+            
+            <Image 
+                style={styles.pfpImage}
+                source={pfpSrc}
+            />
+        
             
             <Button title='Take picture with camera' onPress={handleCameraLaunch} style={styles.button} />
             <Button title='Upload from library' onPress={openImagePicker} style={styles.button} />

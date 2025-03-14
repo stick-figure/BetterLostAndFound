@@ -3,61 +3,61 @@ import { View, Button, StyleSheet, Text, FlatList, Image } from "react-native";
 import { FAB, Input, ListItem } from "react-native-elements";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { lightThemeColors } from "../assets/Colors";
-import { onSnapshot, query, collection, where } from "firebase/firestore";
+import { onSnapshot, query, collection, where, DocumentSnapshot } from "firebase/firestore";
 import { db, auth } from "../../firebase";
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
+import { confirmPasswordReset, Unsubscribe } from "firebase/auth";
 
 export function HomeScreen({navigation}: {navigation: any}) {
-    const [items, setItems] = useState([{
-        _id: "",
-        name: "",
-        description: "",
-        owner: "",
-        isLost: false,
-        imageSrc: "",
-    }]);
+    const [items, setItems] = useState<Item[]>([]);
 
     const [lostPosts, setLostPosts] = useState([{
 
     }]);
 
+    const [imageSrc, setImageSrc] = useState("")
+
 
     useEffect(() => {
+        if (!auth.currentUser) {
+            navigation.replace("Login")
+        }
         auth.onAuthStateChanged((user) => {
             if (user) {
-                
+
             } else {    
                 navigation.replace('Login');
             }
         });
         
         const unsubscribe = onSnapshot(query(collection(db, 'items')), (snapshot: { docs: any[]; }) => {
-            setItems(snapshot.docs.map(((doc) => {
-                const myItem = {
-                    _id: doc.id,
-                    name: doc.data().name,
-                    description: doc.data().description,
-                    owner: doc.data().owner,
-                    isLost: doc.data().isLost,
-                    imageSrc: "",
-                }
-                const storage = getStorage();
-                const imageRef = ref(storage, 'images/items/' + myItem._id);
-                try {
-                    getDownloadURL(imageRef!).then((url) => {
-                        console.log(url);
+            const promises = snapshot.docs.map((doc: DocumentSnapshot) => {
+                return new Promise((resolve, reject) => {
+                    const myItem = {
+                        _id: doc.id,
+                        name: doc.data()!.name,
+                        description: doc.data()!.description,
+                        owner: doc.data()!.owner,
+                        isLost: doc.data()!.isLost,
+                        imageSrc: "",
+                    }
+                    
+                    const storage = getStorage();
+
+                    getDownloadURL(ref(storage, 'images/items/' + doc.id)).then((url) => {
                         myItem.imageSrc = url;
+                        resolve(myItem);
                     }).catch((error) => {
                         console.warn(error);
                     });
-                } catch (error) {
-                    console.error('Error getting download URL:', error);
-                }
-                return myItem;
-            })))
-        });
+                });
+            });
+            Promise.all(promises).then((itemArray) => {
+                setItems(itemArray as Item[]);
+            });
 
-        return unsubscribe;
+            return unsubscribe;
+        });
     }, []);
 
     return (
@@ -75,11 +75,12 @@ export function HomeScreen({navigation}: {navigation: any}) {
             renderItem={({ item }) => (
                 <TouchableOpacity
                     key={item._id.toString()}
-                    onPress={() => {}}
+                    onPress={() => {navigation.navigate("Item Info", {item: item})}}
                     style={styles.item}>
                     <Image 
                     style={styles.itemImage}
                     source={{"uri": item.imageSrc}}/>
+                    <Text style={styles.itemTitle}>{item._id}</Text>
                     <Text style={styles.itemTitle}>{item.name}</Text>
                     <Text style={styles.itemContent}>{item.description}</Text>
                 </TouchableOpacity>
@@ -112,7 +113,8 @@ const styles = StyleSheet.create({
         color: lightThemeColors.textLight,
     },
     itemImage: {
-
+        width: 60,
+        height: 80,
     },
     itemSubtitle: {
         color: lightThemeColors.textLight,

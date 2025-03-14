@@ -1,6 +1,7 @@
 import { Text, TouchableOpacity, View } from "react-native";
-import { auth } from "../../firebase";
+import { auth, db } from "../../firebase";
 import { deleteUser, signOut } from "firebase/auth";
+import { query, collection, where, deleteDoc, getDocs } from "firebase/firestore";
 
 
 export function SettingsScreen({navigation}: {navigation: any}) {
@@ -18,6 +19,7 @@ export function SettingsScreen({navigation}: {navigation: any}) {
     }
     const deleteAccount = () => {
         navigation.navigate("Loading");
+        
         deleteUser(auth.currentUser!).then(() => {
             // Sign-out successful.
             navigation.replace("Login");

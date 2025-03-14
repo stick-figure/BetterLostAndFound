@@ -3,7 +3,7 @@ import { getStorage, ref, uploadBytes } from "firebase/storage";
 import { useState } from "react";
 import { View, Text, Button, StyleSheet, Image, Pressable, ImageSourcePropType, TouchableOpacity } from "react-native";
 import { Input } from "react-native-elements";
-import { launchImageLibrary, MediaType } from 'react-native-image-picker';
+import { launchCamera, launchImageLibrary, MediaType } from 'react-native-image-picker';
 
 import { auth, db } from "../../firebase";
 import { lightThemeColors } from "../assets/Colors";
@@ -16,31 +16,53 @@ export function AddItemScreen({ navigation, route }: {navigation: any, route: an
 
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
+    const [tags, setTags] = useState([]);
+    const [secretCode, setSecretCode] = useState("");
 
-    const [imgSrc, setImgSrc] = useState({uri:""});
+    const [imgSrc, setImgSrc] = useState({uri: ""});
     const [uploading, setUploading] = useState(false);
     const [transferred, setTransferred] = useState(0);
     
-    const selectImage = () => {
-      const options = {
-        mediaType: "photo" as MediaType,
-        includeBase64: false,
-        maxHeight: 2000,
-        maxWidth: 2000,
-        selectionLimit: 1,
-      };
+    const openImagePicker = () => {
+        const options = {
+            mediaType: "photo" as MediaType,
+            includeBase64: false,
+            maxHeight: 2000,
+            maxWidth: 2000,
+            selectionLimit: 1,
+        };
 
-      launchImageLibrary(options, (response) => {
-        if (response.didCancel) {
-          console.log('User cancelled image picker');
-        } else if (response.errorCode) {
-          console.log('ImagePicker Error: ', response.errorMessage);
-        } else if (response.assets) {
-          const source = { uri: response.assets[0].uri! };
-          setImgSrc(source);
-        }
-      }).catch(()=> {console.log("whoop de doo")});
+        launchImageLibrary(options, (response) => {
+            if (response.didCancel) {
+                console.log('User cancelled image picker');
+            } else if (response.errorCode) {
+                console.log('ImagePicker Error: ', response.errorMessage);
+            } else if (response.assets) {
+                const source = { uri: response.assets[0].uri! };
+                setImgSrc(source);
+            }
+        }).catch(() => {console.log("whoop de doo")});
     };
+
+    const handleCameraLaunch = () => {
+        const options = {
+          mediaType: 'photo' as MediaType,
+          includeBase64: false,
+          maxHeight: 2000,
+          maxWidth: 2000,
+        };
+      
+        launchCamera(options, (response) => {
+          if (response.didCancel) {
+            console.log('User cancelled camera');
+          } else if (response.errorCode) {
+            console.log('Camera Error: ', response.errorMessage);
+          } else {
+            let source = {uri: response.assets![0].uri!};
+            setImgSrc(source);
+          }
+        });
+      }
 
     const uploadImage = async (imageId: string) => {
       setUploading(true);
@@ -67,7 +89,9 @@ export function AddItemScreen({ navigation, route }: {navigation: any, route: an
         name: name,
         description: description,
         owner: auth.currentUser?.uid,
+        secretCode: secretCode,
         isLost: false,
+        createdAt: Date.now(),
       };
       
       navigation.navigate("Loading");
@@ -89,30 +113,17 @@ export function AddItemScreen({ navigation, route }: {navigation: any, route: an
     
     return (
         <View style={styles.container}>
-          {imgSrc.uri == "" ? 
-            <Pressable onPress={async ()=> {
-              selectImage();
-            }} style={styles.imagePressableContainer}>
-              <View style={styles.imageContainer}>
-                <Image
+            {imgSrc.uri == "" ? 
+              <Image
                   style={styles.itemImage}
                   source={require("../assets/defaultimg.jpg")} />
-              </View>
-              
-              <Text style={styles.imageLabel}>Select image</Text>
-            </Pressable>
-            :
-            <Pressable onPress={async ()=> {
-              selectImage();
-            }} style={styles.imagePressableContainer}>
-              <View style={styles.imageContainer}>
-                <Image
-                  style={styles.itemImage}
-                  source={imgSrc}/>
-              </View>
-              
-              <Text style={styles.imageLabel}>Change image</Text>
-            </Pressable>}
+              :
+              <Image
+                style={styles.itemImage}
+                source={imgSrc}/>
+              }
+            <Button title='Take picture with camera' onPress={handleCameraLaunch} />
+            <Button title='Upload from library' onPress={openImagePicker} />
           
             <Input
                 label="Name"
@@ -125,6 +136,12 @@ export function AddItemScreen({ navigation, route }: {navigation: any, route: an
                 placeholder="Describe some identifying features"
                 onChangeText={text => setDescription(text)}
                 value={description}
+            />
+            <Input
+                label="Secret Code (optional)"
+                placeholder="The secret code you need to type to prove this item is yours"
+                onChangeText={text => setSecretCode(text)}
+                value={secretCode}
             />
             <TouchableOpacity 
               style={styles.saveButton}
@@ -149,6 +166,9 @@ const styles = StyleSheet.create({
     imagePressableContainer: {
       width: "100%",
       alignItems: 'center',
+    },
+    button: {
+
     },
     imageContainer: {
       flexDirection: 'row',

@@ -9,13 +9,7 @@ import { lightThemeColors } from "../assets/Colors";
 
 
 export function MyItemsScreen({ navigation }: {navigation: any}) {
-    const [items, setItems] = useState([{
-        _id: "",
-        name: "",
-        description: "",
-        owner: "",
-        isLost: false,
-    }]);
+    const [items, setItems] = useState<Item[]>([]);
 
 
     useEffect(() => {
@@ -26,6 +20,9 @@ export function MyItemsScreen({ navigation }: {navigation: any}) {
                 description: doc.data().description,
                 owner: doc.data().owner,
                 isLost: doc.data().isLost,
+                createdAt: doc.data().createdAt,
+                secretCode: doc.data().secretCode,
+                imageSrc: "",
             })))
         ));
 
@@ -44,7 +41,7 @@ export function MyItemsScreen({ navigation }: {navigation: any}) {
                         renderItem={({ item }) => (
                             <TouchableOpacity 
                                 key={item._id.toString()}
-                                onPress={() => {navigation.navigate("Item Info", {itemId: item._id, itemName: item.name})}}>
+                                onPress={() => {navigation.navigate("Item Info", {item: item})}}>
                                     <ListItem key={`${item._id}`} bottomDivider topDivider>
                                         <ListItem.Title style={styles.itemTitle}>
                                             <Text style={styles.itemTitle}>{item.name}</Text>

@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { View, Text, Button, StyleSheet, Pressable } from "react-native";
 import { auth, db } from "../../firebase";
 import { Image } from "react-native-elements";
-import { deleteObject, getDownloadURL, getStorage, ref, StorageReference } from "firebase/storage";
+import { deleteObject, getDownloadURL, getStorage, ref, StorageError, StorageReference } from "firebase/storage";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { lightThemeColors } from "../assets/Colors";
 
@@ -14,13 +14,7 @@ export type ItemInfoRouteParams = {
 
 export function ItemInfoScreen({navigation, route}: {navigation: any, route: any}) {
 
-    const [item, setItem] = useState({
-        _id: "",
-        name: "",
-        description: "",
-        owner: "",
-        isLost: false,
-    });
+    const [item, setItem] = useState<Item>();
     const [imageSrc, setImageSrc] = useState(require("../assets/defaultimg.jpg"));
     const [itemRef, setItemRef] = useState<DocumentReference>();
     const [imageRef, setImageRef] = useState<StorageReference>();
@@ -53,7 +47,22 @@ export function ItemInfoScreen({navigation, route}: {navigation: any, route: any
         };
     
         checkUser();*/
-
+        if (route.params!.item != null) {
+            setItem(route.params!.item);
+            const storage = getStorage();
+            const imageRef = ref(storage, 'images/items/' + route.params!.item._id);
+            setImageRef(imageRef);
+            try {
+                getDownloadURL(imageRef!).then((url) => {
+                    setImageSrc({uri: url});
+                }).catch((error) => {
+                    console.warn(error);
+                });
+            } catch (error) {
+                console.error('Error getting download URL:', error);
+            }
+            return;
+        }
 
         getDoc(doc(collection(db, "items"), route.params!.itemId)).then((snapshot) => {
             setItem({
@@ -61,7 +70,10 @@ export function ItemInfoScreen({navigation, route}: {navigation: any, route: any
                 name: snapshot.get("name") as string,
                 description: snapshot.get("description") as string,
                 owner: snapshot.get("owner") as string,
-                isLost: snapshot.get("name") as boolean,
+                secretCode: snapshot.get("secretCode") as string,
+                createdAt: snapshot.get("name") as number,
+                isLost: snapshot.get("isLost") as boolean,
+                imageSrc: "",
             });
             setItemRef(snapshot.ref);
             const storage = getStorage();
@@ -69,7 +81,6 @@ export function ItemInfoScreen({navigation, route}: {navigation: any, route: any
             setImageRef(imageRef);
             try {
                 getDownloadURL(imageRef!).then((url) => {
-                    console.log(url);
                     setImageSrc({uri: url});
                 }).catch((error) => {
                     console.warn(error);
@@ -78,7 +89,7 @@ export function ItemInfoScreen({navigation, route}: {navigation: any, route: any
                 console.error('Error getting download URL:', error);
             }
         });
-    }, []);
+    }, [route]);
     
     if (item == null) {
         return (
