@@ -87,31 +87,6 @@ export function NewLostPostScreen({ navigation, route }: {navigation: any, route
     
     return (
         <View style={styles.container}>
-          {imgSrc.uri == "" ? 
-            <Pressable onPress={async ()=> {
-              selectImage();
-            }} style={styles.imagePressableContainer}>
-              <View style={styles.imageContainer}>
-                <Image
-                  style={styles.itemImage}
-                  source={require("../assets/defaultimg.jpg")} />
-              </View>
-              
-              <Text style={styles.imageLabel}>Select image</Text>
-            </Pressable>
-            :
-            <Pressable onPress={async ()=> {
-              selectImage();
-            }} style={styles.imagePressableContainer}>
-              <View style={styles.imageContainer}>
-                <Image
-                  style={styles.itemImage}
-                  source={imgSrc}/>
-              </View>
-              
-              <Text style={styles.imageLabel}>Change image</Text>
-            </Pressable>}
-          
             <Input
                 placeholder="Title"
                 onChangeText={text => setTitle(text)}
@@ -128,7 +103,7 @@ export function NewLostPostScreen({ navigation, route }: {navigation: any, route
               disabled={title.trim().length == 0 || message.trim().length == 0}
               onPress={uploadItem}
               >
-                <Text style={styles.saveButtonText}>Add Item</Text>
+                <Text style={styles.saveButtonText}>Post</Text>
             </TouchableOpacity>
         </View>
     );
