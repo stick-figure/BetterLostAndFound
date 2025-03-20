@@ -1,5 +1,5 @@
-import React, { useCallback, useState, useLayoutEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useCallback, useState, useLayoutEffect, useEffect } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import { Avatar } from 'react-native-elements';
 import { auth, db } from '../../firebase';
 import { signOut } from 'firebase/auth';
@@ -11,6 +11,7 @@ import {
     ImageURISource,
   } from 'react-native';
 import { lightThemeColors } from '../assets/Colors';
+import { TouchableOpacity } from 'react-native-gesture-handler';
 
 type ImageProps = DefaultImageProps & {
 source: ImageURISource;
@@ -63,9 +64,7 @@ export function ChatScreen({ navigation }: {navigation: any}) {
             }))
         ));
 
-        return () => {
-          unsubscribe();
-        };
+        return unsubscribe;
 
     }, [navigation]);
 

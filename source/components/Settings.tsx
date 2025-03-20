@@ -1,6 +1,7 @@
-import { Text, TouchableOpacity, View } from "react-native";
+import { Text, View } from "react-native";
 import { auth } from "../../firebase";
 import { signOut } from "firebase/auth";
+import { TouchableOpacity } from "react-native-gesture-handler";
 
 
 export function SettingsScreen({navigation}: {navigation: any}) {

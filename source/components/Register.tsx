@@ -26,31 +26,47 @@ export function RegisterScreen({navigation, route}: {navigation: any, route: any
 
         createUserWithEmailAndPassword(auth, email, password)
         .then((userCredential) => {
+            console.log("registered user!");
             // Registered
             const user = userCredential.user;
+            
+            const userData = {
+                name: name,
+                email: email,
+                pfpUrl: user.photoURL,
+                emailVertified: false,
+                online: false,
+            };
+            
+            setDoc(doc(db, "users", user.uid), userData).then(() => {
+                console.log("hoagie");
+                navigation.navigate("Home Tab", {screen: "Home"});
+            });
+/*
             uploadImage(user.uid).then((pfpUrl) => {
-                updateProfile(user, {
+                console.log("uploaded image!");
+                return updateProfile(user, {
                     displayName: name,
                     photoURL: pfpUrl ? pfpUrl : require("../assets/defaultpfp.jpg"),
-                }).then(() => {
-                    const userData = {
-                        name: name,
-                        email: email,
-                        pfpUrl: user.photoURL,
-                        emailVertified: false,
-                        online: false,
-                    };
-                    
-                    setDoc(doc(db, "users", user.uid), userData).then(() => {
-                        navigation.navigate("Home Tab", {screen: "Home"});
-                    });
-    
-                }).catch((error) => {
-                    const errorCode = error.code;
-                    const errorMessage = error.message;
-                    navigation.navigate("Error", {code: errorCode, message: errorMessage});
+                })
+            }).then(() => {
+                const userData = {
+                    name: name,
+                    email: email,
+                    pfpUrl: user.photoURL,
+                    emailVertified: false,
+                    online: false,
+                };
+                
+                setDoc(doc(db, "users", user.uid), userData).then(() => {
+                    console.log("hoagie");
+                    navigation.navigate("Home Tab", {screen: "Home"});
                 });
-            });
+            }).catch((error) => {
+                const errorCode = error.code;
+                const errorMessage = error.message;
+                navigation.navigate("Error", {code: errorCode, message: errorMessage});
+            });*/
             
 
         }).catch((error) => {
@@ -104,27 +120,35 @@ export function RegisterScreen({navigation, route}: {navigation: any, route: any
         });
       }
 
-    const uploadImage = async (imageId: string) => {
-        return new Promise((resolve, reject) => {
+    const uploadImage = (imageId: string) => {
+        return new Promise(async (resolve, reject) => {
+            console.log("uploading image now, " + pfpSrc.uri);
+            
             fetch(pfpSrc.uri).then((response) => {
-                response.blob().then((blob) => {
-                    const storage = getStorage();
-                    const imageRef = ref(storage, "images/pfps/" + imageId);
-                    
-                    uploadBytes(imageRef, blob).then((snapshot) => {
-                        console.log(imageRef);
-                        getDownloadURL(imageRef!).then((url) => {
-                            console.log(url);
-                            resolve(url);
-                        }).catch((error) => {
-                            console.warn(error);
-                        });
+                console.log("getting blob of image uri" + pfpSrc.uri);
+                return response.blob();
+            }).then((blob) => {
+                console.log("uploading images bytes...");
+                const storage = getStorage();
+                const imageRef = ref(storage, "images/pfps/" + imageId);
+                
+                uploadBytes(imageRef, blob).then((snapshot) => {
+                    console.log("getting download url...");
+                    getDownloadURL(imageRef!).then((url) => {
+                        return resolve(url);
                     }).catch((error) => {
-                        const errorCode = error.code;
-                        const errorMessage = error.message;
-                        navigation.navigate("Error", {code: errorCode, message: errorMessage});
+                        console.warn(error);
                     });
+                }).catch((error) => {
+                    const errorCode = error.code;
+                    const errorMessage = error.message;
+                    navigation.navigate("Error", {code: errorCode, message: errorMessage});
                 });
+            }).catch((error) => {
+                const errorCode = error.code;
+                const errorMessage = error.message;
+                console.warn(error);
+                navigation.navigate("Error", {code: errorCode, message: errorMessage});
             });
         });
         

@@ -1,11 +1,12 @@
 import { query, collection, where, doc, getDocs, setDoc, DocumentData, onSnapshot } from "firebase/firestore";
 import { SetStateAction, useEffect, useLayoutEffect, useState } from "react";
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { FlatList, StyleSheet, Text, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { auth, db } from "../../firebase";
 import firebase from "firebase/compat/app";
 import { FAB, ListItem } from "react-native-elements";
 import { lightThemeColors } from "../assets/Colors";
+import { TouchableOpacity } from "react-native-gesture-handler";
 
 
 export function MyItemsScreen({ navigation }: {navigation: any}) {
@@ -29,9 +30,7 @@ export function MyItemsScreen({ navigation }: {navigation: any}) {
             })))
         ));
 
-        return () => {
-          unsubscribe();
-        };
+        return unsubscribe;
     });
 
 

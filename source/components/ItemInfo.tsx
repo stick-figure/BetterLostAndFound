@@ -87,6 +87,18 @@ export function ItemInfoScreen({navigation, route}: {navigation: any, route: any
             </View>
         );
     }
+
+    if (item.owner != auth.currentUser?.uid) {
+        return (
+            <View style={styles.container}>
+                <Image 
+                style={styles.itemImage}
+                source={imageSrc}/>
+            <Text>{item.description}</Text>
+            <Text>Item Owner: {item.owner}</Text>
+            </View>
+        );
+    }
     
     return (
         <View style={styles.container}>

@@ -1,19 +1,23 @@
 import { useEffect, useState } from "react";
-import { View, Button, StyleSheet, Text, FlatList } from "react-native";
+import { View, Button, StyleSheet, Text, FlatList, Image } from "react-native";
 import { FAB, Input, ListItem } from "react-native-elements";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { lightThemeColors } from "../assets/Colors";
 import { onSnapshot, query, collection, where } from "firebase/firestore";
 import { db, auth } from "../../firebase";
+import { getStorage, ref, getDownloadURL } from "firebase/storage";
+
+interface Item {
+    _id: string,
+    name: string,
+    description: string,
+    owner: string, 
+    isLost: boolean,
+    imageSrc: object,
+}
 
 export function HomeScreen({navigation}: {navigation: any}) {
-    const [items, setItems] = useState([{
-        _id: "",
-        name: "",
-        description: "",
-        owner: "",
-        isLost: false,
-    }]);
+    const [items, setItems] = useState<Array<Item>>([]);
 
 
     useEffect(() => {
@@ -25,19 +29,25 @@ export function HomeScreen({navigation}: {navigation: any}) {
             }
         });
         
-        const unsubscribe = onSnapshot(query(collection(db, 'items')), (snapshot: { docs: any[]; }) => setItems(
-            snapshot.docs.map(((doc) => ({
-                _id: doc.id,
-                name: doc.data().name,
-                description: doc.data().description,
-                owner: doc.data().owner,
-                isLost: doc.data().isLost,
-            })))
-        ));
+        const unsubscribe = onSnapshot(query(collection(db, 'items')), (snapshot: { docs: any[]; }) => {
+            let promises = snapshot.docs.map(async (doc) => {
+                const storage = getStorage();
+                const imageRef = ref(storage, 'images/items/' + doc.id);
+                const url = await getDownloadURL(imageRef!);
+                return {
+                    _id: doc.id,
+                    name: doc.data().name,
+                    description: doc.data().description,
+                    owner: doc.data().owner,
+                    isLost: doc.data().isLost,
+                    imageSrc: {uri: url},
+                };
+            });
+            
+            Promise.all(promises).then((res) => setItems(res));
+        });
 
-        return () => {
-          unsubscribe();
-        };
+        return unsubscribe;
     });
 
     return (
@@ -54,7 +64,7 @@ export function HomeScreen({navigation}: {navigation: any}) {
             renderItem={({ item }) => (
                 <TouchableOpacity
                     key={item._id.toString()}
-                    onPress={() => {}}>
+                    onPress={() => {navigation.navigate("Item Info", {itemId: item._id, itemName: item.name})}}>
                         <ListItem key={`${item._id}`} bottomDivider topDivider>
                             <ListItem.Title style={styles.itemTitle}>
                                 <Text style={styles.itemTitle}>{item.name}</Text>
@@ -65,6 +75,7 @@ export function HomeScreen({navigation}: {navigation: any}) {
                             <ListItem.Content>
                                 <Text style={styles.itemContent}>{item.description}</Text>
                             </ListItem.Content>
+                            <Image source={item.imageSrc} />
                         </ListItem>
                 </TouchableOpacity>
                 )}

@@ -16,6 +16,7 @@ export function AddItemScreen({ navigation, route }: {navigation: any, route: an
 
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
+    const [tags, setTags] = useState([]);
 
     const [imgSrc, setImgSrc] = useState({uri:""});
     const [uploading, setUploading] = useState(false);
