@@ -21,14 +21,18 @@ export function HomeScreen({navigation}: {navigation: any}) {
 
 
     useEffect(() => {
-        auth.onAuthStateChanged((user) => {
+        const unsubscribe = auth.onAuthStateChanged((user) => {
             if (user) {
                 
             } else {
                 navigation.replace('Login');
             }
         });
-        
+
+        return unsubscribe;
+    });
+    
+    useEffect(() => {
         const unsubscribe = onSnapshot(query(collection(db, 'items')), (snapshot: { docs: any[]; }) => {
             let promises = snapshot.docs.map(async (doc) => {
                 const storage = getStorage();
@@ -65,18 +69,10 @@ export function HomeScreen({navigation}: {navigation: any}) {
                 <TouchableOpacity
                     key={item._id.toString()}
                     onPress={() => {navigation.navigate("Item Info", {itemId: item._id, itemName: item.name})}}>
-                        <ListItem key={`${item._id}`} bottomDivider topDivider>
-                            <ListItem.Title style={styles.itemTitle}>
-                                <Text style={styles.itemTitle}>{item.name}</Text>
-                            </ListItem.Title>
-                            <ListItem.Subtitle style={styles.itemSubtitle}>
-                            <Text style={styles.itemTitle}>{item.owner}</Text>
-                            </ListItem.Subtitle>
-                            <ListItem.Content>
-                                <Text style={styles.itemContent}>{item.description}</Text>
-                            </ListItem.Content>
-                            <Image source={item.imageSrc} />
-                        </ListItem>
+                        <Image style={styles.image} source={item.imageSrc} />
+                        <Text style={styles.itemTitle}>{item.name}</Text>
+                        <Text style={styles.itemTitle}>{item.owner}</Text>
+                        <Text style={styles.itemContent}>{item.description}</Text>
                 </TouchableOpacity>
                 )}
             />
@@ -113,5 +109,9 @@ const styles = StyleSheet.create({
         backgroundColor: lightThemeColors.primary,
         borderRadius: 7,
     },
+    image: {
+        width: 100,
+        height: 100
+    }
 });
 export default HomeScreen;

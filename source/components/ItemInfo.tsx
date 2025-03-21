@@ -1,5 +1,5 @@
 import { collection, deleteDoc, deleteField, doc, DocumentReference, getDoc, onSnapshot, updateDoc } from "firebase/firestore";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { View, Text, Button, StyleSheet, Pressable } from "react-native";
 import { auth, db } from "../../firebase";
 import { Image } from "react-native-elements";
@@ -41,20 +41,7 @@ export function ItemInfoScreen({navigation, route}: {navigation: any, route: any
     }
     const [isCurrentUser, setIsCurrentUser] = useState(false);
 
-    useEffect(() => {/*TODO 
-        const checkUser = async () => {
-        const user = auth.currentUser;
-        if (user) {
-            const userDoc = await collection("users").doc(user.uid).get();
-            if (userDoc.exists) {
-            setIsCurrentUser(true);
-            }
-        }
-        };
-    
-        checkUser();*/
-
-
+    const getItemDoc = useCallback(() => {
         getDoc(doc(collection(db, "items"), route.params!.itemId)).then((snapshot) => {
             setItem({
                 _id: route.params!.itemId,
@@ -78,6 +65,22 @@ export function ItemInfoScreen({navigation, route}: {navigation: any, route: any
                 console.error('Error getting download URL:', error);
             }
         });
+    }, [route]);
+
+    useEffect(() => {
+        /*TODO 
+        const checkUser = async () => {
+        const user = auth.currentUser;
+        if (user) {
+            const userDoc = await collection("users").doc(user.uid).get();
+            if (userDoc.exists) {
+            setIsCurrentUser(true);
+            }
+        }
+        };
+    
+        checkUser();*/
+        getItemDoc();
     }, []);
     
     if (item == null) {

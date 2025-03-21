@@ -31,13 +31,14 @@ export function LoginScreen({navigation}: {navigation: any}) {
     };
 
     useEffect(() => {
-        auth.onAuthStateChanged((user) => {
+        const unsubscribe = auth.onAuthStateChanged((user) => {
             if (user) {
                 setSigningIn(true);
                 navigation.replace('Home Tab', {screen: 'Home'});
                 setSigningIn(false);
             }
         });
+        return unsubscribe;
     });
 
 //    const emailRegex = /.*@scienceleadership.org/g;

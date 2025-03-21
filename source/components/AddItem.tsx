@@ -1,12 +1,13 @@
 import { addDoc, collection } from "firebase/firestore";
 import { getStorage, ref, uploadBytes } from "firebase/storage";
 import { useState } from "react";
-import { View, Text, Button, StyleSheet, Image, Pressable, ImageSourcePropType, TouchableOpacity } from "react-native";
+import { View, Text, Button, StyleSheet, Image, Pressable, ImageSourcePropType } from "react-native";
 import { Input } from "react-native-elements";
 import { launchImageLibrary, MediaType } from 'react-native-image-picker';
 
 import { auth, db } from "../../firebase";
 import { lightThemeColors } from "../assets/Colors";
+import { TouchableOpacity } from "react-native-gesture-handler";
 
 
 export function AddItemScreen({ navigation, route }: {navigation: any, route: any}) {

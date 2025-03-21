@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, StyleSheet, Image, Text } from 'react-native'
 import { Input, Button } from 'react-native-elements';
 import { auth, db } from '../../firebase';
@@ -6,6 +6,7 @@ import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { addDoc, collection, doc, setDoc } from 'firebase/firestore';
 import { getDownloadURL, getStorage, ref, uploadBytes } from '@firebase/storage';
 import { launchCamera, launchImageLibrary, MediaType } from 'react-native-image-picker';
+import { useFocusEffect } from '@react-navigation/native';
 
 export function RegisterScreen({navigation, route}: {navigation: any, route: any}) {
     const [name, setName] = useState("");
@@ -15,18 +16,21 @@ export function RegisterScreen({navigation, route}: {navigation: any, route: any
     const [pfpSrc, setPfpSrc] = useState({uri:""});
     const [registering, setRegistering] = useState(false);
 
-    useEffect(() => {
+    const transferFilledInfo = useCallback(() => {
         setEmail(route.params!.email);
         setPassword(route.params!.password);
-    })
+    }, [route])
+
+    useFocusEffect(() => {
+        transferFilledInfo();
+    });
 
     const register = () => {
         setRegistering(true);
         navigation.navigate("Loading");
 
         createUserWithEmailAndPassword(auth, email, password)
-        .then((userCredential) => {
-            console.log("registered user!");
+        .then(async (userCredential) => {
             // Registered
             const user = userCredential.user;
             
@@ -37,11 +41,10 @@ export function RegisterScreen({navigation, route}: {navigation: any, route: any
                 emailVertified: false,
                 online: false,
             };
+
+            console.log("registered user!" + userData.toString());
+            return setDoc(doc(db, "users", user.uid), userData);
             
-            setDoc(doc(db, "users", user.uid), userData).then(() => {
-                console.log("hoagie");
-                navigation.navigate("Home Tab", {screen: "Home"});
-            });
 /*
             uploadImage(user.uid).then((pfpUrl) => {
                 console.log("uploaded image!");
@@ -68,7 +71,9 @@ export function RegisterScreen({navigation, route}: {navigation: any, route: any
                 navigation.navigate("Error", {code: errorCode, message: errorMessage});
             });*/
             
-
+        }).then(() => {
+            console.log("hoagie");
+            navigation.navigate("Home Tab", {screen: "Home"});
         }).catch((error) => {
             const errorCode = error.code;
             const errorMessage = error.message;

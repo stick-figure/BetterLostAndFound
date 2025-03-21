@@ -42,13 +42,7 @@ export function ScanCodeScreen({ navigation }: { navigation: any }) {
             });
         }
     }
-
-    useEffect(
-        () => {
-
-        }
-    );
-
+    
     if (device == null || cameraPermission != "granted") {
         return (
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
