@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import {
-  StyleSheet,
+    StyleSheet,
 } from 'react-native';
 
 import { NavigationAction, NavigationContainer } from '@react-navigation/native';
@@ -9,11 +9,12 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { auth } from './firebase';
 
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+
 import { HomeScreen } from './source/components/Home';
 import { LoginScreen } from './source/components/Login';
 import { RegisterScreen } from './source/components/Register';
 import { ChatScreen } from './source/components/Chat';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ErrorScreen } from './source/components/Error';
 import { LoadingScreen } from './source/components/Loading';
 import { MyItemsScreen } from './source/components/MyItems';
@@ -21,72 +22,62 @@ import { AddItemScreen } from './source/components/AddItem';
 import NotificationsScreen from './source/components/Notifications';
 import { ScanCodeScreen } from './source/components/ScanCode';
 import { ReturnItemScreen } from './source/components/ReturnItem';
-import {ItemInfoScreen, ItemInfoRouteParams } from './source/components/ItemInfo';
+import { ItemViewScreen, ItemViewRouteParams } from './source/components/ItemView';
 import { SettingsScreen } from './source/components/Settings';
+import NewLostPostScreen from './source/components/NewLostPost';
+import MyItemViewScreen, { MyItemViewRouteParams } from './source/components/MyItemView';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
 function HomeTab() {
-  return (
-    <Tab.Navigator>
-      <Tab.Screen name='Home' component={HomeScreen} options={{title: "Home"}} />
-      <Tab.Screen name='My Items' component={MyItemsScreen} options={{title: "My Items"}} />
-      <Tab.Screen name='Settings' component={SettingsScreen} options={{title: "Settings"}} />
-      {/*<Tab.Screen name='Chat' component={ChatScreen} />*/}
-    </Tab.Navigator>
-  );
+    return (
+        <Tab.Navigator>
+            <Tab.Screen name='Home' component={HomeScreen} options={{ title: "Home" }} />
+            <Tab.Screen name='My Items' component={MyItemsScreen} options={{ title: "My Items" }} />
+            <Tab.Screen name='Settings' component={SettingsScreen} options={{ title: "Settings" }} />
+            {/*<Tab.Screen name='Chat' component={ChatScreen} />*/}
+        </Tab.Navigator>
+    );
 }
 
 export function App() {
-  let isLoggedIn: boolean = false;
+    return (
+        <SafeAreaProvider>
+            <NavigationContainer>
 
-  useEffect(() => {
-      const unsubscribe = auth.onAuthStateChanged((user) => {
-          if (user) {
-            isLoggedIn = true;
-          } else {
-            isLoggedIn = false;
-          }
-      });
-      return unsubscribe;
-  });
+                {/* Auth screens */}
+                <Stack.Navigator>
+                    <Stack.Group screenOptions={{ headerShown: false }}>
+                        <Stack.Screen name="Login" component={LoginScreen} options={{ title: "Login" }} />
+                        <Stack.Screen name="Register" component={RegisterScreen} options={{ title: "Register" }} />
+                    </Stack.Group>
 
-  return (
-    <SafeAreaProvider>
-      <NavigationContainer>
+                    {/* Screens for logged in users */}
+                    <Stack.Group>
+                        <Stack.Screen name="Home Tab" options={{ title: "Home", headerShown: false }} component={HomeTab} />
 
-        {/* Auth screens */}
-        <Stack.Navigator> 
-          <Stack.Group screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="Login" component={LoginScreen} options={{title: "Login"}} />
-            <Stack.Screen name="Register" component={RegisterScreen} options={{title: "Register"}} />
-          </Stack.Group>
+                        <Stack.Screen name="Add Item" component={AddItemScreen} options={{ title: "Add Item" }} />
+                        <Stack.Screen name="Return Item" component={ReturnItemScreen} options={{ title: "Return Item", headerBackTitle: "Back" }} />
+                        <Stack.Screen name="Item View" options={({ route }) => ({
+                            title: (route!.params as ItemViewRouteParams).itemName,
+                            headerBackTitle: "My Items",
+                        })}
+                            component={ItemViewScreen} />
+                        <Stack.Screen name="Scan Code" component={ScanCodeScreen} options={{ title: "Scan Code" }} />
+                        <Stack.Screen name="New Lost Post" component={NewLostPostScreen} options={{ title: "New Post" }} />
+                    </Stack.Group>
 
-          {/* Screens for logged in users */}
-          <Stack.Group>
-            <Stack.Screen name="Home Tab" options={{title: "Home", headerShown: false}} component={HomeTab}  />
+                    {/* Common modal screens */}
+                    <Stack.Group screenOptions={{ presentation: 'modal' }}>
+                        <Stack.Screen name="Error" component={ErrorScreen} options={{ title: "Error" }} />
+                        <Stack.Screen name="Loading" component={LoadingScreen} options={{ title: "Loading" }} />
+                    </Stack.Group>
 
-            <Stack.Screen name="Add Item" component={AddItemScreen} options={{title: "Add Item"}} />
-            <Stack.Screen name="Return Item" component={ReturnItemScreen} options={{title: "Return Item"}} />
-            <Stack.Screen name="Item Info" options={({ route }) => ({ 
-                title: (route!.params as ItemInfoRouteParams).itemName,
-                headerBackTitle: "My Items",
-              })} 
-              component={ItemInfoScreen} />
-            <Stack.Screen name="Scan Code" component={ScanCodeScreen} options={{title: "Scan Code"}} />
-          </Stack.Group>
-
-          {/* Common modal screens */}
-          <Stack.Group screenOptions={{ presentation: 'modal' }}>
-            <Stack.Screen name="Error" component={ErrorScreen} options={{title: "Error"}}/>
-            <Stack.Screen name="Loading" component={LoadingScreen} options={{title: "Loading"}}/>
-          </Stack.Group>
-
-        </Stack.Navigator>
-      </NavigationContainer>
-    </SafeAreaProvider>
-  );
+                </Stack.Navigator>
+            </NavigationContainer>
+        </SafeAreaProvider>
+    );
 };
 
 export default App;

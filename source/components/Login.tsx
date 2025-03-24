@@ -7,24 +7,24 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import { lightThemeColors } from '../assets/Colors';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 
-export function LoginScreen({navigation}: {navigation: any}) {
+export function LoginScreen({ navigation }: { navigation: any }) {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [signingIn, setSigningIn] = useState(false);
 
     const openRegisterScreen = () => {
-      navigation.navigate('Register', {email: email, password: password});
+        navigation.navigate('Register', { email: email, password: password });
     };
 
     const signIn = () => {
-//        navigation.navigate('Loading');
+        //        navigation.navigate('Loading');
         setSigningIn(true);
         signInWithEmailAndPassword(auth, email, password).then((userCredential) => {
-            navigation.replace("Home Tab", {screen: 'Home'});
+            navigation.replace("Home Tab", { screen: 'Home' });
         }).catch((error) => {
             const errorCode = error.code;
             const errorMessage = error.message;
-            navigation.navigate("Error", {code: errorCode, message: errorMessage});
+            navigation.navigate("Error", { code: errorCode, message: errorMessage });
         }).finally(() => {
             setSigningIn(false);
         });
@@ -33,15 +33,13 @@ export function LoginScreen({navigation}: {navigation: any}) {
     useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged((user) => {
             if (user) {
-                setSigningIn(true);
-                navigation.replace('Home Tab', {screen: 'Home'});
-                setSigningIn(false);
+                navigation.replace('Home Tab', { screen: 'Home' });
             }
         });
         return unsubscribe;
-    });
+    }, []);
 
-//    const emailRegex = /.*@scienceleadership.org/g;
+    //    const emailRegex = /.*@scienceleadership.org/g;
     const emailRegex = /.*@.*/g;
 
     return (
@@ -50,7 +48,7 @@ export function LoginScreen({navigation}: {navigation: any}) {
             <Input
                 placeholder='Enter your email'
                 label='Email'
-                leftIcon={{ type: 'material', name: 'email' }}
+                leftIcon={{ type: 'MaterialIcons', name: 'email' }}
                 value={email}
                 disabled={signingIn}
                 onChangeText={text => setEmail(text)}
@@ -58,7 +56,7 @@ export function LoginScreen({navigation}: {navigation: any}) {
             <Input
                 placeholder='Enter your password'
                 label='Password'
-                leftIcon={{ type: 'material', name: 'lock' }}
+                leftIcon={{ type: 'MaterialIcons', name: 'lock' }}
                 value={password}
                 disabled={signingIn}
                 onChangeText={text => setPassword(text)}

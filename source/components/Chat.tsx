@@ -9,29 +9,30 @@ import { GiftedChat, IMessage } from 'react-native-gifted-chat';
 import {
     ImageProps as DefaultImageProps,
     ImageURISource,
-  } from 'react-native';
+} from 'react-native';
 import { lightThemeColors } from '../assets/Colors';
 import { TouchableOpacity } from 'react-native-gesture-handler';
+import { CommonActions } from '@react-navigation/native';
 
 type ImageProps = DefaultImageProps & {
-source: ImageURISource;
+    source: ImageURISource;
 };
-  
 
-export function ChatScreen({ navigation }: {navigation: any}) {
+
+export function ChatScreen({ navigation }: { navigation: any }) {
     const [messages, setMessages] = useState<IMessage[]>([]);
     const signOutNow = () => {
         signOut(auth).then(() => {
             // Sign-out successful.
-            navigation.replace('Login');
+            navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Login' }] }));
         }).catch((error) => {
             // An error happened.
             const errorCode = error.code;
             const errorMessage = error.message;
-            navigation.navigate("Error", {code: errorCode, message: errorMessage});
+            navigation.navigate("Error", { code: errorCode, message: errorMessage });
         });
     }
-    
+
     useEffect(() => {
         navigation.setOptions({
             headerLeft: () => (
@@ -66,12 +67,12 @@ export function ChatScreen({ navigation }: {navigation: any}) {
 
         return unsubscribe;
 
-    }, [navigation]);
+    }, []);
 
     const onSend = useCallback((messages: IMessage[] = []) => {
-        const { _id, createdAt, text, user,} = messages[0]
+        const { _id, createdAt, text, user, } = messages[0]
         setMessages(previousMessages => GiftedChat.append(previousMessages, messages))
-        addDoc(collection(db, 'chats'), { _id, createdAt,  text, user });
+        addDoc(collection(db, 'chats'), { _id, createdAt, text, user });
     }, []);
 
     return (

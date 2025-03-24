@@ -21,6 +21,7 @@ const app = initializeApp(firebaseConfig);
 const auth = initializeAuth(app, {
   persistence: getReactNativePersistence(ReactNativeAsyncStorage)
 });
+         
 
 const db = initializeFirestore(app, {experimentalForceLongPolling: true});
 export { db, auth };

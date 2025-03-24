@@ -1,62 +1,78 @@
 import { addDoc, collection } from "firebase/firestore";
 import { getStorage, ref, uploadBytes } from "firebase/storage";
-import { useState } from "react";
-import { View, Text, Button, StyleSheet, Image, Pressable, ImageSourcePropType } from "react-native";
+import { useEffect, useState } from "react";
+import { View, Text, Button, StyleSheet, Image, Pressable, ImageSourcePropType, TextInput } from "react-native";
 import { Input } from "react-native-elements";
 import { launchImageLibrary, MediaType } from 'react-native-image-picker';
 
 import { auth, db } from "../../firebase";
 import { lightThemeColors } from "../assets/Colors";
 import { TouchableOpacity } from "react-native-gesture-handler";
+import { CommonActions } from "@react-navigation/native";
 
 
-export function NewLostPostScreen({ navigation, route }: {navigation: any, route: any}) {
-    const [itemID, setItemID] = useState("");
-    const [item, setItem] = useState();
+export function NewLostPostScreen({ navigation, route }: { navigation: any, route: any }) {
+    const [item, setItem] = useState({
+        _id: "",
+        name: "",
+        description: "",
+        owner: "",
+        isLost: false,
+    });
     const [message, setMessage] = useState("");
-    const [tags, setLocationTags] = useState("");
-    
+
+    const [useLocation, setUseLocation] = useState(false);
+
     const [uploading, setUploading] = useState(false);
-    
+
     const uploadPost = () => {
-      const postData = {
-        itemID: itemID,
-        message: message,
-        author: auth.currentUser?.uid,
-      };
+        const postData = {
+            itemID: item._id,
+            message: message,
+            authorId: auth.currentUser?.uid,
+            createdAt: Date.now(),
+            resolved: false,
+            resolvedAt: -1,
+            chats: [],
+        };
 
-      navigation.navigate("Loading");
+        navigation.navigate("Loading");
 
-      const docRef = addDoc(collection(db, "items"), postData);
-      
+        addDoc(collection(db, "items"), postData).then(() => {
+            
+        });
     }
+    useEffect(() => {
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+            if (user) {
+
+            } else {
+                navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Login' }] }));
+            }
+        });
+
+        return unsubscribe;
+    }, );
 
     if (uploading) {
-      return (
-        <View style={styles.container}>
-          <Text>Uploading...</Text>
-        </View>);
+        return (
+            <View style={styles.container}>
+                <Text>Uploading...</Text>
+            </View>);
     }
-    return
     return (
         <View style={styles.container}>
             <Input
-                label="Name"
-                placeholder="What is this item called?"
-                onChangeText={text => setName(text)}
-                value={name}
-            />
-            <Input
-                label="Description"
+                multiline={true}
                 placeholder="Describe some identifying features"
-                onChangeText={text => setDescription(text)}
-                value={description}
+                onChangeText={text => setMessage(text)}
+                value={message}
             />
-            <TouchableOpacity 
-              style={styles.saveButton}
-              disabled={name.trim().length < 1 || description.trim().length < 1 || imgSrc.uri == ""}
-              onPress={uploadItem}
-              >
+            <TouchableOpacity
+                style={styles.saveButton}
+                disabled={message.trim().length < 1}
+                onPress={uploadPost}
+            >
                 <Text style={styles.saveButtonText}>Post</Text>
             </TouchableOpacity>
         </View>
@@ -65,44 +81,44 @@ export function NewLostPostScreen({ navigation, route }: {navigation: any, route
 
 const styles = StyleSheet.create({
     container: {
-      flex: 1,
-      alignItems: 'center',
+        flex: 1,
+        alignItems: 'center',
     },
     addItemTitle: {
-      margin: 20,
-      color: lightThemeColors.textLight,
+        margin: 20,
+        color: lightThemeColors.textLight,
     },
     imagePressableContainer: {
-      width: "100%",
-      alignItems: 'center',
+        width: "100%",
+        alignItems: 'center',
     },
     imageContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     itemImage: {
-      flex: 1,
-      aspectRatio: 1/1,
+        flex: 1,
+        aspectRatio: 1 / 1,
     },
     imageLabel: {
-      fontSize: 16,
-      textAlign: "center",
-      color: lightThemeColors.textLight,
-      fontWeight: "bold",
+        fontSize: 16,
+        textAlign: "center",
+        color: lightThemeColors.textLight,
+        fontWeight: "bold",
     },
     saveButton: {
-      width: 280,
-      backgroundColor: lightThemeColors.primary,
-      borderRadius: 7,
-      padding: 10,
+        width: 280,
+        backgroundColor: lightThemeColors.primary,
+        borderRadius: 7,
+        padding: 10,
     },
     saveButtonText: {
-      fontSize: 16,
-      textAlign: "center",
-      color: lightThemeColors.textDark,
-      fontWeight: "bold",
+        fontSize: 16,
+        textAlign: "center",
+        color: lightThemeColors.textDark,
+        fontWeight: "bold",
     }
-  });
+});
 
 
 export default NewLostPostScreen;

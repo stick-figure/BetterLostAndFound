@@ -3,13 +3,13 @@ import { SetStateAction, useEffect, useLayoutEffect, useState } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { auth, db } from "../../firebase";
-import firebase from "firebase/compat/app";
 import { FAB, ListItem } from "react-native-elements";
 import { lightThemeColors } from "../assets/Colors";
 import { TouchableOpacity } from "react-native-gesture-handler";
+import { CommonActions } from "@react-navigation/native";
 
 
-export function MyItemsScreen({ navigation }: {navigation: any}) {
+export function MyItemsScreen({ navigation }: { navigation: any }) {
     const [items, setItems] = useState([{
         _id: "",
         name: "",
@@ -18,9 +18,21 @@ export function MyItemsScreen({ navigation }: {navigation: any}) {
         isLost: false,
     }]);
 
+    useEffect(() => {
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+            if (user) {
+
+            } else {
+                navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Login' }] }));
+            }
+        });
+
+        return unsubscribe;
+    });
 
     useEffect(() => {
-        const unsubscribe = onSnapshot(query(collection(db, 'items'), where("owner", "==", auth.currentUser?.uid)), (snapshot: { docs: any[]; }) => setItems(
+
+        const unsubscribe = onSnapshot(query(collection(db, 'items'), where("ownerId", "==", auth.currentUser?.uid)), (snapshot: { docs: any[]; }) => setItems(
             snapshot.docs.map(((doc) => ({
                 _id: doc.id,
                 name: doc.data().name,
@@ -35,40 +47,38 @@ export function MyItemsScreen({ navigation }: {navigation: any}) {
 
 
     return (
-        <SafeAreaProvider>
-            <View style={styles.container}>
-                <FlatList
-                        keyExtractor={item => item._id.toString()}
-                        data={items}
-                        renderItem={({ item }) => (
-                            <TouchableOpacity 
-                                key={item._id.toString()}
-                                onPress={() => {navigation.navigate("Item Info", {itemId: item._id, itemName: item.name})}}>
-                                    <ListItem key={`${item._id}`} bottomDivider topDivider>
-                                        <ListItem.Title style={styles.itemTitle}>
-                                            <Text style={styles.itemTitle}>{item.name}</Text>
-                                        </ListItem.Title>
-                                        <ListItem.Subtitle style={styles.itemSubtitle}>
-                                            
-                                        </ListItem.Subtitle>
-                                        <ListItem.Content>
-                                            <Text style={styles.itemContent}>{item.description}</Text>
-                                        </ListItem.Content>
-                                    </ListItem>
-                            </TouchableOpacity>
-                        )}
-                    />
-                <FAB
-                    icon={{
-                    name: 'add',
+        <View style={styles.container}>
+            <FlatList
+                keyExtractor={item => item._id.toString()}
+                data={items}
+                renderItem={({ item }) => (
+                    <TouchableOpacity
+                        key={item._id.toString()}
+                        onPress={() => { navigation.navigate("Item View", { itemId: item._id, itemName: item.name }) }}>
+                        <ListItem key={`${item._id}`} bottomDivider topDivider>
+                            <ListItem.Title style={styles.itemTitle}>
+                                <Text style={styles.itemTitle}>{item.name}</Text>
+                            </ListItem.Title>
+                            <ListItem.Subtitle style={styles.itemSubtitle}>
+
+                            </ListItem.Subtitle>
+                            <ListItem.Content>
+                                <Text style={styles.itemContent}>{item.description}</Text>
+                            </ListItem.Content>
+                        </ListItem>
+                    </TouchableOpacity>
+                )}
+            />
+            <FAB
+                icon={{
+                    name: "add",
                     size: 20,
                     color: 'white',
-                    }}
-                    placement="right"
-                    onPress={() => {navigation.navigate("Add Item")}}
-                    buttonStyle={styles.fab} />
-            </View>
-        </SafeAreaProvider>
+                }}
+                placement="right"
+                onPress={() => { navigation.navigate("Add Item") }}
+                buttonStyle={styles.fab} />
+        </View>
     );
 
 }

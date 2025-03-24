@@ -1,12 +1,11 @@
-import { useIsFocused } from "@react-navigation/native";
+import { CommonActions, useIsFocused } from "@react-navigation/native";
 import firebase from "firebase/compat/app";
 import { collection, getDoc, getDocs, query, where } from "firebase/firestore";
 import { useRef, useCallback, useEffect } from "react";
 import { View, Text, Button, StyleSheet } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { runOnJS } from "react-native-reanimated";
 import { Camera, CameraRuntimeError, useCameraDevice, CodeScanner, Point, Code } from "react-native-vision-camera";
-import { db } from "../../firebase";
+import { auth, db } from "../../firebase";
 
 export function ScanCodeScreen({ navigation }: { navigation: any }) {
     const camera = useRef<Camera>(null);
@@ -14,7 +13,7 @@ export function ScanCodeScreen({ navigation }: { navigation: any }) {
     const onError = useCallback((error: CameraRuntimeError) => {
         console.error(error);
     }, [camera])
-    
+
     const cameraPermission = Camera.getCameraPermissionStatus();
 
     const device = useCameraDevice('back');
@@ -27,7 +26,7 @@ export function ScanCodeScreen({ navigation }: { navigation: any }) {
         onCodeScanned: (codes: Code[]) => {
             codes.forEach((code) => {
                 const itemsRef = collection(db, 'items');
-                
+
                 if (code.value?.startsWith("BLF")) {
                     (async () => {
                         const itemDocs = await getDocs(query(itemsRef, where("code", "==", code.value?.replace("BLF", ""))));
@@ -42,7 +41,7 @@ export function ScanCodeScreen({ navigation }: { navigation: any }) {
             });
         }
     }
-    
+
     if (device == null || cameraPermission != "granted") {
         return (
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
@@ -50,19 +49,32 @@ export function ScanCodeScreen({ navigation }: { navigation: any }) {
                 <Button title="Request Camera Permission" />
             </View>);
     }
+
+    useEffect(() => {
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+            if (user) {
+
+            } else {
+                navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Login' }] }));
+            }
+        });
+
+        return unsubscribe;
+    }, );
+    
     return (
-        
+
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                <Camera
-                    enableZoomGesture={true}
-                    style={StyleSheet.absoluteFill}
-                    ref={camera}
-                    device={device}
-                    isActive={isActive}
-                    onInitialized={onCameraInitialized}
-                    codeScanner={codeScanner}
-                />
-            
+            <Camera
+                enableZoomGesture={true}
+                style={StyleSheet.absoluteFill}
+                ref={camera}
+                device={device}
+                isActive={isActive}
+                onInitialized={onCameraInitialized}
+                codeScanner={codeScanner}
+            />
+
         </View>
     )
 }

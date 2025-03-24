@@ -6,14 +6,16 @@ import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { addDoc, collection, doc, setDoc } from 'firebase/firestore';
 import { getDownloadURL, getStorage, ref, uploadBytes } from '@firebase/storage';
 import { launchCamera, launchImageLibrary, MediaType } from 'react-native-image-picker';
-import { useFocusEffect } from '@react-navigation/native';
+import { NavigationProp, useFocusEffect } from '@react-navigation/native';
+import { TouchableOpacity } from 'react-native-gesture-handler';
+import  Icon  from 'react-native-vector-icons/FontAwesome';
 
-export function RegisterScreen({navigation, route}: {navigation: any, route: any}) {
+export function RegisterScreen({ navigation, route }: { navigation: any, route: any }) {
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
-    const [pfpSrc, setPfpSrc] = useState({uri:""});
+    const [pfpSrc, setPfpSrc] = useState({ uri: "" });
     const [registering, setRegistering] = useState(false);
 
     const transferFilledInfo = useCallback(() => {
@@ -21,67 +23,41 @@ export function RegisterScreen({navigation, route}: {navigation: any, route: any
         setPassword(route.params!.password);
     }, [route])
 
-    useFocusEffect(() => {
+    useEffect(() => {
         transferFilledInfo();
-    });
+    }, []);
 
-    const register = () => {
+    const register = async () => {
         setRegistering(true);
         navigation.navigate("Loading");
 
-        createUserWithEmailAndPassword(auth, email, password)
-        .then(async (userCredential) => {
-            // Registered
+        try {
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+        
             const user = userCredential.user;
+            
+            const pfpUrl = await uploadImage(user.uid);
+            
+            await updateProfile(user, {
+                displayName: name,
+                photoURL: pfpUrl ? pfpUrl : require("../assets/defaultpfp.jpg"),
+            });
             
             const userData = {
                 name: name,
                 email: email,
-                pfpUrl: user.photoURL,
+                pfpUrl: pfpUrl || user.photoURL,
                 emailVertified: false,
-                online: false,
             };
 
-            console.log("registered user!" + userData.toString());
-            return setDoc(doc(db, "users", user.uid), userData);
-            
-/*
-            uploadImage(user.uid).then((pfpUrl) => {
-                console.log("uploaded image!");
-                return updateProfile(user, {
-                    displayName: name,
-                    photoURL: pfpUrl ? pfpUrl : require("../assets/defaultpfp.jpg"),
-                })
-            }).then(() => {
-                const userData = {
-                    name: name,
-                    email: email,
-                    pfpUrl: user.photoURL,
-                    emailVertified: false,
-                    online: false,
-                };
-                
-                setDoc(doc(db, "users", user.uid), userData).then(() => {
-                    console.log("hoagie");
-                    navigation.navigate("Home Tab", {screen: "Home"});
-                });
-            }).catch((error) => {
-                const errorCode = error.code;
-                const errorMessage = error.message;
-                navigation.navigate("Error", {code: errorCode, message: errorMessage});
-            });*/
-            
-        }).then(() => {
-            console.log("hoagie");
-            navigation.navigate("Home Tab", {screen: "Home"});
-        }).catch((error) => {
-            const errorCode = error.code;
-            const errorMessage = error.message;
-            navigation.navigate("Error", {code: errorCode, message: errorMessage});
-        }).finally(() => {
+            await setDoc(doc(db, "users", user.uid), userData);
+
+            navigation.navigate("Home Tab", { screen: "Home" });
+        } catch (error) {
+            console.warn(error);
+        } finally {
             setRegistering(false);
-        });
-        
+        }
     }
 
     const openImagePicker = () => {
@@ -102,77 +78,74 @@ export function RegisterScreen({navigation, route}: {navigation: any, route: any
                 const source = { uri: response.assets[0].uri! };
                 setPfpSrc(source);
             }
-        }).catch(() => {console.log("whoop de doo")});
+        }).catch(() => { console.log("whoop de doo") });
     };
 
     const handleCameraLaunch = () => {
         const options = {
-          mediaType: 'photo' as MediaType,
-          includeBase64: false,
-          maxHeight: 2000,
-          maxWidth: 2000,
+            mediaType: 'photo' as MediaType,
+            includeBase64: false,
+            maxHeight: 2000,
+            maxWidth: 2000,
         };
-      
+
         launchCamera(options, (response) => {
-          if (response.didCancel) {
-            console.log('User cancelled camera');
-          } else if (response.errorCode) {
-            console.log('Camera Error: ', response.errorMessage);
-          } else {
-            let source = {uri: response.assets![0].uri!};
-            setPfpSrc(source);
-          }
+            if (response.didCancel) {
+                console.log('User cancelled camera');
+            } else if (response.errorCode) {
+                console.log('Camera Error: ', response.errorMessage);
+            } else {
+                let source = { uri: response.assets![0].uri! };
+                setPfpSrc(source);
+            }
         });
-      }
+    }
 
     const uploadImage = (imageId: string) => {
         return new Promise(async (resolve, reject) => {
             console.log("uploading image now, " + pfpSrc.uri);
-            
+
             fetch(pfpSrc.uri).then((response) => {
                 console.log("getting blob of image uri" + pfpSrc.uri);
                 return response.blob();
             }).then((blob) => {
                 console.log("uploading images bytes...");
+                
                 const storage = getStorage();
                 const imageRef = ref(storage, "images/pfps/" + imageId);
-                
-                uploadBytes(imageRef, blob).then((snapshot) => {
-                    console.log("getting download url...");
-                    getDownloadURL(imageRef!).then((url) => {
-                        return resolve(url);
-                    }).catch((error) => {
-                        console.warn(error);
-                    });
-                }).catch((error) => {
-                    const errorCode = error.code;
-                    const errorMessage = error.message;
-                    navigation.navigate("Error", {code: errorCode, message: errorMessage});
+
+                uploadBytes(imageRef, blob).then(() => {
+                    return getDownloadURL(imageRef!);
+                }).then((url) => {
+                    console.log(url);
+                    return resolve(url);
                 });
             }).catch((error) => {
                 const errorCode = error.code;
                 const errorMessage = error.message;
-                console.warn(error);
-                navigation.navigate("Error", {code: errorCode, message: errorMessage});
+                navigation.navigate("Error", { code: errorCode, message: errorMessage });
+                return reject(error);
             });
         });
-        
+
     }
 
     return (
         <View style={styles.container}>
             {pfpSrc.uri == "" ? (
-                <Image 
+                <Image
                     style={styles.pfpImage}
                     source={require("../assets/defaultpfp.jpg")}
                 />
             ) : (
-                <Image 
+                <Image
                     style={styles.pfpImage}
                     source={pfpSrc}
                 />
             )}
-            
+            <TouchableOpacity>
+                <Icon name="photo" />
+            </TouchableOpacity>
             <Button title='Take picture with camera' onPress={handleCameraLaunch} style={styles.button} />
             <Button title='Upload from library' onPress={openImagePicker} style={styles.button} />
             <Input
@@ -193,7 +166,7 @@ export function RegisterScreen({navigation, route}: {navigation: any, route: any
                 value={password} onChangeText={text => setPassword(text)}
                 secureTextEntry
             />
-            
+
             <Button title='Register' disabled={name == "" || email == "" || password.length < 6 || registering} onPress={register} style={styles.button} />
         </View>
     )

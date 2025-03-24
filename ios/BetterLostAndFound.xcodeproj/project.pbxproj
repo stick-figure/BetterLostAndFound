@@ -15,6 +15,7 @@
 		516A5EF4A14B85FCA11AE90C /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 8FF8B7FF20C9818C4D81C9DA /* PrivacyInfo.xcprivacy */; };
 		7699B88040F8A987B510C191 /* libPods-BetterLostAndFound-BetterLostAndFoundTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 19F6CBCC0A4E27FBF8BF4A61 /* libPods-BetterLostAndFound-BetterLostAndFoundTests.a */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
+		F6E8D0622D91A09300F5EB44 /* Fonts in Resources */ = {isa = PBXBuildFile; fileRef = F6E8D0612D91A09300F5EB44 /* Fonts */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -45,8 +46,9 @@
 		5DCACB8F33CDC322A6C60F78 /* libPods-BetterLostAndFound.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-BetterLostAndFound.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = BetterLostAndFound/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		89C6BE57DB24E9ADA2F236DE /* Pods-BetterLostAndFound-BetterLostAndFoundTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-BetterLostAndFound-BetterLostAndFoundTests.release.xcconfig"; path = "Target Support Files/Pods-BetterLostAndFound-BetterLostAndFoundTests/Pods-BetterLostAndFound-BetterLostAndFoundTests.release.xcconfig"; sourceTree = "<group>"; };
-		8FF8B7FF20C9818C4D81C9DA /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = BetterLostAndFound/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		8FF8B7FF20C9818C4D81C9DA /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = BetterLostAndFound/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
+		F6E8D0612D91A09300F5EB44 /* Fonts */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Fonts; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -121,6 +123,7 @@
 		83CBB9F61A601CBA00E9B192 = {
 			isa = PBXGroup;
 			children = (
+				F6E8D0612D91A09300F5EB44 /* Fonts */,
 				13B07FAE1A68108700A75B9A /* BetterLostAndFound */,
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				00E356EF1AD99517003FC87E /* BetterLostAndFoundTests */,
@@ -249,6 +252,7 @@
 				81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				516A5EF4A14B85FCA11AE90C /* PrivacyInfo.xcprivacy in Resources */,
+				F6E8D0622D91A09300F5EB44 /* Fonts in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
