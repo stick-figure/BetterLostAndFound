@@ -2,45 +2,44 @@ import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, Text } from 'react-native'
 import { Input, Button } from 'react-native-elements';
 import { auth } from '../../firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { AuthErrorCodes, signInWithEmailAndPassword } from 'firebase/auth';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { lightThemeColors } from '../assets/Colors';
 import { TouchableOpacity } from 'react-native-gesture-handler';
+import { CommonActions } from '@react-navigation/native';
 
 export function LoginScreen({ navigation }: { navigation: any }) {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [signingIn, setSigningIn] = useState(false);
-
+    const [errorText, setErrorText] = useState("");
+    
     const openRegisterScreen = () => {
         navigation.navigate('Register', { email: email, password: password });
     };
 
     const signIn = () => {
         //        navigation.navigate('Loading');
-        setSigningIn(true);
         signInWithEmailAndPassword(auth, email, password).then((userCredential) => {
             navigation.replace("Home Tab", { screen: 'Home' });
-        }).catch((error) => {
-            const errorCode = error.code;
-            const errorMessage = error.message;
-            navigation.navigate("Error", { code: errorCode, message: errorMessage });
-        }).finally(() => {
-            setSigningIn(false);
-        });
-    };
 
-    useEffect(() => {
-        const unsubscribe = auth.onAuthStateChanged((user) => {
-            if (user) {
-                navigation.replace('Home Tab', { screen: 'Home' });
+        }).catch((error) => {
+            console.log(Object.prototype.toString.call(error));
+            switch (error.code) {
+                case AuthErrorCodes.INVALID_PASSWORD:
+                    setErrorText("Wrong password.");
+                    break;
+                case AuthErrorCodes.INVALID_LOGIN_CREDENTIALS:
+                    setErrorText("Invalid username or password.");
+                    break;
+                case AuthErrorCodes.INVALID_EMAIL:
+                    setErrorText("Invalid email.");
+                    break;
+                default:
+                    setErrorText(error.code + " " + error.message);
             }
         });
-        return unsubscribe;
-    }, []);
-
-    //    const emailRegex = /.*@scienceleadership.org/g;
-    const emailRegex = /.*@.*/g;
+    };
 
     return (
         <View style={styles.container}>
@@ -62,10 +61,11 @@ export function LoginScreen({ navigation }: { navigation: any }) {
                 onChangeText={text => setPassword(text)}
                 secureTextEntry
             />
+            <Text style={styles.errorText}>{errorText}</Text>
             <TouchableOpacity style={styles.signupButton} onPress={openRegisterScreen} disabled={signingIn}>
                 <Text style={styles.signupButtonText}>Sign Up</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.loginButton} onPress={signIn} disabled={signingIn || email.match(emailRegex) == null || password == ""}>
+            <TouchableOpacity style={styles.loginButton} onPress={signIn} disabled={password == ""}>
                 <Text style={styles.loginButtonText}>Log In</Text>
             </TouchableOpacity>
         </View>
@@ -77,13 +77,17 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         padding: 10,
-        marginTop: 100,
+        paddingTop: 100,
     },
     title: {
-        fontSize: 25,
+        fontSize: 24,
         textAlign: "center",
         fontWeight: "bold",
         color: lightThemeColors.textLight,
+        marginVertical: 15,
+    },
+    errorText: {
+        color: "red",
     },
     loginButton: {
         width: 370,

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Text, View } from "react-native";
 import { auth, db } from "../../firebase";
 import { deleteUser, signOut } from "firebase/auth";
@@ -9,7 +9,7 @@ import { CommonActions } from "@react-navigation/native";
 export function SettingsScreen({ navigation }: { navigation: any }) {
 
     const signOutNow = () => {
-        navigation.navigate("Loading");
+//        navigation.navigate("Loading");
         signOut(auth).then(() => {
             // Sign-out successful.
             navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Login' }] }));
@@ -20,7 +20,6 @@ export function SettingsScreen({ navigation }: { navigation: any }) {
             navigation.navigate("Error", { code: errorCode, message: errorMessage });
         });
     }
-
 
     const deleteAccount = () => {
         navigation.navigate("Loading");
@@ -39,13 +38,15 @@ export function SettingsScreen({ navigation }: { navigation: any }) {
             navigation.navigate("Error", {code: errorCode, message: errorMessage});
         });
     }
-    
+
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+     
     useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged((user) => {
             if (user) {
-
+                setIsLoggedIn(true);
             } else {
-                navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Login' }] }));
+                setIsLoggedIn(false);
             }
         });
 
@@ -60,5 +61,6 @@ export function SettingsScreen({ navigation }: { navigation: any }) {
                 <Text>Sign out now</Text>
             </TouchableOpacity>
 
-        </View>);
+        </View>
+    );
 }

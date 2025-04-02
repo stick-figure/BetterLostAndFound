@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     StyleSheet,
 } from 'react-native';
@@ -25,14 +25,14 @@ import { ReturnItemScreen } from './source/components/ReturnItem';
 import { ItemViewScreen, ItemViewRouteParams } from './source/components/ItemView';
 import { SettingsScreen } from './source/components/Settings';
 import NewLostPostScreen from './source/components/NewLostPost';
-import MyItemViewScreen, { MyItemViewRouteParams } from './source/components/MyItemView';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
 function HomeTab() {
     return (
-        <Tab.Navigator>
+        <Tab.Navigator
+            initialRouteName={'Home Tab'}>
             <Tab.Screen name='Home' component={HomeScreen} options={{ title: "Home" }} />
             <Tab.Screen name='My Items' component={MyItemsScreen} options={{ title: "My Items" }} />
             <Tab.Screen name='Settings' component={SettingsScreen} options={{ title: "Settings" }} />
@@ -42,17 +42,24 @@ function HomeTab() {
 }
 
 export function App() {
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    /*
+    useEffect(() => {
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+            if (user) {
+                setIsLoggedIn(true);
+            } else {
+                setIsLoggedIn(false);
+            }
+        });
+
+        return unsubscribe;
+    }, []);*/
+
     return (
         <SafeAreaProvider>
             <NavigationContainer>
-
-                {/* Auth screens */}
                 <Stack.Navigator>
-                    <Stack.Group screenOptions={{ headerShown: false }}>
-                        <Stack.Screen name="Login" component={LoginScreen} options={{ title: "Login" }} />
-                        <Stack.Screen name="Register" component={RegisterScreen} options={{ title: "Register" }} />
-                    </Stack.Group>
-
                     {/* Screens for logged in users */}
                     <Stack.Group>
                         <Stack.Screen name="Home Tab" options={{ title: "Home", headerShown: false }} component={HomeTab} />
@@ -67,6 +74,14 @@ export function App() {
                         <Stack.Screen name="Scan Code" component={ScanCodeScreen} options={{ title: "Scan Code" }} />
                         <Stack.Screen name="New Lost Post" component={NewLostPostScreen} options={{ title: "New Post" }} />
                     </Stack.Group>
+                    
+                    {/* Auth screens */}
+                    <Stack.Group screenOptions={{ headerShown: false }}>
+                        <Stack.Screen name="Login" component={LoginScreen} options={{ title: "Login" }} />
+                        <Stack.Screen name="Register" component={RegisterScreen} options={{ title: "Register" }} />
+                    </Stack.Group>
+
+                    
 
                     {/* Common modal screens */}
                     <Stack.Group screenOptions={{ presentation: 'modal' }}>

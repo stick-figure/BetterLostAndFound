@@ -2,11 +2,11 @@ import { collection, deleteDoc, deleteField, doc, DocumentReference, getDoc, onS
 import { useState, useEffect, useCallback } from "react";
 import { View, Text, Button, StyleSheet, Pressable, Alert } from "react-native";
 import { auth, db } from "../../firebase";
-import { Image } from "react-native-elements";
+import { Icon, Image } from "react-native-elements";
 import { deleteObject, getDownloadURL, getStorage, ref, StorageError, StorageErrorCode, StorageReference } from "firebase/storage";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { lightThemeColors } from "../assets/Colors";
-import { CommonActions, RouteProp, useFocusEffect } from "@react-navigation/native";
+import { CommonActions, RouteProp } from "@react-navigation/native";
 
 export type ItemViewRouteParams = {
     itemId: string,
@@ -20,15 +20,17 @@ export function ItemViewScreen({ navigation, route }: { navigation: any, route: 
         description: "",
         ownerId: "",
         isLost: false,
+        secretCode: "",
+        createdAt: -1,
+        imageSrc: require("../assets/defaultimg.jpg"),
     });
-
+    
     const [owner, setOwner] = useState({
         _id: "",
         name: "",
         pfpUrl: "",
     });
 
-    const [imageSrc, setImageSrc] = useState(require("../assets/defaultimg.jpg"));
     const [itemRef, setItemRef] = useState<DocumentReference>();
     const [imageRef, setImageRef] = useState<StorageReference>();
 
@@ -39,10 +41,9 @@ export function ItemViewScreen({ navigation, route }: { navigation: any, route: 
     }
 
     const redirectToNewLostPost = () => {
-        navigation.navigate("New Lost Post", { item: item,  });
+        navigation.navigate("New Lost Post", { item: item, owner: owner });
     }
     
-
     const deleteItemAlert = () => {
         Alert.alert('Delete Item?', 'You cannot undo this action!', [
             {
@@ -66,15 +67,7 @@ export function ItemViewScreen({ navigation, route }: { navigation: any, route: 
     }
 
     const setItemInfo = useCallback(() => {
-        getDoc(doc(collection(db, "items"), route.params!.itemId)).then((snapshot) => {            
-            setItem({
-                _id: route.params!.itemId,
-                name: snapshot.get("name") as string,
-                description: snapshot.get("description") as string,
-                ownerId: snapshot.get("ownerId") as string,
-                isLost: snapshot.get("name") as boolean,
-            });
-
+        getDoc(doc(collection(db, "items"), route.params!.itemId)).then((snapshot) => {
             if (snapshot.get("ownerId") as string == auth.currentUser!.uid) setIsOwner(true);
             
             setItemRef(snapshot.ref);
@@ -86,13 +79,22 @@ export function ItemViewScreen({ navigation, route }: { navigation: any, route: 
             
             getDownloadURL(imageRef!).then((url) => {
                 console.log(url);
-                setImageSrc({ uri: url });
+                setItem({
+                    _id: route.params!.itemId,
+                    name: snapshot.get("name") as string,
+                    description: snapshot.get("description") as string,
+                    ownerId: snapshot.get("ownerId") as string,
+                    isLost: snapshot.get("name") as boolean,
+                    createdAt: snapshot.get("createdAt") as number || -1,
+                    secretCode: snapshot.get("secretCode") as string || "",
+                    imageSrc: url ? { uri: url } : require("../assets/defaultimg.jpg"),
+                });
             }).catch((error) => {
                 console.warn(error);
             });
 
-            if (snapshot.get("owner") as string) {
-                getDoc(doc(collection(db, "users"), snapshot.get("owner") as string)).then((snapshot) => {
+            if (snapshot.get("ownerId") as string) {
+                getDoc(doc(collection(db, "users"), snapshot.get("ownerId") as string)).then((snapshot) => {
                     setOwner({
                         _id: snapshot.id,
                         name: snapshot.get("name") as string,
@@ -103,41 +105,45 @@ export function ItemViewScreen({ navigation, route }: { navigation: any, route: 
         });
     }, []);
 
-    useEffect(() => {
-        if (!auth.currentUser) return;
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
         
-        setItemInfo();
-    }, []);
-
     useEffect(() => {
-        const unsubscribe = auth.onAuthStateChanged(user => {
+        const unsubscribe = auth.onAuthStateChanged((user) => {
             if (user) {
-                setItemInfo();
+                setIsLoggedIn(true);
             } else {
-                navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Login' }] }));
+                setIsLoggedIn(false);
             }
         });
 
         return unsubscribe;
     }, []);
 
+    useEffect(() => {
+        if (!isLoggedIn) return;
+        
+        setItemInfo();
+    }, [isLoggedIn]);
+
     if (isOwner) return (
         <View style={styles.container}>
             <Image
                 style={styles.itemImage}
-                source={imageSrc} />
-            <Text style={styles.description}>{item.description}</Text>
-            <View style={{ width: "100%", alignContent: "center" }}>
-                <TouchableOpacity
-                    onPress={redirectToNewLostPost}
-                    style={styles.markAsLostButton}>
-                    <Text style={styles.buttonText}>Report item as lost</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    onPress={deleteItemAlert}
-                    style={styles.deleteItemButton}>
-                    <Text style={styles.buttonText}>Delete item</Text>
-                </TouchableOpacity>
+                source={item.imageSrc} />
+            <View style={{margin: 5}}>
+                <Text style={styles.description}>{item.description}</Text>
+                <View style={{ display:"flex", alignItems: "center", flexDirection: "row" }}>
+                    <TouchableOpacity
+                        onPress={redirectToNewLostPost}
+                        style={styles.postButton}>
+                        <Text style={styles.buttonText}>Report item as lost</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        onPress={deleteItemAlert}
+                        style={styles.deleteItemButton}>
+                        <Icon name="delete" />
+                    </TouchableOpacity>
+                </View>
             </View>
         </View>
     );
@@ -146,12 +152,13 @@ export function ItemViewScreen({ navigation, route }: { navigation: any, route: 
         <View style={styles.container}>
             <Image
                 style={styles.itemImage}
-                source={imageSrc} />
+                source={item.imageSrc} />
             <Text style={styles.description}>{item.description}</Text>
-            <View style={{ width: "100%", alignContent: "center" }}>
+            <View style={{ width: "100%", alignContent: "center", flexDirection: "row" }}>
+                <Text>{owner.name}</Text>
                 <TouchableOpacity
                     onPress={redirectToNewFoundPost}
-                    style={styles.markAsLostButton}>
+                    style={styles.postButton}>
                     <Text style={styles.buttonText}>Report item as found</Text>
                 </TouchableOpacity>
             </View>
@@ -176,20 +183,24 @@ const styles = StyleSheet.create({
     },
     description: {
         fontSize: 16,
+        margin: 5,
+        marginHorizontal: 10,
     },
-    markAsLostButton: {
+    postButton: {
         backgroundColor: lightThemeColors.primary,
-        padding: 10,
-        width: "90%",
-        borderRadius: 5,
+        height: 40,
+        paddingHorizontal: 10,
+        borderRadius: 10,
         alignItems: 'center',
+        justifyContent: "center",
     },
     deleteItemButton: {
         backgroundColor: lightThemeColors.red,
-        padding: 10,
-        width: "25%",
-        borderRadius: 5,
+        height: 40,
+        borderRadius: 10,
+        aspectRatio: 1,
         alignItems: 'center',
+        justifyContent: "center",
     },
 });
 

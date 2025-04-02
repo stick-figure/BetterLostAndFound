@@ -1,9 +1,9 @@
-import { addDoc, collection } from "firebase/firestore";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { getStorage, ref, uploadBytes } from "firebase/storage";
 import { useEffect, useState } from "react";
 import { View, Text, Button, StyleSheet, Image, Pressable, ImageSourcePropType } from "react-native";
-import { Input } from "react-native-elements";
-import { launchImageLibrary, MediaType } from 'react-native-image-picker';
+import { Icon, Input, Tooltip } from "react-native-elements";
+import { launchCamera, launchImageLibrary, MediaType } from 'react-native-image-picker';
 
 import { auth, db } from "../../firebase";
 import { lightThemeColors } from "../assets/Colors";
@@ -14,25 +14,27 @@ import { CommonActions } from "@react-navigation/native";
 export function AddItemScreen({ navigation, route }: { navigation: any, route: any }) {
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
+    const [secretPhrase, setSecretPhrase] = useState("");
     const [tags, setTags] = useState([]);
 
     const [imgSrc, setImgSrc] = useState({ uri: "" });
     const [uploading, setUploading] = useState(false);
     const [transferred, setTransferred] = useState(0);
-
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    
     useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged((user) => {
             if (user) {
-
+                setIsLoggedIn(true);
             } else {
-                navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Login' }] }));
+                setIsLoggedIn(false);
             }
         });
 
         return unsubscribe;
     }, []);
 
-    const selectImage = () => {
+    const openImagePicker = () => {
         const options = {
             mediaType: "photo" as MediaType,
             includeBase64: false,
@@ -50,8 +52,30 @@ export function AddItemScreen({ navigation, route }: { navigation: any, route: a
                 const source = { uri: response.assets[0].uri! };
                 setImgSrc(source);
             }
-        }).catch((error) => { console.warn(error) });
+        }).catch(() => { console.log("whoop de doo") });
     };
+
+    const handleCameraLaunch = () => {
+        const options = {
+            mediaType: 'photo' as MediaType,
+            includeBase64: false,
+            maxHeight: 2000,
+            maxWidth: 2000,
+        };
+
+        launchCamera(options, (response) => {
+            if (response.didCancel) {
+                console.warn('User cancelled camera');
+            } else if (response.errorCode == "camera_unavailable") {
+                
+            }else if (response.errorCode) {
+                console.warn('Camera Error', response.errorCode, ': ', response.errorMessage);
+            } else {
+                let source = { uri: response.assets![0].uri! };
+                setImgSrc(source);
+            }
+        });
+    }
 
     const uploadImage = async (imageId: string) => {
         setUploading(true);
@@ -80,6 +104,8 @@ export function AddItemScreen({ navigation, route }: { navigation: any, route: a
             description: description,
             ownerId: auth.currentUser?.uid,
             isLost: false,
+            secretPhrase: secretPhrase,
+            createdAt: serverTimestamp(),
         };
 
         navigation.navigate("Loading");
@@ -106,31 +132,26 @@ export function AddItemScreen({ navigation, route }: { navigation: any, route: a
 
     return (
         <View style={styles.container}>
-            {imgSrc.uri == "" ?
-                <Pressable onPress={async () => {
-                    selectImage();
-                }} style={styles.imagePressableContainer}>
-                    <View style={styles.imageContainer}>
-                        <Image
-                            style={styles.itemImage}
-                            source={require("../assets/defaultimg.jpg")} />
-                    </View>
+            <View style={styles.imageContainer}>
+                <Image
+                    style={styles.itemImage}
+                    source={imgSrc.uri != "" ? imgSrc : require("../assets/defaultpfp.jpg")}
+                />
+            </View>
+            
 
-                    <Text style={styles.imageLabel}>Select image</Text>
-                </Pressable>
-                :
-                <Pressable onPress={async () => {
-                    selectImage();
-                }} style={styles.imagePressableContainer}>
-                    <View style={styles.imageContainer}>
-                        <Image
-                            style={styles.itemImage}
-                            source={imgSrc} />
-                    </View>
-
-                    <Text style={styles.imageLabel}>Change image</Text>
-                </Pressable>}
-
+            <View style={styles.horizontalContainer}>
+                <TouchableOpacity onPress={handleCameraLaunch} style={styles.cameraButton}>
+                    <Icon name="camera" />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={openImagePicker} style={styles.uploadButton}>
+                    <Icon name="photo" />
+                </TouchableOpacity>
+                <Text style={styles.text}>Set photo</Text>
+            </View>
+            
+            <Text style={styles.imageLabel}>Select image</Text>
+            
             <Input
                 label="Name"
                 placeholder="What is this item called?"
@@ -142,6 +163,12 @@ export function AddItemScreen({ navigation, route }: { navigation: any, route: a
                 placeholder="Describe some identifying features"
                 onChangeText={text => setDescription(text)}
                 value={description}
+            />
+            <Input
+                label="Secret Phrase (Optional)"
+                placeholder="Phrase to verify you are the owner"
+                onChangeText={text => setSecretPhrase(text)}
+                value={secretPhrase}
             />
             <TouchableOpacity
                 style={styles.saveButton}
@@ -159,9 +186,19 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
     },
+    text: {
+        fontSize: 16,
+        color: lightThemeColors.textLight,
+    },
     addItemTitle: {
         margin: 20,
         color: lightThemeColors.textLight,
+    },
+    horizontalContainer: {
+        justifyContent: "flex-start",
+        alignItems: "center",
+        flexDirection: "row",
+        padding: 10,
     },
     imagePressableContainer: {
         width: "100%",
@@ -180,6 +217,24 @@ const styles = StyleSheet.create({
         textAlign: "center",
         color: lightThemeColors.textLight,
         fontWeight: "bold",
+    },
+    uploadButton: {
+        borderRadius: 5,
+        width: 25,
+        height: 25,
+        marginRight: 4,
+        alignItems: "center",
+        justifyContent: 'center', 
+        backgroundColor: lightThemeColors.secondary,
+    },
+    cameraButton: {
+        borderRadius: 5,
+        width: 25,
+        height: 25,
+        marginRight: 4,
+        alignItems: "center",
+        justifyContent: 'center', 
+        backgroundColor: lightThemeColors.secondary,
     },
     saveButton: {
         width: 280,

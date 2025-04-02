@@ -1,37 +1,40 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { View, StyleSheet, Image, Text } from 'react-native'
+import React, { ErrorInfo, useCallback, useEffect, useState } from 'react';
+import { View, StyleSheet, Image, Text, StatusBar } from 'react-native'
 import { Input, Button } from 'react-native-elements';
 import { auth, db } from '../../firebase';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { addDoc, collection, doc, setDoc } from 'firebase/firestore';
+import { AuthError, AuthErrorCodes, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { addDoc, collection, doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { getDownloadURL, getStorage, ref, uploadBytes } from '@firebase/storage';
 import { launchCamera, launchImageLibrary, MediaType } from 'react-native-image-picker';
-import { NavigationProp, useFocusEffect } from '@react-navigation/native';
-import { TouchableOpacity } from 'react-native-gesture-handler';
+import { NavigationProp } from '@react-navigation/native';
+import { ScrollView, TouchableOpacity } from 'react-native-gesture-handler';
 import  Icon  from 'react-native-vector-icons/FontAwesome';
+import { lightThemeColors } from '../assets/Colors';
+import { red } from 'react-native-reanimated/lib/typescript/Colors';
 
 export function RegisterScreen({ navigation, route }: { navigation: any, route: any }) {
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [errorText, setErrorText] = useState("");
 
     const [pfpSrc, setPfpSrc] = useState({ uri: "" });
     const [registering, setRegistering] = useState(false);
-
+    
     const transferFilledInfo = useCallback(() => {
         setEmail(route.params!.email);
         setPassword(route.params!.password);
-    }, [route])
+    }, [])
 
     useEffect(() => {
         transferFilledInfo();
     }, []);
 
     const register = async () => {
-        setRegistering(true);
-        navigation.navigate("Loading");
-
         try {
+            setRegistering(true);
+            navigation.navigate("Loading");
+
             const userCredential = await createUserWithEmailAndPassword(auth, email, password)
         
             const user = userCredential.user;
@@ -48,13 +51,28 @@ export function RegisterScreen({ navigation, route }: { navigation: any, route: 
                 email: email,
                 pfpUrl: pfpUrl || user.photoURL,
                 emailVertified: false,
+                createdAt: serverTimestamp(),
             };
 
             await setDoc(doc(db, "users", user.uid), userData);
 
             navigation.navigate("Home Tab", { screen: "Home" });
         } catch (error) {
-            console.warn(error);
+            if (error as AuthError) {
+                navigation.goBack();
+                switch ((error as AuthError).code) {
+                    case AuthErrorCodes.EMAIL_EXISTS:
+                        setErrorText("Email is already in use.");
+                        break;
+                    case AuthErrorCodes.INVALID_EMAIL:
+                        setErrorText("Invalid email.");
+                        break;
+                    default:
+                        setErrorText((error as AuthError).code + " " + (error as AuthError).message);
+                }
+            } else {
+                console.warn(error);
+            }
         } finally {
             setRegistering(false);
         }
@@ -131,60 +149,106 @@ export function RegisterScreen({ navigation, route }: { navigation: any, route: 
     }
 
     return (
-        <View style={styles.container}>
-            {pfpSrc.uri == "" ? (
-                <Image
-                    style={styles.pfpImage}
-                    source={require("../assets/defaultpfp.jpg")}
-                />
-            ) : (
-                <Image
-                    style={styles.pfpImage}
-                    source={pfpSrc}
-                />
-            )}
-            <TouchableOpacity>
-                <Icon name="photo" />
-            </TouchableOpacity>
-            <Button title='Take picture with camera' onPress={handleCameraLaunch} style={styles.button} />
-            <Button title='Upload from library' onPress={openImagePicker} style={styles.button} />
-            <Input
-                placeholder='Enter your name'
-                label='Name'
-                value={name}
-                onChangeText={text => setName(text)}
-            />
-            <Input
-                placeholder='Enter your email'
-                label='Email'
-                value={email}
-                onChangeText={text => setEmail(text)}
-            />
-            <Input
-                placeholder='Enter your password'
-                label='Password'
-                value={password} onChangeText={text => setPassword(text)}
-                secureTextEntry
-            />
+        <ScrollView contentContainerStyle={styles.container}>
+            <Text style={styles.subTitle}>Register</Text>
+            <View style={{flexDirection: "row", width: "100%"}}>
+                <View style={styles.pfpContainer}>
+                    <Image
+                        style={styles.pfpImage}
+                        source={pfpSrc.uri != "" ? pfpSrc : require("../assets/defaultpfp.jpg")}
+                    />
 
-            <Button title='Register' disabled={name == "" || email == "" || password.length < 6 || registering} onPress={register} style={styles.button} />
-        </View>
+                    <View style={styles.horizontalContainer}>
+                        <TouchableOpacity onPress={handleCameraLaunch} style={styles.cameraButton}>
+                            <Icon name="camera" />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={openImagePicker} style={styles.uploadButton}>
+                            <Icon name="photo" />
+                        </TouchableOpacity>
+                        <Text style={styles.text}>Set photo</Text>
+                    </View>
+                </View>
+                <View style={{flexGrow: 1}}>
+                    <Input
+                        placeholder='Enter your name'
+                        label='Name'
+                        value={name}
+                        onChangeText={text => setName(text)} />
+                    <Input
+                        placeholder='Enter your email'
+                        label='Email'
+                        leftIcon={{ type: 'MaterialIcons', name: 'email' }}
+                        value={email}
+                        onChangeText={text => setEmail(text)} />
+                    <Input
+                        placeholder='Enter your password'
+                        label='Password'
+                        leftIcon={{ type: 'MaterialIcons', name: 'lock' }}
+                        value={password} onChangeText={text => setPassword(text)}
+                        secureTextEntry />
+                </View>
+            </View>
+            <Text style={styles.errorText}>{errorText}</Text>
+            <Button title='Register' disabled={name == "" || email == "" || password.length < 6 || registering} onPress={register} style={styles.registerButton} />
+        </ScrollView>
     )
 }
 const styles = StyleSheet.create({
     container: {
         flex: 1,
         alignItems: 'center',
+        paddingTop: 100,
+    },
+    subTitle: {
+        fontSize: 20,
+        textAlign: "center",
+        fontWeight: "600",
+        color: lightThemeColors.textLight,
+        marginVertical: 20,
+    },
+    text: {
+        fontSize: 16,
+        color: lightThemeColors.textLight,
+    },
+    errorText: {
+        color: "red",
+    },
+    pfpContainer: {
+        alignSelf: "flex-start",
+        
+    },
+    horizontalContainer: {
+        justifyContent: "flex-start",
+        alignItems: "center",
+        flexDirection: "row",
         padding: 10,
     },
-    button: {
+    registerButton: {
         width: 370,
-        marginTop: 10
+        marginBottom: 200, 
+    },
+    uploadButton: {
+        borderRadius: 5,
+        width: 25,
+        height: 25,
+        marginRight: 4,
+        alignItems: "center",
+        justifyContent: 'center', 
+        backgroundColor: lightThemeColors.secondary,
+    },
+    cameraButton: {
+        borderRadius: 5,
+        width: 25,
+        height: 25,
+        marginRight: 4,
+        alignItems: "center",
+        justifyContent: 'center', 
+        backgroundColor: lightThemeColors.secondary,
     },
     pfpImage: {
-        width: 256,
-        height: 256,
-
+        width: 128,
+        height: 128,
+        alignSelf: "center",
     }
 });
 

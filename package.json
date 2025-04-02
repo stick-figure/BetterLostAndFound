@@ -19,6 +19,7 @@
     "@react-navigation/stack": "^6.3.29",
     "eject": "^1.0.3",
     "firebase": "^10.12.2",
+    "firebase-functions-rate-limiter": "^3.9.1",
     "jetifier": "^2.0.0",
     "react": "18.2.0",
     "react-native": "^0.74.2",
@@ -30,6 +31,7 @@
     "react-native-reanimated": "^3.13.0",
     "react-native-safe-area-context": "^4.10.5",
     "react-native-screens": "^3.32.0",
+    "react-native-tab-view": "^4.0.6",
     "react-native-tag-input": "^0.0.21",
     "react-native-vector-icons": "^10.2.0",
     "react-native-vision-camera": "^4.4.1"

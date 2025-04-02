@@ -1,7 +1,7 @@
 import { CommonActions, useIsFocused } from "@react-navigation/native";
 import firebase from "firebase/compat/app";
 import { collection, getDoc, getDocs, query, where } from "firebase/firestore";
-import { useRef, useCallback, useEffect } from "react";
+import { useRef, useCallback, useEffect, useState } from "react";
 import { View, Text, Button, StyleSheet } from "react-native";
 import { runOnJS } from "react-native-reanimated";
 import { Camera, CameraRuntimeError, useCameraDevice, CodeScanner, Point, Code } from "react-native-vision-camera";
@@ -34,7 +34,7 @@ export function ScanCodeScreen({ navigation }: { navigation: any }) {
                         if (itemDocs.empty) {
                             return
                         }
-
+                        
                         navigation.navigate("Item Info", { itemId: itemDocs.docs[0].id });
                     })();
                 }
@@ -50,17 +50,19 @@ export function ScanCodeScreen({ navigation }: { navigation: any }) {
             </View>);
     }
 
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    
     useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged((user) => {
             if (user) {
-
+                setIsLoggedIn(true);
             } else {
-                navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Login' }] }));
+                setIsLoggedIn(false);
             }
         });
 
         return unsubscribe;
-    }, );
+    }, []);
     
     return (
 

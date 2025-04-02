@@ -7,24 +7,26 @@ import { onSnapshot, query, collection, where, getDoc, DocumentSnapshot, doc } f
 import { db, auth } from "../../firebase";
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
 import { CommonActions } from "@react-navigation/native";
+import { Icon } from "react-native-vector-icons/Icon";
 
-interface ItemTile {
+interface ItemListItem {
     _id: string,
     name: string,
     description: string,
     ownerName: string,
     isLost: boolean,
     imageSrc: object,
+    createdAt: number,
 }
 
 export function HomeScreen({ navigation }: { navigation: any }) {
-    const [items, setItems] = useState<Array<ItemTile>>([]);
-
-
+    const [items, setItems] = useState<Array<ItemListItem>>([]);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    
     useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged((user) => {
             if (user) {
-
+                setIsLoggedIn(true);
             } else {
                 navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Login' }] }));
             }
@@ -34,7 +36,7 @@ export function HomeScreen({ navigation }: { navigation: any }) {
     }, []);
 
     useEffect(() => {
-        if (!auth.currentUser) return;
+        if (!isLoggedIn) return;
 
         const unsubscribe = onSnapshot(query(collection(db, 'items')), (snapshot: { docs: any[]; }) => {
             const storage = getStorage();
@@ -62,6 +64,7 @@ export function HomeScreen({ navigation }: { navigation: any }) {
                     ownerName: (owner?.data() ? (owner as DocumentSnapshot).data()!.name : itemDoc.data().ownerId) || "Unknown User",
                     isLost: itemDoc.data().isLost,
                     imageSrc: (url ? { uri: url } : require("../assets/defaultimg.jpg")),
+                    createdAt: itemDoc.data().createdAt,
                 };
             });
 
@@ -69,7 +72,7 @@ export function HomeScreen({ navigation }: { navigation: any }) {
         });
 
         return unsubscribe;
-    });
+    }, [isLoggedIn]);
 
     return (
         <View style={styles.container}>
@@ -80,29 +83,21 @@ export function HomeScreen({ navigation }: { navigation: any }) {
             </TouchableOpacity>
             <View style={styles.itemList}>
                 <FlatList
-                    horizontal={true}
                     keyExtractor={item => item._id.toString()}
                     ListEmptyComponent={<ActivityIndicator size="large" />}
                     data={items}
                     renderItem={({ item }) => (
-                        <View style={styles.itemListItem}>
-                            <TouchableOpacity
-                                key={item._id.toString()}
-                                onPress={() => { navigation.navigate("Item View", { itemId: item._id, itemName: item.name }) }}>
-                                <Image source={item.imageSrc} style={styles.itemImage} />
-                                <View style={styles.itemListItemView}>
-                                    <Text style={styles.itemTitle}>{item.name}</Text>
-                                    <Text style={styles.itemSubtitle}>{item.ownerName}</Text>
-                                    <Text style={styles.itemContent}>{item.description}</Text>
-                                </View>
-                            </TouchableOpacity>
-                        </View>
-                    )}
+                        <View style={styles.itemListItemView}>
+                            <Text style={styles.itemTitle}>{item.name}</Text>
+                            <Text style={styles.itemSubtitle}>{item.ownerName}</Text>
+                            <Text style={styles.itemContent}>{item.description}</Text>
+                            <Image source={item.imageSrc} style={styles.itemImage} />
+                            </View>
+                        )}
                 />
             </View>
 
             <Text>Home</Text>
-
         </View>
     );
 }
@@ -120,23 +115,15 @@ const styles = StyleSheet.create({
     },
     itemList: {
         width: "100%",
-        height: "40%",
         margin: 10,
         backgroundColor: "white",
     },
-    itemListItem: {
-        width: 120,
-        marginLeft: 10,
-        paddingTop: 10,
-        paddingBottom: 10,
-    },
     itemListItemView: {
         margin: 4,
+        alignSelf: 'stretch',
     },
     itemImage: {
-        width: "100%",
-        maxWidth: 120,
-        maxHeight: 120,
+        alignSelf: 'stretch',
         aspectRatio: 1,
     },
     itemTitle: {
