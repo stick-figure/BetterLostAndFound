@@ -25,6 +25,18 @@ export function LostPostViewScreen({ navigation, route }: { navigation: any, rou
         pfpUrl: "",
     });
 
+    const [post, setPost] = useState({
+        itemId: "",
+        title: "",
+        message: "",
+        authorId: "",
+        createdAt: -1,
+        resolved: false,
+        resolvedAt: -1,
+        chats: [],
+        views: -1,
+    });
+
     const [title, setTitle] = useState("");
     const [message, setMessage] = useState("");
     

@@ -46,6 +46,7 @@ export function NewLostPostScreen({ navigation, route }: { navigation: any, rout
             resolved: false,
             resolvedAt: -1,
             chats: [],
+            views: 0,
         };
 
         navigation.navigate("Loading");

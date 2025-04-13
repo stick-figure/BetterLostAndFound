@@ -42,6 +42,16 @@ export function ItemViewScreen({ navigation, route }: { navigation: any, route: 
         navigation.navigate("New Found Post", { item: item, owner: owner });
     }
 
+    const redirectToCurrentLostPost = async () => {
+        try {
+            const postData = (await getDoc(doc(collection(db, "lostPosts"), item.lostPostId))).data()!;
+            postData._id = item.lostPostId;
+            navigation.navigate("Lost Post View", { item: item, author: owner, post: postData });
+        } catch (error) {
+            console.warn(error);
+        }
+    }
+
     const redirectToNewLostPost = () => {
         navigation.navigate("New Lost Post", { item: item, owner: owner });
     }
@@ -81,7 +91,7 @@ export function ItemViewScreen({ navigation, route }: { navigation: any, route: 
                 name: snapshot.get("name") as string,
                 description: snapshot.get("description") as string,
                 ownerId: snapshot.get("ownerId") as string,
-                isLost: snapshot.get("name") as boolean,
+                isLost: snapshot.get("isLost") as boolean,
                 timesLost: snapshot.get("timesLost") as number,
                 lostPostId: snapshot.get("lostPostId") as string,
                 createdAt: snapshot.get("createdAt") as number || -1,
@@ -129,17 +139,28 @@ export function ItemViewScreen({ navigation, route }: { navigation: any, route: 
             <View style={{margin: 5}}>
                 <Text style={styles.description}>{item.description}</Text>
                 <View style={{ display:"flex", alignItems: "center", flexDirection: "row" }}>
-                    <TouchableOpacity
-                        onPress={redirectToNewLostPost}
-                        style={styles.postButton}>
-                        <Text style={styles.buttonText}>Report item as lost</Text>
-                    </TouchableOpacity>
+                    {item.isLost ?  
+                        (<TouchableOpacity
+                            onPress={redirectToCurrentLostPost}
+                            style={styles.postButton}>
+                            <Text style={styles.buttonText}>Go to lost post</Text>
+                        </TouchableOpacity>
+                    ) : (
+                        <TouchableOpacity
+                            onPress={redirectToNewLostPost}
+                            style={styles.postButton}>
+                            <Text style={styles.buttonText}>Report item as lost</Text>
+                        </TouchableOpacity>
+                    )}
+                    
+                    
                     <TouchableOpacity
                         onPress={deleteItemAlert}
                         style={styles.deleteItemButton}>
                         <Icon name="delete" />
                     </TouchableOpacity>
                 </View>
+                <Text>Posts mentioning this item</Text>
             </View>
         </View>
     );
