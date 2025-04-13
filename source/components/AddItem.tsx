@@ -1,5 +1,5 @@
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { getStorage, ref, uploadBytes } from "firebase/storage";
+import { addDoc, collection, serverTimestamp, updateDoc } from "firebase/firestore";
+import { getDownloadURL, getStorage, ref, uploadBytes, uploadBytesResumable } from "firebase/storage";
 import { useEffect, useState } from "react";
 import { View, Text, Button, StyleSheet, Image, Pressable, ImageSourcePropType } from "react-native";
 import { Icon, Input, Tooltip } from "react-native-elements";
@@ -77,24 +77,28 @@ export function AddItemScreen({ navigation, route }: { navigation: any, route: a
         });
     }
 
-    const uploadImage = async (imageId: string) => {
-        setUploading(true);
-        navigation.navigate("Loading");
-        const response = await fetch(imgSrc.uri);
-        const blob = await response.blob();
+    const uploadImage = (imageId: string) => {
+        return new Promise(async (resolve, reject) => {
+            try {
+                setUploading(true);
+                navigation.navigate("Loading");
+                const response = await fetch(imgSrc.uri);
+                const blob = await response.blob();
 
-        const storage = getStorage();
-        const storageRef = ref(storage, "images/items/" + imageId);
-        console.log(storageRef.fullPath);
+                const storage = getStorage();
+                const imageRef = ref(storage, "images/items/" + imageId);
+                console.log(imageRef.fullPath);
 
-        uploadBytes(storageRef, blob).then((result) => {
-            
-            setUploading(false);
-            setImgSrc({ uri: "" });
-        }).catch((error) => {
-            const errorCode = error.code;
-            const errorMessage = error.message;
-            navigation.navigate("Error", { code: errorCode, message: errorMessage });
+                uploadBytesResumable(imageRef, blob).then(async () => {
+                    const url = await getDownloadURL(imageRef);
+                    setImgSrc({ uri: "" });
+                    resolve(url);
+                    setUploading(false);
+                });
+                
+            } catch (error) {
+                reject(error);
+            }
         });
     }
 
@@ -106,15 +110,21 @@ export function AddItemScreen({ navigation, route }: { navigation: any, route: a
             isLost: false,
             secretPhrase: secretPhrase,
             createdAt: serverTimestamp(),
+            imageSrc: ""
         };
-
+        
         navigation.navigate("Loading");
-
+        
         const docRef = addDoc(collection(db, "items"), itemData);
         docRef.then((dRef) => {
-            return uploadImage(dRef.id);
+            return Promise.all([dRef, uploadImage(dRef.id)]);
+        }).then(([dRef, url]) => {
+            console.log(dRef, url)
+            return updateDoc(dRef, {imageSrc: url});
         }).then(() => {
             navigation.navigate("My Items");
+//            navigation.navigate("Bottom Tabs", {screen: "My Items"});
+
         }).catch((error) => {
             // An error happened.
             const errorCode = error.code;

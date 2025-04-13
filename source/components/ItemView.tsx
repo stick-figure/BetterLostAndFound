@@ -1,4 +1,4 @@
-import { collection, deleteDoc, deleteField, doc, DocumentReference, getDoc, onSnapshot, updateDoc } from "firebase/firestore";
+import { collection, deleteDoc, deleteField, doc, DocumentReference, getDoc, onSnapshot, serverTimestamp, updateDoc } from "firebase/firestore";
 import { useState, useEffect, useCallback } from "react";
 import { View, Text, Button, StyleSheet, Pressable, Alert } from "react-native";
 import { auth, db } from "../../firebase";
@@ -21,6 +21,8 @@ export function ItemViewScreen({ navigation, route }: { navigation: any, route: 
         ownerId: "",
         isLost: false,
         secretCode: "",
+        lostPostId: "",
+        timesLost: -1,
         createdAt: -1,
         imageSrc: require("../assets/defaultimg.jpg"),
     });
@@ -69,36 +71,30 @@ export function ItemViewScreen({ navigation, route }: { navigation: any, route: 
     const setItemInfo = useCallback(() => {
         getDoc(doc(collection(db, "items"), route.params!.itemId)).then((snapshot) => {
             if (snapshot.get("ownerId") as string == auth.currentUser!.uid) setIsOwner(true);
+            const storage = getStorage();
             
             setItemRef(snapshot.ref);
+            setImageRef(ref(storage, "images/items/" + route));
             
-            const storage = getStorage();
-            const imageRef = ref(storage, 'images/items/' + route.params!.itemId);
-
-            setImageRef(imageRef);
-            
-            getDownloadURL(imageRef!).then((url) => {
-                console.log(url);
-                setItem({
-                    _id: route.params!.itemId,
-                    name: snapshot.get("name") as string,
-                    description: snapshot.get("description") as string,
-                    ownerId: snapshot.get("ownerId") as string,
-                    isLost: snapshot.get("name") as boolean,
-                    createdAt: snapshot.get("createdAt") as number || -1,
-                    secretCode: snapshot.get("secretCode") as string || "",
-                    imageSrc: url ? { uri: url } : require("../assets/defaultimg.jpg"),
-                });
-            }).catch((error) => {
-                console.warn(error);
+            setItem({
+                _id: route.params!.itemId,
+                name: snapshot.get("name") as string,
+                description: snapshot.get("description") as string,
+                ownerId: snapshot.get("ownerId") as string,
+                isLost: snapshot.get("name") as boolean,
+                timesLost: snapshot.get("timesLost") as number,
+                lostPostId: snapshot.get("lostPostId") as string,
+                createdAt: snapshot.get("createdAt") as number || -1,
+                secretCode: snapshot.get("secretCode") as string || "",
+                imageSrc: snapshot.get("imageSrc") ? { uri: snapshot.get("imageSrc") as string } : require("../assets/defaultimg.jpg"),
             });
 
             if (snapshot.get("ownerId") as string) {
-                getDoc(doc(collection(db, "users"), snapshot.get("ownerId") as string)).then((snapshot) => {
+                getDoc(doc(collection(db, "users"), snapshot.get("ownerId") as string)).then((user_snapshot) => {
                     setOwner({
-                        _id: snapshot.id,
-                        name: snapshot.get("name") as string,
-                        pfpUrl: snapshot.get("pfpUrl") as string,
+                        _id: user_snapshot.id,
+                        name: user_snapshot.get("name") as string,
+                        pfpUrl: user_snapshot.get("pfpUrl") as string,
                     });
                 });
             }

@@ -39,7 +39,8 @@ export function RegisterScreen({ navigation, route }: { navigation: any, route: 
         
             const user = userCredential.user;
             
-            const pfpUrl = await uploadImage(user.uid);
+            let pfpUrl;
+            if (pfpSrc.uri != "") await uploadImage(user.uid);
             
             await updateProfile(user, {
                 displayName: name,
@@ -56,7 +57,7 @@ export function RegisterScreen({ navigation, route }: { navigation: any, route: 
 
             await setDoc(doc(db, "users", user.uid), userData);
 
-            navigation.navigate("Home Tab", { screen: "Home" });
+            navigation.navigate("Bottom Tabs", { screen: "Home" });
         } catch (error) {
             if (error as AuthError) {
                 navigation.goBack();

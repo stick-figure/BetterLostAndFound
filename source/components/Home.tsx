@@ -9,18 +9,17 @@ import { getStorage, ref, getDownloadURL } from "firebase/storage";
 import { CommonActions } from "@react-navigation/native";
 import { Icon } from "react-native-vector-icons/Icon";
 
-interface ItemListItem {
+interface LostPostListItem {
     _id: string,
-    name: string,
-    description: string,
+    title: string,
+    message: string,
     ownerName: string,
-    isLost: boolean,
     imageSrc: object,
     createdAt: number,
 }
 
 export function HomeScreen({ navigation }: { navigation: any }) {
-    const [items, setItems] = useState<Array<ItemListItem>>([]);
+    const [lostPosts, setLostPosts] = useState<Array<LostPostListItem>>([]);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     
     useEffect(() => {
@@ -38,41 +37,55 @@ export function HomeScreen({ navigation }: { navigation: any }) {
     useEffect(() => {
         if (!isLoggedIn) return;
 
-        const unsubscribe = onSnapshot(query(collection(db, 'items')), (snapshot: { docs: any[]; }) => {
+        const unsubscribe = onSnapshot(query(collection(db, 'lostPosts')), (snapshot: { docs: any[]; }) => {
             const storage = getStorage();
-            const promises = snapshot.docs.map(async (itemDoc) => {
-                const imageRef = ref(storage, 'images/items/' + itemDoc.id);
-
+            const promises = snapshot.docs.map(async (postDoc) => {
+                const imageRef = ref(storage, 'images/items/' + postDoc.data().itemId);
+                
                 let url;
                 try {
                     url = await getDownloadURL(imageRef!);
                 } catch (err) {
-                    
+                    console.warn(err);
                 }
 
                 let owner;
                 try {
-                    owner = await getDoc(doc(db, "users", itemDoc.data().ownerId));
+                    owner = await getDoc(doc(db, "users", postDoc.data().authorId));
                 } catch (err) {
-                    
+                    console.warn(err);
                 }
                 
                 return {
-                    _id: itemDoc.id,
-                    name: itemDoc.data().name,
-                    description: itemDoc.data().description,
-                    ownerName: (owner?.data() ? (owner as DocumentSnapshot).data()!.name : itemDoc.data().ownerId) || "Unknown User",
-                    isLost: itemDoc.data().isLost,
+                    _id: postDoc.id,
+                    title: postDoc.data().title,
+                    message: postDoc.data().message,
+                    ownerName: (owner?.data() ? (owner as DocumentSnapshot).data()!.name : postDoc.data().ownerId) || "Unknown User",
                     imageSrc: (url ? { uri: url } : require("../assets/defaultimg.jpg")),
-                    createdAt: itemDoc.data().createdAt,
+                    createdAt: postDoc.data().createdAt,
                 };
             });
 
-            Promise.all(promises).then((res) => setItems(res)).catch((error) => {console.warn(error)});
+            Promise.all(promises).then((res) => setLostPosts(res)).catch((error) => {console.warn(error)});
         });
 
         return unsubscribe;
     }, [isLoggedIn]);
+
+    
+    const navigateToPost = async (postId: string) => {
+        try {
+            const postData = (await getDoc(doc(db, "lostPosts", postId))).data()!;
+            const itemData = (await getDoc(doc(db, "items", postData!.itemId))).data()!;
+            itemData._id = postData!.itemId;
+            const authorData = (await getDoc(doc(db, "users", postData!.authorId))).data()!;
+            authorData._id = postData!.authorId;
+            navigation.navigate("Lost Post View", {post: postData, item: itemData, author: authorData});
+        } catch (err) {
+            console.warn(err);
+        }
+
+    }
 
     return (
         <View style={styles.container}>
@@ -83,16 +96,19 @@ export function HomeScreen({ navigation }: { navigation: any }) {
             </TouchableOpacity>
             <View style={styles.itemList}>
                 <FlatList
-                    keyExtractor={item => item._id.toString()}
+                    keyExtractor={lostPost => lostPost._id.toString()}
                     ListEmptyComponent={<ActivityIndicator size="large" />}
-                    data={items}
+                    data={lostPosts}
                     renderItem={({ item }) => (
-                        <View style={styles.itemListItemView}>
-                            <Text style={styles.itemTitle}>{item.name}</Text>
+                        <TouchableOpacity onPress={() => navigateToPost(item._id)}>
+                            <View style={styles.itemListItemView}>
+                            <Text style={styles.itemTitle}>{item.title}</Text>
                             <Text style={styles.itemSubtitle}>{item.ownerName}</Text>
-                            <Text style={styles.itemContent}>{item.description}</Text>
+                            <Text style={styles.itemContent}>{item.message}</Text>
                             <Image source={item.imageSrc} style={styles.itemImage} />
                             </View>
+                        </TouchableOpacity>
+                        
                         )}
                 />
             </View>

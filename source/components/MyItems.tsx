@@ -43,13 +43,6 @@ export function MyItemsScreen({ navigation }: { navigation: any }) {
             const promises = snapshot.docs.map(async (itemDoc) => {
                 const imageRef = ref(storage, 'images/items/' + itemDoc.id);
 
-                let url;
-                try {
-                    url = await getDownloadURL(imageRef!);
-                } catch (err) {
-                    
-                }
-
                 let owner;
                 try {
                     owner = await getDoc(doc(db, "users", itemDoc.data().ownerId));
@@ -63,7 +56,7 @@ export function MyItemsScreen({ navigation }: { navigation: any }) {
                     description: itemDoc.data().description,
                     ownerName: (owner?.data() ? (owner as DocumentSnapshot).data()!.name : itemDoc.data().ownerId) || "Unknown User",
                     isLost: itemDoc.data().isLost,
-                    imageSrc: (url ? { uri: url } : require("../assets/defaultimg.jpg")),
+                    imageSrc: (itemDoc.data().imageSrc ? { uri: itemDoc.data().imageSrc } : require("../assets/defaultimg.jpg")),
                 };
             });
 
@@ -75,7 +68,7 @@ export function MyItemsScreen({ navigation }: { navigation: any }) {
 
     return (
         <View style={styles.container}>
-            <View style={[styles.horizontal, {alignItems: "flex-end"}]}>
+            <View style={[styles.horizontal, {width:'100%', alignItems: "flex-end", justifyContent: 'space-between'}]}>
                 <Text>My Items</Text>
                 <Button title='Add Item' onPress={() => navigation.navigate("Add Item")} titleStyle={styles.addItemTitle} />
             </View>
@@ -94,7 +87,6 @@ export function MyItemsScreen({ navigation }: { navigation: any }) {
                                 <View style={styles.itemListItemView}>
                                     <Text style={styles.itemTitle}>{item.name}</Text>
                                     <Text style={styles.itemSubtitle}>{item.ownerName}</Text>
-                                    <Text style={styles.itemContent}>{item.description}</Text>
                                 </View>
                             </TouchableOpacity>
                         </View>
@@ -121,7 +113,7 @@ const styles = StyleSheet.create({
     },
     itemList: {
         width: "100%",
-        height: "40%",
+        height: 200,
         margin: 10,
         backgroundColor: "white",
     },

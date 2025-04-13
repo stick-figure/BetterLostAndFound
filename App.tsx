@@ -25,6 +25,7 @@ import { ReturnItemScreen } from './source/components/ReturnItem';
 import { ItemViewScreen, ItemViewRouteParams } from './source/components/ItemView';
 import { SettingsScreen } from './source/components/Settings';
 import NewLostPostScreen from './source/components/NewLostPost';
+import LostPostViewScreen, { PostViewRouteParams } from './source/components/LostPostView';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -32,7 +33,7 @@ const Tab = createBottomTabNavigator();
 function HomeTab() {
     return (
         <Tab.Navigator
-            initialRouteName={'Home Tab'}>
+            initialRouteName={'Bottom Tabs'}>
             <Tab.Screen name='Home' component={HomeScreen} options={{ title: "Home" }} />
             <Tab.Screen name='My Items' component={MyItemsScreen} options={{ title: "My Items" }} />
             <Tab.Screen name='Settings' component={SettingsScreen} options={{ title: "Settings" }} />
@@ -62,7 +63,7 @@ export function App() {
                 <Stack.Navigator>
                     {/* Screens for logged in users */}
                     <Stack.Group>
-                        <Stack.Screen name="Home Tab" options={{ title: "Home", headerShown: false }} component={HomeTab} />
+                        <Stack.Screen name="Bottom Tabs" options={{ title: "Home", headerShown: false }} component={HomeTab} />
 
                         <Stack.Screen name="Add Item" component={AddItemScreen} options={{ title: "Add Item" }} />
                         <Stack.Screen name="Return Item" component={ReturnItemScreen} options={{ title: "Return Item", headerBackTitle: "Back" }} />
@@ -73,6 +74,10 @@ export function App() {
                             component={ItemViewScreen} />
                         <Stack.Screen name="Scan Code" component={ScanCodeScreen} options={{ title: "Scan Code" }} />
                         <Stack.Screen name="New Lost Post" component={NewLostPostScreen} options={{ title: "New Post" }} />
+                        <Stack.Screen name="Lost Post View" component={LostPostViewScreen} options={({ route }) => ({
+                            title: (route!.params as PostViewRouteParams).post.title,
+                            headerBackTitle: "My Items",
+                        })} />
                     </Stack.Group>
                     
                     {/* Auth screens */}

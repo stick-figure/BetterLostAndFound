@@ -18,6 +18,7 @@ export function NewLostPostScreen({ navigation, route }: { navigation: any, rout
         description: "",
         ownerId: "",
         isLost: false,
+        timesLost: -1,
         secretCode: "",
         createdAt: -1,
         imageSrc: require("../assets/defaultimg.jpg"),
@@ -38,6 +39,7 @@ export function NewLostPostScreen({ navigation, route }: { navigation: any, rout
     const uploadPost = () => {
         const postData = {
             itemId: item._id,
+            title: title.trim().length > 0 ? title : item.name,
             message: message,
             authorId: auth.currentUser?.uid,
             createdAt: serverTimestamp(),
@@ -48,8 +50,11 @@ export function NewLostPostScreen({ navigation, route }: { navigation: any, rout
 
         navigation.navigate("Loading");
 
-        addDoc(collection(db, "lostPost"), postData).then(() => {
-            return updateDoc(doc(db, "items", item._id), {isLost: true});
+        addDoc(collection(db, "lostPosts"), postData).then((postRef) => {
+            return updateDoc(doc(db, "items", item._id), {isLost: true, lostPostId: postRef.id, timesLost: item.timesLost + 1});
+        }).then(() => {
+            navigation.goBack();
+            navigation.navigate("Lost Post View", {item: item, owner: owner, author: owner, post: postData});
         });
     }
 
@@ -70,7 +75,7 @@ export function NewLostPostScreen({ navigation, route }: { navigation: any, rout
     useEffect(() => {
         if (!isLoggedIn) return;
         if (route.params?.item) setItem(route.params!.item);
-        if (route.params?.owner) setItem(route.params!.owner);
+        if (route.params?.owner) setOwner(route.params!.owner);
     }, [isLoggedIn]);
 
     if (uploading) {
@@ -82,35 +87,39 @@ export function NewLostPostScreen({ navigation, route }: { navigation: any, rout
 
     return (
         <View style={styles.container}>
-            <View style={styles.itemContainer}>
-                <TouchableOpacity
-                    onPress={() => { navigation.navigate("Item View", { itemId: item._id, itemName: item.name }) }}>
-                    <Image source={item.imageSrc} style={styles.itemImage} />
-                    <View style={styles.itemListItemView}>
-                        <Text style={styles.itemTitle}>{item.name}</Text>
-                        <Text style={styles.itemSubtitle}>{owner.name}</Text>
-                        <Text style={styles.itemContent}>{item.description}</Text>
-                    </View>
-                </TouchableOpacity>
+            <View style={styles.horizontal}>
+                <View style={styles.itemContainer}>
+                    <TouchableOpacity
+                        onPress={() => { navigation.navigate("Item View", { itemId: item._id, itemName: item.name }) }}>
+                        <Image source={item.imageSrc} style={styles.itemImage} />
+                        <View style={styles.itemListItemView}>
+                            <Text style={styles.itemTitle}>{item.name}</Text>
+                            <Text style={styles.itemSubtitle}>{owner.name}</Text>
+                            <Text style={styles.itemSubtitle}>{item.description}</Text>
+                        </View>
+                    </TouchableOpacity>
+                </View>
+                <View>
+                    <Input
+                        placeholder="Title"
+                        onChangeText={text => setTitle(text)}
+                        value={title}
+                    />
+                    <Input
+                        multiline={true}
+                        placeholder="Describe some identifying features"
+                        onChangeText={text => setMessage(text)}
+                        value={message}
+                    />
+                    <TouchableOpacity
+                        style={styles.saveButton}
+                        disabled={message.trim().length <= 0}
+                        onPress={uploadPost}
+                    >
+                        <Text style={styles.saveButtonText}>Post</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
-            <Input
-                placeholder="Title"
-                onChangeText={text => setTitle(text)}
-                value={title}
-            />
-            <Input
-                multiline={true}
-                placeholder="Describe some identifying features"
-                onChangeText={text => setMessage(text)}
-                value={message}
-            />
-            <TouchableOpacity
-                style={styles.saveButton}
-                disabled={message.trim().length <= 0}
-                onPress={uploadPost}
-            >
-                <Text style={styles.saveButtonText}>Post</Text>
-            </TouchableOpacity>
         </View>
     );
 }
@@ -121,7 +130,10 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     itemContainer: {
-
+        width: 100,
+    },
+    horizontal: {
+        flexDirection: "row",
     },
     addItemTitle: {
         margin: 20,
@@ -136,7 +148,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     itemImage: {
-        flex: 1,
+        width: "100%",
         aspectRatio: 1 / 1,
     },
     
