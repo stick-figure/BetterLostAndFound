@@ -41,7 +41,7 @@ export function ItemViewScreen({ navigation, route }: { navigation: any, route: 
     const redirectToNewFoundPost = () => {
         navigation.navigate("New Found Post", { item: item, owner: owner });
     }
-
+    
     const redirectToCurrentLostPost = async () => {
         try {
             const postData = (await getDoc(doc(collection(db, "lostPosts"), item.lostPostId))).data()!;
