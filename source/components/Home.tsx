@@ -3,7 +3,7 @@ import { View, Button, StyleSheet, Text, FlatList, Image, ActivityIndicator } fr
 import { FAB, Input, ListItem } from "react-native-elements";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { lightThemeColors } from "../assets/Colors";
-import { onSnapshot, query, collection, where, getDoc, DocumentSnapshot, doc } from "firebase/firestore";
+import { onSnapshot, query, collection, where, getDoc, DocumentSnapshot, doc, FieldValue, serverTimestamp } from "firebase/firestore";
 import { db, auth } from "../../firebase";
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
 import { CommonActions } from "@react-navigation/native";
@@ -13,9 +13,10 @@ interface LostPostListItem {
     _id: string,
     title: string,
     message: string,
-    ownerName: string,
+    authorName: string,
+    pfpSrc: object,
     imageSrc: object,
-    createdAt: number,
+    createdAt: FieldValue,
 }
 
 export function HomeScreen({ navigation }: { navigation: any }) {
@@ -40,11 +41,9 @@ export function HomeScreen({ navigation }: { navigation: any }) {
         const unsubscribe = onSnapshot(query(collection(db, 'lostPosts')), (snapshot: { docs: any[]; }) => {
             const storage = getStorage();
             const promises = snapshot.docs.map(async (postDoc) => {
-                const imageRef = ref(storage, 'images/items/' + postDoc.data().itemId);
-                
-                let url;
+                let item;
                 try {
-                    url = await getDownloadURL(imageRef!);
+                    item = await getDoc(doc(db, "items", postDoc.data().itemId));
                 } catch (err) {
                     console.warn(err);
                 }
@@ -60,8 +59,9 @@ export function HomeScreen({ navigation }: { navigation: any }) {
                     _id: postDoc.id,
                     title: postDoc.data().title,
                     message: postDoc.data().message,
-                    ownerName: (owner?.data() ? (owner as DocumentSnapshot).data()!.name : postDoc.data().ownerId) || "Unknown User",
-                    imageSrc: (url ? { uri: url } : require("../assets/defaultimg.jpg")),
+                    authorName: (owner?.data() ? (owner as DocumentSnapshot).data()!.name : postDoc.data().ownerId) || "Unknown User",
+                    pfpSrc: (owner?.data() ? { uri: (owner as DocumentSnapshot).data()!.pfpUrl } : require("../assets/defaultpfp.jpg")),
+                    imageSrc: (item?.data() ? { uri: (item as DocumentSnapshot).data()!.imageSrc } : require("../assets/defaultimg.jpg")),
                     createdAt: postDoc.data().createdAt,
                 };
             });
@@ -102,10 +102,18 @@ export function HomeScreen({ navigation }: { navigation: any }) {
                     renderItem={({ item }) => (
                         <TouchableOpacity onPress={() => navigateToPost(item._id)}>
                             <View style={styles.itemListItemView}>
-                            <Text style={styles.itemTitle}>{item.title}</Text>
-                            <Text style={styles.itemSubtitle}>{item.ownerName}</Text>
-                            <Text style={styles.itemContent}>{item.message}</Text>
-                            <Image source={item.imageSrc} style={styles.itemImage} />
+                                <View style={[styles.horizontal, {width: "100%", justifyContent: "flex-start", alignItems: "center"}]}>
+                                    <Image
+                                        style={styles.pfp}
+                                        source={item.pfpSrc} />
+                                    <View>
+                                        <Text style={styles.userName}>{item.authorName}</Text>
+                                    </View>
+                                </View>
+                                <Text style={styles.itemTitle}>{item.title}</Text>
+                                <Text style={styles.timestamp}>{new Date((item.createdAt).seconds*1000).toLocaleDateString()}</Text>
+                                <Text style={styles.itemContent}>{item.message}</Text>
+                                <Image source={item.imageSrc} style={styles.itemImage} />
                             </View>
                         </TouchableOpacity>
                         
@@ -123,6 +131,9 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         padding: 10,
+    },
+    horizontal: {
+        flexDirection: "row",
     },
     text: {
         textAlign: "center",
@@ -145,7 +156,7 @@ const styles = StyleSheet.create({
     itemTitle: {
         color: lightThemeColors.textLight,
         fontWeight: "bold",
-        fontSize: 16,
+        fontSize: 18,
     },
     itemSubtitle: {
         color: lightThemeColors.textLight,
@@ -154,6 +165,7 @@ const styles = StyleSheet.create({
     itemContent: {
         color: lightThemeColors.textLight,
         fontSize: 14,
+        overflow: "hidden",
     },
     returnItemButton: {
         width: 370,
@@ -162,6 +174,19 @@ const styles = StyleSheet.create({
         backgroundColor: lightThemeColors.primary,
         borderRadius: 7,
     },
-
+    pfp: {
+        borderRadius: 99999,
+        width: 42, 
+        aspectRatio: 1/1,
+    },
+    userName: {
+        fontSize: 15,
+        marginHorizontal: 12,
+        fontWeight: "600",
+    },
+    timestamp: {
+        fontSize: 12,
+        margin: 2,
+    },
 });
 export default HomeScreen;

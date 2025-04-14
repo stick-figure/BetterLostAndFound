@@ -1,15 +1,10 @@
-import { addDoc, collection, doc, serverTimestamp, updateDoc } from "firebase/firestore";
-import { getStorage, ref, uploadBytes } from "firebase/storage";
-import { useEffect, useState } from "react";
-import { View, Text, Button, StyleSheet, Image, Pressable, ImageSourcePropType, TextInput } from "react-native";
+import { serverTimestamp, addDoc, collection, updateDoc, doc } from "firebase/firestore";
+import { useState, useEffect } from "react";
+import { View, Text, TouchableOpacity, Image, StyleSheet } from "react-native";
 import { Input } from "react-native-elements";
-import { launchImageLibrary, MediaType } from 'react-native-image-picker';
-
 import { auth, db } from "../../firebase";
 import { lightThemeColors } from "../assets/Colors";
-import { TouchableOpacity } from "react-native-gesture-handler";
 import { CommonActions } from "@react-navigation/native";
-
 
 export function NewLostPostScreen({ navigation, route }: { navigation: any, route: any }) {
     const [item, setItem] = useState({
@@ -29,7 +24,6 @@ export function NewLostPostScreen({ navigation, route }: { navigation: any, rout
         pfpUrl: "",
     });
 
-    const [title, setTitle] = useState("");
     const [message, setMessage] = useState("");
 
     const [useLocation, setUseLocation] = useState(false);
@@ -39,7 +33,7 @@ export function NewLostPostScreen({ navigation, route }: { navigation: any, rout
     const uploadPost = () => {
         const postData = {
             itemId: item._id,
-            title: title.trim().length > 0 ? title : item.name,
+            itemOwnerId: item.ownerId,
             message: message,
             authorId: auth.currentUser?.uid,
             createdAt: serverTimestamp(),
@@ -54,7 +48,6 @@ export function NewLostPostScreen({ navigation, route }: { navigation: any, rout
         addDoc(collection(db, "lostPosts"), postData).then((postRef) => {
             return updateDoc(doc(db, "items", item._id), {isLost: true, lostPostId: postRef.id, timesLost: item.timesLost + 1});
         }).then(() => {
-            navigation.navigate("Lost Post View", {item: item, owner: owner, author: owner, post: postData});
             navigation.dispatch((state: {routes: any[]}) => {
                 const topScreen = state.routes[0];
                 const thisScreen = state.routes[state.routes.length - 1];
@@ -65,6 +58,7 @@ export function NewLostPostScreen({ navigation, route }: { navigation: any, rout
                     routes,
                 });
             });
+//            navigation.navigate("Lost Post View", {item: item, owner: owner, author: owner, post: postData});
         });
     }
 
@@ -110,11 +104,6 @@ export function NewLostPostScreen({ navigation, route }: { navigation: any, rout
                     </TouchableOpacity>
                 </View>
                 <View>
-                    <Input
-                        placeholder="Title"
-                        onChangeText={text => setTitle(text)}
-                        value={title}
-                    />
                     <Input
                         multiline={true}
                         placeholder="Describe some identifying features"

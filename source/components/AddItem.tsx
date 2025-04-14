@@ -94,6 +94,10 @@ export function AddItemScreen({ navigation, route }: { navigation: any, route: a
                     setImgSrc({ uri: "" });
                     resolve(url);
                     setUploading(false);
+                    return;
+                }).catch((error) => {
+                    reject(error);
+                    return;
                 });
                 
             } catch (error) {

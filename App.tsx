@@ -75,7 +75,7 @@ export function App() {
                         <Stack.Screen name="Scan Code" component={ScanCodeScreen} options={{ title: "Scan Code" }} />
                         <Stack.Screen name="New Lost Post" component={NewLostPostScreen} options={{ title: "New Post" }} />
                         <Stack.Screen name="Lost Post View" component={LostPostViewScreen} options={({ route }) => ({
-                            title: "Missing",
+                            title: "Missing " + (route!.params as PostViewRouteParams).item.name,
                         })} />
                     </Stack.Group>
                     

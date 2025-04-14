@@ -36,26 +36,27 @@ export function RegisterScreen({ navigation, route }: { navigation: any, route: 
             navigation.navigate("Loading");
 
             const userCredential = await createUserWithEmailAndPassword(auth, email, password)
-        
-            const user = userCredential.user;
             
             let pfpUrl;
-            if (pfpSrc.uri != "") await uploadImage(user.uid);
-            
-            await updateProfile(user, {
-                displayName: name,
-                photoURL: pfpUrl ? pfpUrl : require("../assets/defaultpfp.jpg"),
-            });
+            try {
+                if (pfpSrc.uri != "") pfpUrl = await uploadImage(userCredential.user.uid) as string;
+            } catch (error) {
+                pfpUrl = undefined;
+            }
             
             const userData = {
                 name: name,
                 email: email,
-                pfpUrl: pfpUrl || user.photoURL,
+                pfpUrl: pfpUrl || await getDownloadURL(ref(getStorage(), "images/pfps/default/defaultpfp.jpg")),
                 emailVertified: false,
                 createdAt: serverTimestamp(),
             };
-
-            await setDoc(doc(db, "users", user.uid), userData);
+            
+            updateProfile(userCredential.user, {
+                displayName: name,
+                photoURL: pfpUrl || null,
+            });
+            await setDoc(doc(db, "users", userCredential.user.uid), userData);
 
             navigation.navigate("Bottom Tabs", { screen: "Home" });
         } catch (error) {
@@ -122,29 +123,25 @@ export function RegisterScreen({ navigation, route }: { navigation: any, route: 
 
     const uploadImage = (imageId: string) => {
         return new Promise(async (resolve, reject) => {
-            console.log("uploading image now, " + pfpSrc.uri);
+            try {
+                console.log("fetching image now, " + pfpSrc.uri);
 
-            fetch(pfpSrc.uri).then((response) => {
-                console.log("getting blob of image uri" + pfpSrc.uri);
-                return response.blob();
-            }).then((blob) => {
+                const blob = await (await fetch(pfpSrc.uri)).blob();
                 console.log("uploading images bytes...");
-                
+                    
                 const storage = getStorage();
                 const imageRef = ref(storage, "images/pfps/" + imageId);
 
-                uploadBytes(imageRef, blob).then(() => {
-                    return getDownloadURL(imageRef!);
-                }).then((url) => {
-                    console.log(url);
-                    return resolve(url);
-                });
-            }).catch((error) => {
-                const errorCode = error.code;
-                const errorMessage = error.message;
-                navigation.navigate("Error", { code: errorCode, message: errorMessage });
-                return reject(error);
-            });
+                await uploadBytes(imageRef, blob)
+                const url = await getDownloadURL(imageRef!);
+                
+                console.log(url);
+                resolve(url);
+                return;
+            } catch (err) {
+                reject(err);
+                return;
+            }
         });
 
     }

@@ -5,7 +5,7 @@ import { auth } from "../../firebase";
 import { getDownloadURL } from "firebase/storage";
 
 export type PostViewRouteParams = {
-    post: {title: string},
+    item: {name: string},
 }
 
 export function LostPostViewScreen({ navigation, route }: { navigation: any, route: any }) {
@@ -26,8 +26,8 @@ export function LostPostViewScreen({ navigation, route }: { navigation: any, rou
     });
 
     const [post, setPost] = useState({
+        _id: "",
         itemId: "",
-        title: "",
         message: "",
         authorId: "",
         createdAt: -1,
@@ -37,11 +37,14 @@ export function LostPostViewScreen({ navigation, route }: { navigation: any, rou
         views: -1,
     });
 
-    const [title, setTitle] = useState("");
     const [message, setMessage] = useState("");
     
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+    const [isAuthor, setIsAuthor] = useState(false);
+    const [isOwner, setIsOwner] = useState(false);
     
+
     useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged((user) => {
             if (user) {
@@ -60,35 +63,43 @@ export function LostPostViewScreen({ navigation, route }: { navigation: any, rou
         itemData.imageSrc = {uri: route.params!.item.imageSrc};
         setItem(itemData);
         setAuthor(route.params!.author);
-        setTitle(route.params!.post.title);
+        setPost(route.params!.post);
         setMessage(route.params!.post.message);
+        if (auth.currentUser!.uid == itemData._id) setIsOwner(true);
+        if (auth.currentUser!.uid == route.params!.author._id) setIsAuthor(true);
         console.log(route.params!.item.imageSrc);
     }, [isLoggedIn]);
+
+    if (post._id == "") {
+        return (
+            <View>
+                <Text>Post not found</Text>
+            </View>
+        );
+    }
 
     return (
         <View style={styles.container}>
                 <View style={styles.itemContainer}>
+                    <Image></Image>
+                    <Text style={styles.itemSubtitle}>{author.name}</Text>
                     <TouchableOpacity
                         onPress={() => { navigation.navigate("Item View", { itemId: item._id, itemName: item.name }) }}>
                         <Image source={item.imageSrc} style={styles.itemImage} />
                         <View style={styles.itemListItemView}>
                             <Text style={styles.itemTitle}>{item.name}</Text>
-                            <Text style={styles.itemSubtitle}>{author.name}</Text>
-                            <Text style={styles.itemSubtitle}>{item.description}</Text>
                         </View>
                     </TouchableOpacity>
                 </View>
                 <View>
-                    <TextInput
-                        placeholder="Title"
-                        onChangeText={text => setTitle(text)}
-                        value={title}
-                    />
+                    
                     <TextInput
                         multiline={true}
                         placeholder="Where did you last put this item?"
                         onChangeText={text => setMessage(text)}
                         value={message}
+                        editable={isAuthor}
+                        selectTextOnFocus={false}
                     />
                 </View>
         </View>
@@ -98,10 +109,9 @@ export function LostPostViewScreen({ navigation, route }: { navigation: any, rou
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        alignItems: 'center',
     },
     itemContainer: {
-
+        width: "100%",
     },
     horizontal: {
         flexDirection: "row",
@@ -111,7 +121,6 @@ const styles = StyleSheet.create({
         color: lightThemeColors.textLight,
     },
     imagePressableContainer: {
-        width: "100%",
         alignItems: 'center',
     },
     imageContainer: {
@@ -119,10 +128,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     itemImage: {
-        width: 100,
         aspectRatio: 1 / 1,
     },
-    
+    postTitle: {
+        fontSize: 20,
+    },
     itemList: {
         width: "100%",
         height: "40%",

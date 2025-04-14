@@ -69,6 +69,7 @@ export function ItemViewScreen({ navigation, route }: { navigation: any, route: 
 
     const deleteItem = () => {
         navigation.navigate("Loading");
+        
         Promise.all([deleteObject(imageRef!), deleteDoc(itemRef!)]).then(() => {
             // File deleted successfully
             navigation.navigate("My Items");
@@ -133,25 +134,32 @@ export function ItemViewScreen({ navigation, route }: { navigation: any, route: 
 
     if (isOwner) return (
         <View style={styles.container}>
-            <Image
-                style={styles.itemImage}
-                source={item.imageSrc} />
             <View style={{margin: 5}}>
+                <Image
+                    style={styles.itemImage}
+                    source={item.imageSrc} />
                 <Text style={styles.description}>{item.description}</Text>
-                <View style={{ display:"flex", alignItems: "center", flexDirection: "row" }}>
+                <View style={[styles.horizontal, { display:"flex", alignItems: "center", }]}>
                     {item.isLost ?  
-                        (<TouchableOpacity
+                        (<View>
+                            <TouchableOpacity
                             onPress={redirectToCurrentLostPost}
                             style={styles.postButton}>
                             <Text style={styles.buttonText}>Go to lost post</Text>
-                        </TouchableOpacity>
+                            </TouchableOpacity>
+                        </View>
                     ) : (
                         <TouchableOpacity
                             onPress={redirectToNewLostPost}
                             style={styles.postButton}>
-                            <Text style={styles.buttonText}>Report item as lost</Text>
+                            <Text style={styles.buttonText}>Mark item as lost</Text>
                         </TouchableOpacity>
                     )}
+                    <TouchableOpacity
+                        onPress={redirectToNewFoundPost}
+                        style={styles.postButton}>
+                        <Text style={styles.buttonText}>Report item as found</Text>
+                    </TouchableOpacity>
                     
                     
                     <TouchableOpacity
@@ -167,6 +175,13 @@ export function ItemViewScreen({ navigation, route }: { navigation: any, route: 
     
     return (
         <View style={styles.container}>
+            <View style={[styles.horizontal, {width: "100%", justifyContent: "flex-start"}]}>
+                <Image
+                    style={styles.pfp}
+                    source={owner.pfpUrl != "" ? {uri: owner.pfpUrl} : require("../assets/defaultpfp.jpg")} />
+                <Text>{owner.name}</Text>
+            </View>
+            
             <Image
                 style={styles.itemImage}
                 source={item.imageSrc} />
@@ -187,6 +202,9 @@ export function ItemViewScreen({ navigation, route }: { navigation: any, route: 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+    },
+    horizontal: {
+        flexDirection: "row",
     },
     buttonText: {
         textAlign: 'left',
@@ -218,6 +236,17 @@ const styles = StyleSheet.create({
         aspectRatio: 1,
         alignItems: 'center',
         justifyContent: "center",
+    },
+    pfp: {
+        borderRadius: 99999,
+        width: 48, 
+        aspectRatio: 1/1,
+    },
+    userName: {
+        fontSize: 16,
+        textAlignVertical: "center", 
+        marginHorizontal: 8,
+        fontWeight: "600",
     },
 });
 
