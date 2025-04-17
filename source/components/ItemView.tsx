@@ -15,24 +15,9 @@ export type ItemViewRouteParams = {
 }
 
 export function ItemViewScreen({ navigation, route }: { navigation: any, route: any }) {
-    const [item, setItem] = useState({
-        _id: "",
-        name: "",
-        description: "",
-        ownerId: "",
-        isLost: false,
-        secretCode: "",
-        lostPostId: "",
-        timesLost: -1,
-        createdAt: -1,
-        imageSrc: "",
-    });
+    const [item, setItem] = useState({});
     
-    const [owner, setOwner] = useState({
-        _id: "",
-        name: "",
-        pfpUrl: "",
-    });
+    const [owner, setOwner] = useState({});
 
     const [itemRef, setItemRef] = useState<DocumentReference>();
     const [imageRef, setImageRef] = useState<StorageReference>();
@@ -93,23 +78,14 @@ export function ItemViewScreen({ navigation, route }: { navigation: any, route: 
             
             setItem({
                 _id: route.params!.itemId,
-                name: snapshot.get("name") as string,
-                description: snapshot.get("description") as string,
-                ownerId: snapshot.get("ownerId") as string,
-                isLost: snapshot.get("isLost") as boolean,
-                timesLost: snapshot.get("timesLost") as number,
-                lostPostId: snapshot.get("lostPostId") as string,
-                createdAt: snapshot.get("createdAt") as number || -1,
-                secretCode: snapshot.get("secretCode") as string || "",
-                imageSrc: snapshot.get("imageSrc") as string,
+                ...snapshot.data()
             });
 
             if (snapshot.get("ownerId") as string) {
                 getDoc(doc(collection(db, "users"), snapshot.get("ownerId") as string)).then((user_snapshot) => {
                     setOwner({
                         _id: user_snapshot.id,
-                        name: user_snapshot.get("name") as string,
-                        pfpUrl: user_snapshot.get("pfpUrl") as string,
+                        ...user_snapshot.data()
                     });
                 });
             }

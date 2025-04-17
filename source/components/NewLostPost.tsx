@@ -50,12 +50,15 @@ export function NewLostPostScreen({ navigation, route }: { navigation: any, rout
             resolvedAt: -1,
             resolveReason: "",
             views: 0,
+            chatIds: [],
         };
 
         navigation.navigate("Loading");
 
         addDoc(collection(db, "lostPosts"), postData).then((postRef) => {
             return updateDoc(doc(db, "items", item._id), {isLost: true, lostPostId: postRef.id, timesLost: item.timesLost + 1});
+        }).then(() => {
+            return updateDoc(doc(db, "users", owner._id), {timesLost: item.timesLost + 1});
         }).then(() => {
             navigation.navigate("Lost Post View", {item: item, owner: owner, author: owner, post: postData});
             navigation.dispatch((state: {routes: any[]}) => {

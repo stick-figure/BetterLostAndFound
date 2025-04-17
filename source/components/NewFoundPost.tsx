@@ -4,6 +4,7 @@ import { View, Text, TouchableOpacity, Image, StyleSheet, TextInput } from "reac
 import { auth, db } from "../../my_firebase";
 import { lightThemeColors } from "../assets/Colors";
 import { CommonActions } from "@react-navigation/native";
+import { MediaType, launchImageLibrary } from "react-native-image-picker";
 
 export function NewFoundPostScreen({ navigation, route }: { navigation: any, route: any }) {
     const [item, setItem] = useState({
@@ -25,23 +26,47 @@ export function NewFoundPostScreen({ navigation, route }: { navigation: any, rou
     const [author, setAuthor] = useState({});
 
     const [message, setMessage] = useState("");
+    
+    const [imageUris, setImageUris] = useState<string[]>([]);
 
     const [uploading, setUploading] = useState(false);
 
+    const openImagePicker = () => {
+        const options = {
+            mediaType: "photo" as MediaType,
+            includeBase64: false,
+            maxHeight: 2000,
+            maxWidth: 2000,
+            selectionLimit: 9,
+        };
+
+        launchImageLibrary(options, (response) => {
+            if (response.didCancel) {
+                console.log('User cancelled image picker');
+            } else if (response.errorCode) {
+                console.log('ImagePicker Error: ', response.errorMessage);
+            } else if (response.assets) {
+                setImageUris(response.assets.filter((a) => a.uri != undefined).map((a) => a.uri!));
+            }
+        }).catch((error) => { console.warn(error) });
+    };
+
     const uploadPost = () => {
         setUploading(true);
+        
         const postData = {
             itemId: item._id,
             itemOwnerId: item.ownerId,
             message: message,
+            imageUrls: [],
             authorId: auth.currentUser?.uid,
             createdAt: serverTimestamp(),
             resolved: false,
             resolvedAt: -1,
             resolveReason: "",
             views: 0,
+            chatIds: [],
         };
-        
 
         navigation.navigate("Loading");
 

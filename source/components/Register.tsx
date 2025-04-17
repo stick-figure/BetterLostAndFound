@@ -49,8 +49,12 @@ export function RegisterScreen({ navigation, route }: { navigation: any, route: 
                 pfpUrl: pfpUrl || await getDownloadURL(ref(getStorage(), "images/pfps/default/defaultpfp.jpg")),
                 emailVertified: false,
                 createdAt: serverTimestamp(),
+                timesOwnItemLost: 0,
+                timesOwnItemFound: 0,
+                timesOthersItemFound: 0,
                 blockedList: [],
                 friendsList: [],
+                privateStats: false,
             };
             
             updateProfile(userCredential.user, {
