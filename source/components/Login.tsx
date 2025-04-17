@@ -24,7 +24,7 @@ export function LoginScreen({ navigation }: { navigation: any }) {
             navigation.replace("Bottom Tabs", { screen: 'Home' });
 
         }).catch((error) => {
-            console.log(Object.prototype.toString.call(error));
+            console.warn(error);
             switch (error.code) {
                 case AuthErrorCodes.INVALID_PASSWORD:
                     setErrorText("Wrong password.");

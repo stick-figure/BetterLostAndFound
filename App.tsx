@@ -71,7 +71,6 @@ function HomeTab() {
                 }}
                 />
             <Tab.Screen name='Settings' component={SettingsScreen} options={{ title: "Settings" }} />
-            {/*<Tab.Screen name='Chat' component={ChatScreen} />*/}
         </Tab.Navigator>
     );
 }
@@ -113,7 +112,7 @@ export function App() {
                         })} />
                         <Stack.Screen name="Search Items" component={SearchItemsScreen} options={{ title: "Search Items" }} />
                         <Stack.Screen name="New Found Post" component={NewFoundPostScreen} options={{ title: "New Post" }} />
-                        
+                        <Stack.Screen name="Chat" component={ChatScreen} options={{ title: "Chat" }} />
                     </Stack.Group>
                     
                     {/* Auth screens */}

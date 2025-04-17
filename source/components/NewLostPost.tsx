@@ -1,12 +1,11 @@
 import { addDoc, collection, doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { getStorage, ref, uploadBytes } from "firebase/storage";
 import { useEffect, useState } from "react";
-import { View, Text, Button, StyleSheet, Image, Pressable, ImageSourcePropType, TextInput } from "react-native";
+import { View, Text, StyleSheet, Image } from "react-native";
 import { launchImageLibrary, MediaType } from 'react-native-image-picker';
 
 import { auth, db } from "../../my_firebase";
 import { lightThemeColors } from "../assets/Colors";
-import { TouchableOpacity } from "react-native-gesture-handler";
 import { CommonActions } from "@react-navigation/native";
 import PressableOpacity from "../assets/MyElements";
 import { Input } from "react-native-elements";
@@ -19,7 +18,7 @@ export function NewLostPostScreen({ navigation, route }: { navigation: any, rout
         description: "",
         ownerId: "",
         isLost: false,
-        timesLost: -1,
+        timesLost: 0,
         secretCode: "",
         createdAt: -1,
         imageSrc: require("../assets/defaultimg.jpg"),
@@ -56,9 +55,9 @@ export function NewLostPostScreen({ navigation, route }: { navigation: any, rout
         navigation.navigate("Loading");
 
         addDoc(collection(db, "lostPosts"), postData).then((postRef) => {
-            return updateDoc(doc(db, "items", item._id), {isLost: true, lostPostId: postRef.id, timesLost: item.timesLost + 1});
+            return updateDoc(doc(db, "items", item._id), {isLost: true, lostPostId: postRef.id, timesLost: item.timesLost as number + 1});
         }).then(() => {
-            return updateDoc(doc(db, "users", owner._id), {timesLost: item.timesLost + 1});
+            return updateDoc(doc(db, "users", owner._id), {timesLost: item.timesLost as number + 1});
         }).then(() => {
             navigation.navigate("Lost Post View", {item: item, owner: owner, author: owner, post: postData});
             navigation.dispatch((state: {routes: any[]}) => {

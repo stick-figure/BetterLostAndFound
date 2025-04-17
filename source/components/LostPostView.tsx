@@ -1,40 +1,22 @@
 import { useEffect, useState } from "react";
-import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { lightThemeColors } from "../assets/Colors";
-import { auth } from "../../my_firebase";
+import { auth, db } from "../../my_firebase";
+import { addDoc, collection, doc, documentId, onSnapshot, query, updateDoc, where } from "firebase/firestore";
+import PressableOpacity from "../assets/MyElements";
 
 export type PostViewRouteParams = {
     item: {name: string},
 }
 
 export function LostPostViewScreen({ navigation, route }: { navigation: any, route: any }) {
-    const [item, setItem] = useState({
-        _id: "",
-        name: "",
-        description: "",
-        ownerId: "",
-        isLost: false,
-        secretCode: "",
-        createdAt: null,
-        imageSrc: "",
-    });
-    const [author, setAuthor] = useState({
-        _id: "",
-        name: "",
-        pfpUrl: "",
-    });
+    const [item, setItem] = useState({});
 
-    const [post, setPost] = useState({
-        _id: "",
-        itemId: "",
-        message: "",
-        authorId: "",
-        createdAt: -1,
-        resolved: false,
-        resolvedAt: -1,
-        chats: [],
-        views: -1,
-    });
+    const [author, setAuthor] = useState({});
+
+    const [post, setPost] = useState({});
+
+    const [chats, setChats] = useState([]);
 
     const [message, setMessage] = useState("");
     
@@ -42,7 +24,31 @@ export function LostPostViewScreen({ navigation, route }: { navigation: any, rou
 
     const [isAuthor, setIsAuthor] = useState(false);
     const [isOwner, setIsOwner] = useState(false);
+    const [isNavigating, setIsNavigating] = useState(false);
     
+    const createChat = () => {
+        try {
+            setIsNavigating(true);
+            const chatData = {
+                userIds: [auth.currentUser?.uid, author._id],
+            };
+
+            addDoc(collection(db, "chats"), chatData).then((dRef) => {
+                let postData = {_id: dRef.id, ...route.params!.post};
+                postData.chatIds.push(dRef.id);
+                setPost(postData);
+                return Promise.all([dRef, updateDoc(doc(db, "lostPosts", route.params!.post!._id), postData)]);
+            }).then(([dRef]) => {
+                navigation.navigate("Chat", {id: dRef.id, chat: chatData});
+            }).catch(err => {
+                console.warn(err);
+            });
+        } catch (err) {
+            console.warn(err);
+        } finally {
+            setIsNavigating(false);
+        }
+    }
 
     useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -53,6 +59,16 @@ export function LostPostViewScreen({ navigation, route }: { navigation: any, rou
             }
         });
 
+        return unsubscribe;
+    }, []);
+
+    useEffect(() => {
+        if (!(post?.chatIds) || post.chatIds.length == 0) return;
+
+        const unsubscribe = onSnapshot(query(collection(db, "chats"), where(documentId(), "in", post.chatIds)), (snapshot) => {
+            setChats(snapshot.docs.map((doc) => ({_id: doc.id, ...doc.data()})));
+        });
+        
         return unsubscribe;
     }, []);
 
@@ -69,7 +85,19 @@ export function LostPostViewScreen({ navigation, route }: { navigation: any, rou
         console.log(route.params!.item.imageSrc);
     }, [isLoggedIn]);
 
-    if (post._id == "") {
+    const chatOptions = () => {
+        if (!isAuthor && chats.length == 0) {
+            return (
+                <View>
+                    <PressableOpacity onPress={createChat} disabled={isNavigating}>
+                        <Text>Start chat with {author.name || "owner"}</Text>
+                    </PressableOpacity>
+                </View>
+            );
+        }
+    }
+
+    if (post?._id == "") {
         return (
             <View>
                 <Text>Post not found</Text>
@@ -92,25 +120,25 @@ export function LostPostViewScreen({ navigation, route }: { navigation: any, rou
                             </Text>
                         </View>
                     </View>
-                    <TouchableOpacity
-                        onPress={() => { navigation.navigate("Item View", { itemId: item._id, itemName: item.name }) }}>
+                    <PressableOpacity
+                        onPress={() => { navigation.navigate("Item View", { itemId: item._id, itemName: item.name }) }}
+                        disabled={isNavigating}>
                         <Image source={item.imageSrc ? {uri: item.imageSrc} : undefined} style={styles.itemImage} defaultSource={require("../assets/defaultimg.jpg")} />
                         <View style={styles.itemListItemView}>
                             <Text style={styles.itemTitle}>{item.name}</Text>
                         </View>
-                    </TouchableOpacity>
+                    </PressableOpacity>
                 </View>
                 <View>
-                    
                     <TextInput
                         multiline={true}
                         placeholder="Where did you last put this item?"
                         onChangeText={text => setMessage(text)}
                         value={message}
-                        editable={isAuthor}
-                        selectTextOnFocus={false}
-                    />
+                        editable={isAuthor && !isNavigating}
+                        selectTextOnFocus={false} />
                 </View>
+                {chatOptions()}
         </View>
     );
 }

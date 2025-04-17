@@ -22,12 +22,16 @@ export function ChatScreen({ navigation, route }: { navigation: any, route: any 
     const [messages, setMessages] = useState<IMessage[]>([]);
 
     useEffect(() => {
-        const unsubscribe = onSnapshot(
-            query(collection(db, "chats", route.params!.chatId, "messages"), orderBy('createdAt', 'desc')), 
+        setChat(route.params!.chat);
+        if (!route?.params?.chat?._id) {
+            return;
+        }
+        const unsubscribe = onSnapshot(query(collection(db, "chats", route.params!.chat._id, "messages")),
+//            query(collection(db, "chats", route.params!.chat._id, "messages"), orderBy('createdAt', 'desc')), 
             (snapshot) => {
                 setMessages(
                     snapshot.docs.map(doc => ({
-                        _id: doc.id,
+                        _id: doc.data().messageId,
                         createdAt: new Date((doc.data()?.createdAt?.seconds ?? 0) * 1000),
                         text: doc.data().text,
                         user: doc.data().user,
@@ -37,13 +41,18 @@ export function ChatScreen({ navigation, route }: { navigation: any, route: any 
         );
 
         return unsubscribe;
-
     }, []);
 
     const onSend = useCallback((messages: IMessage[] = []) => {
-        const { _id, createdAt, text, user, } = messages[0]
-        setMessages(previousMessages => GiftedChat.append(previousMessages, messages))
-        addDoc(collection(db, 'chats'), { _id: _id, createdAt: serverTimestamp(), text: text, user: user });
+        const { _id, createdAt, text, user, } = messages[0];
+        setMessages(previousMessages => GiftedChat.append(previousMessages, messages));
+        const messageData = { 
+            messageId: _id, 
+            createdAt: serverTimestamp(), 
+            text: text, 
+            user: user 
+        };
+        addDoc(collection(db, 'chats', route.params!.chat._id, 'messages'), messageData);
     }, []);
 
     return (

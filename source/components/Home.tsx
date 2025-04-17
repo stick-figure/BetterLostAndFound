@@ -13,7 +13,7 @@ interface LostPostListItem {
     message: string,
     authorName: string,
     pfpUrl: string,
-    imageUrl: string,
+    imageSrc: string,
     createdAt: FieldValue,
 }
 
@@ -60,7 +60,7 @@ export function HomeScreen({ navigation }: { navigation: any }) {
                     message: postDoc.data().message,
                     authorName: (owner?.data() ? (owner as DocumentSnapshot).data()!.name : postDoc.data().ownerId) || "Unknown User",
                     pfpUrl: owner?.data()?.pfpUrl,
-                    imageUrl: item?.data()?.imageSrc,
+                    imageSrc: item?.data()?.imageSrc,
                     createdAt: postDoc.data().createdAt,
                 };
             });
@@ -76,7 +76,9 @@ export function HomeScreen({ navigation }: { navigation: any }) {
     
     const navigateToPost = async (postId: string) => {
         try {
-            const postData = (await getDoc(doc(db, "lostPosts", postId))).data()!;
+            const postSnapshot = await getDoc(doc(db, "lostPosts", postId));
+            const postData = postSnapshot.data()!;
+            postData._id = postSnapshot.id;
             const itemData = (await getDoc(doc(db, "items", postData!.itemId))).data()!;
             itemData._id = postData!.itemId;
             const authorData = (await getDoc(doc(db, "users", postData!.authorId))).data()!;
@@ -105,7 +107,7 @@ export function HomeScreen({ navigation }: { navigation: any }) {
                     }
                     data={lostPosts}
                     renderItem={({ item }) => (
-                        <TouchableOpacity onPress={() => navigateToPost(item._id)}>
+                        <TouchableOpacity key={item._id.toString()} onPress={() => navigateToPost(item._id)}>
                             <View style={styles.itemListItemView}>
                                 <View style={[styles.horizontal, {width: "100%", justifyContent: "flex-start", alignItems: "center", padding: 4}]}>
                                     <Image
@@ -121,7 +123,7 @@ export function HomeScreen({ navigation }: { navigation: any }) {
                                 </View>
                                 <Text style={styles.itemTitle}>{item.title}</Text>
                                 <Text style={styles.itemContent}>{item.message}</Text>
-                                <Image source={item.imageUrl ? {uri: item.imageUrl} : undefined} style={styles.itemImage} defaultSource={require("../assets/defaultimg.jpg")} />
+                                <Image source={item.imageSrc ? {uri: item.imageSrc} : undefined} style={styles.itemImage} defaultSource={require("../assets/defaultimg.jpg")} />
                             </View>
                         </TouchableOpacity>
                         

@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
         paddingTop: 100,
     },
     subTitle: {
-        fontSize: 20,
+        fontSize: 23,
         textAlign: "center",
         fontWeight: "600",
         color: lightThemeColors.textLight,

@@ -53,7 +53,7 @@ export function NewFoundPostScreen({ navigation, route }: { navigation: any, rou
 
     const uploadPost = () => {
         setUploading(true);
-        
+
         const postData = {
             itemId: item._id,
             itemOwnerId: item.ownerId,
@@ -71,7 +71,7 @@ export function NewFoundPostScreen({ navigation, route }: { navigation: any, rou
         navigation.navigate("Loading");
 
         addDoc(collection(db, "foundPosts"), postData).then((postRef) => {
-            return updateDoc(doc(db, "items", item._id), {isLost: true, lostPostId: postRef.id, timesLost: item.timesLost + 1});
+            return updateDoc(doc(db, "items", item._id), {isLost: true, lostPostId: postRef.id, timesLost: item.timesLost as number + 1});
         }).then(() => {
             navigation.dispatch((state: {routes: any[]}) => {
                 const topScreen = state.routes[0];
