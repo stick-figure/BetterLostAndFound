@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Alert, Text, View } from "react-native";
-import { auth, db } from "../../firebase";
+import { auth, db } from "../../my_firebase";
 import { deleteUser, signOut } from "firebase/auth";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { collection, deleteDoc, doc, getDocs, onSnapshot, Query, query, where, writeBatch } from "firebase/firestore";

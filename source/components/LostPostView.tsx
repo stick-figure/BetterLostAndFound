@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { lightThemeColors } from "../assets/Colors";
-import { auth } from "../../firebase";
-import { getDownloadURL } from "firebase/storage";
+import { auth } from "../../my_firebase";
 
 export type PostViewRouteParams = {
     item: {name: string},
@@ -16,8 +15,8 @@ export function LostPostViewScreen({ navigation, route }: { navigation: any, rou
         ownerId: "",
         isLost: false,
         secretCode: "",
-        createdAt: -1,
-        imageSrc: require("../assets/defaultimg.jpg"),
+        createdAt: null,
+        imageSrc: "",
     });
     const [author, setAuthor] = useState({
         _id: "",
@@ -81,11 +80,21 @@ export function LostPostViewScreen({ navigation, route }: { navigation: any, rou
     return (
         <View style={styles.container}>
                 <View style={styles.itemContainer}>
-                    <Image></Image>
-                    <Text style={styles.itemSubtitle}>{author.name}</Text>
+                    <View style={[styles.horizontal, {width: "100%", justifyContent: "flex-start", alignItems: "center", padding: 4}]}>
+                        <Image
+                            style={styles.pfp}
+                            source={author.pfpUrl ? {uri: author.pfpUrl} : undefined}
+                            defaultSource={require("../assets/defaultpfp.jpg")} />
+                        <View>
+                            <Text style={styles.userName}>{author.name}</Text>
+                            <Text style={styles.timestamp}>
+                                {item.createdAt ? new Date((item.createdAt)!.seconds*1000).toLocaleDateString() : "unknown time"}
+                            </Text>
+                        </View>
+                    </View>
                     <TouchableOpacity
                         onPress={() => { navigation.navigate("Item View", { itemId: item._id, itemName: item.name }) }}>
-                        <Image source={item.imageSrc} style={styles.itemImage} />
+                        <Image source={item.imageSrc ? {uri: item.imageSrc} : undefined} style={styles.itemImage} defaultSource={require("../assets/defaultimg.jpg")} />
                         <View style={styles.itemListItemView}>
                             <Text style={styles.itemTitle}>{item.name}</Text>
                         </View>
@@ -126,6 +135,20 @@ const styles = StyleSheet.create({
     imageContainer: {
         flexDirection: 'row',
         alignItems: 'center',
+    },
+    pfp: {
+        borderRadius: 99999,
+        width: 42, 
+        aspectRatio: 1/1,
+        marginRight: 12,
+    },
+    userName: {
+        fontSize: 15,
+        fontWeight: "600",
+    },
+    timestamp: {
+        fontSize: 12,
+        margin: 2,
     },
     itemImage: {
         aspectRatio: 1 / 1,
@@ -178,7 +201,7 @@ const styles = StyleSheet.create({
         textAlign: "center",
         color: lightThemeColors.textDark,
         fontWeight: "bold",
-    }
+    },
 });
 
 

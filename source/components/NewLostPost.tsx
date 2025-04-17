@@ -2,13 +2,14 @@ import { addDoc, collection, doc, serverTimestamp, updateDoc } from "firebase/fi
 import { getStorage, ref, uploadBytes } from "firebase/storage";
 import { useEffect, useState } from "react";
 import { View, Text, Button, StyleSheet, Image, Pressable, ImageSourcePropType, TextInput } from "react-native";
-import { Input } from "react-native-elements";
 import { launchImageLibrary, MediaType } from 'react-native-image-picker';
 
-import { auth, db } from "../../firebase";
+import { auth, db } from "../../my_firebase";
 import { lightThemeColors } from "../assets/Colors";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { CommonActions } from "@react-navigation/native";
+import PressableOpacity from "../assets/MyElements";
+import { Input } from "react-native-elements";
 
 
 export function NewLostPostScreen({ navigation, route }: { navigation: any, route: any }) {
@@ -37,6 +38,8 @@ export function NewLostPostScreen({ navigation, route }: { navigation: any, rout
     const [uploading, setUploading] = useState(false);
 
     const uploadPost = () => {
+        setUploading(true);
+
         const postData = {
             itemId: item._id,
             title: title.trim().length > 0 ? title : item.name,
@@ -65,6 +68,7 @@ export function NewLostPostScreen({ navigation, route }: { navigation: any, rout
                     routes,
                 });
             });
+            setUploading(false);
         });
     }
 
@@ -97,39 +101,36 @@ export function NewLostPostScreen({ navigation, route }: { navigation: any, rout
 
     return (
         <View style={styles.container}>
-            <View style={styles.horizontal}>
-                <View style={styles.itemContainer}>
-                    <TouchableOpacity
-                        onPress={() => { navigation.navigate("Item View", { itemId: item._id, itemName: item.name }) }}>
+            <View style={styles.itemContainer}>
+                <PressableOpacity
+                    onPress={() => { navigation.navigate("Item View", { itemId: item._id, itemName: item.name }) }}
+                    disabled={uploading}>
+                        <View style={styles.horizontal}>
                         <Image source={item.imageSrc} style={styles.itemImage} />
-                        <View style={styles.itemListItemView}>
-                            <Text style={styles.itemTitle}>{item.name}</Text>
-                            <Text style={styles.itemSubtitle}>{owner.name}</Text>
-                            <Text style={styles.itemSubtitle}>{item.description}</Text>
+                            <View style={styles.itemListItemView}>
+                                <Text style={styles.itemTitle}>{item.name}</Text>
+                                <Text style={styles.itemSubtitle}>{owner.name}</Text>
+                                <Text style={styles.itemSubtitle}>{item.description.slice(0,140)}</Text>
+                            </View>
                         </View>
-                    </TouchableOpacity>
-                </View>
-                <View>
-                    <Input
-                        placeholder="Title"
-                        onChangeText={text => setTitle(text)}
-                        value={title}
-                    />
-                    <Input
-                        multiline={true}
-                        placeholder="Describe some identifying features"
-                        onChangeText={text => setMessage(text)}
-                        value={message}
-                    />
-                    <TouchableOpacity
-                        style={styles.saveButton}
-                        disabled={message.trim().length <= 0}
-                        onPress={uploadPost}
-                    >
-                        <Text style={styles.saveButtonText}>Post</Text>
-                    </TouchableOpacity>
-                </View>
+                </PressableOpacity>
             </View>
+            <Input
+                label="Message"
+                multiline={true}
+                placeholder=""
+                onChangeText={text => setMessage(text)}
+                value={message}
+                editable={!uploading}
+                style={styles.multilineTextInput}
+            />
+            <PressableOpacity
+                style={styles.saveButton}
+                disabled={message.trim().length <= 0}
+                onPress={uploadPost}
+                editable={!uploading}>
+                <Text style={styles.saveButtonText}>Post</Text>
+            </PressableOpacity>
         </View>
     );
 }
@@ -140,10 +141,16 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     itemContainer: {
-        width: 100,
+        width: "100%",
+        alignSelf: "flex-start",
     },
     horizontal: {
         flexDirection: "row",
+    },
+    multilineTextInput: {
+        width: "90%",
+        height: 300,
+        overflow: "scroll",
     },
     addItemTitle: {
         margin: 20,
@@ -158,8 +165,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     itemImage: {
-        width: "100%",
-        aspectRatio: 1 / 1,
+        width: "30%",
+        aspectRatio: 1/1,
+        borderRadius: 7,
     },
     
     itemList: {

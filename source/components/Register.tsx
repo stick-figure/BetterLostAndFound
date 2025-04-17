@@ -1,16 +1,15 @@
 import React, { ErrorInfo, useCallback, useEffect, useState } from 'react';
-import { View, StyleSheet, Image, Text, StatusBar } from 'react-native'
-import { Input, Button } from 'react-native-elements';
-import { auth, db } from '../../firebase';
+import { View, StyleSheet, Image, Text, StatusBar, TextInput } from 'react-native';
+import { auth, db } from '../../my_firebase';
 import { AuthError, AuthErrorCodes, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { addDoc, collection, doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { getDownloadURL, getStorage, ref, uploadBytes } from '@firebase/storage';
 import { launchCamera, launchImageLibrary, MediaType } from 'react-native-image-picker';
 import { NavigationProp } from '@react-navigation/native';
 import { ScrollView, TouchableOpacity } from 'react-native-gesture-handler';
-import  Icon  from 'react-native-vector-icons/FontAwesome';
 import { lightThemeColors } from '../assets/Colors';
-import { red } from 'react-native-reanimated/lib/typescript/Colors';
+import PressableOpacity from '../assets/MyElements';
+import { Icon, Input } from 'react-native-elements';
 
 export function RegisterScreen({ navigation, route }: { navigation: any, route: any }) {
     const [name, setName] = useState("");
@@ -50,6 +49,8 @@ export function RegisterScreen({ navigation, route }: { navigation: any, route: 
                 pfpUrl: pfpUrl || await getDownloadURL(ref(getStorage(), "images/pfps/default/defaultpfp.jpg")),
                 emailVertified: false,
                 createdAt: serverTimestamp(),
+                blockedList: [],
+                friendsList: [],
             };
             
             updateProfile(userCredential.user, {
@@ -158,36 +159,51 @@ export function RegisterScreen({ navigation, route }: { navigation: any, route: 
 
                     <View style={styles.horizontalContainer}>
                         <TouchableOpacity onPress={handleCameraLaunch} style={styles.cameraButton}>
-                            <Icon name="camera" />
+                            <Icon name="camera-alt" type="material-icons" size={20} />
                         </TouchableOpacity>
                         <TouchableOpacity onPress={openImagePicker} style={styles.uploadButton}>
-                            <Icon name="photo" />
+                            <Icon name="photo-library" type="material-icons" size={20} />
                         </TouchableOpacity>
-                        <Text style={styles.text}>Set photo</Text>
+                        <Text style={{fontSize: 16}}>Set photo</Text>
                     </View>
                 </View>
                 <View style={{flexGrow: 1}}>
                     <Input
+                        label="Name"
+                        style={styles.textInput} 
                         placeholder='Enter your name'
-                        label='Name'
                         value={name}
+                        editable={!registering}
                         onChangeText={text => setName(text)} />
                     <Input
+                        label="Email"
+                        leftIcon={{
+                            name: "email",
+                            type: "material-community"
+                        }}
+                        style={styles.textInput} 
                         placeholder='Enter your email'
-                        label='Email'
-                        leftIcon={{ type: 'MaterialIcons', name: 'email' }}
                         value={email}
+                        editable={!registering}
                         onChangeText={text => setEmail(text)} />
+                    
                     <Input
+                        label="Password"
+                        leftIcon={{
+                            name: "lock",
+                            type: "material-community"
+                        }}
+                        style={styles.textInput} 
                         placeholder='Enter your password'
-                        label='Password'
-                        leftIcon={{ type: 'MaterialIcons', name: 'lock' }}
                         value={password} onChangeText={text => setPassword(text)}
+                        editable={!registering}
                         secureTextEntry />
                 </View>
             </View>
             <Text style={styles.errorText}>{errorText}</Text>
-            <Button title='Register' disabled={name == "" || email == "" || password.length < 6 || registering} onPress={register} style={styles.registerButton} />
+            <PressableOpacity style={styles.registerButton} disabled={name == "" || email == "" || password.length < 6 || registering} onPress={register} >
+                <Text style={styles.registerButtonText}>Register</Text>
+            </PressableOpacity>
         </ScrollView>
     )
 }
@@ -208,6 +224,18 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: lightThemeColors.textLight,
     },
+    textInput: {/*
+        textDecorationStyle: "dotted",
+        fontWeight: 600,
+        fontSize: 20,
+        width: "80%", 
+        overflow: "hidden",
+        borderBottomWidth: 2,
+        borderColor: lightThemeColors.dullGrey,
+        borderRadius: 1,
+        padding: 6,
+        margin: 10,*/
+    },
     errorText: {
         color: "red",
     },
@@ -224,6 +252,16 @@ const styles = StyleSheet.create({
     registerButton: {
         width: 370,
         marginBottom: 200, 
+        padding: 10,
+        backgroundColor: lightThemeColors.primary,
+        borderRadius: 7,
+        alignItems: "center",
+    },
+    registerButtonText: {
+        textAlign: "center",
+        color: lightThemeColors.textDark,
+        fontSize: 16,
+        fontWeight: "bold",
     },
     uploadButton: {
         borderRadius: 5,

@@ -7,7 +7,7 @@ import { NavigationAction, NavigationContainer } from '@react-navigation/native'
 import { createStackNavigator } from '@react-navigation/stack'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createDrawerNavigator } from '@react-navigation/drawer';
-import { auth } from './firebase';
+import { auth } from './my_firebase';
 
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -26,6 +26,9 @@ import { ItemViewScreen, ItemViewRouteParams } from './source/components/ItemVie
 import { SettingsScreen } from './source/components/Settings';
 import NewLostPostScreen from './source/components/NewLostPost';
 import LostPostViewScreen, { PostViewRouteParams } from './source/components/LostPostView';
+import SearchItemsScreen from './source/components/SearchItems';
+import NewFoundPostScreen from './source/components/NewFoundPost';
+import { Icon } from 'react-native-elements';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -34,8 +37,39 @@ function HomeTab() {
     return (
         <Tab.Navigator
             initialRouteName={'Bottom Tabs'}>
-            <Tab.Screen name='Home' component={HomeScreen} options={{ title: "Home" }} />
-            <Tab.Screen name='My Items' component={MyItemsScreen} options={{ title: "My Items" }} />
+            <Tab.Screen 
+                name='Home' 
+                component={HomeScreen} 
+                options={{ 
+                    title: "Home", 
+                    headerShown: false, 
+                    tabBarIcon: ({ focused, color, size }) => {
+                        return <Icon name="home" type="material-community" size={size} color={color} />;
+                    },
+                }} 
+            />
+            <Tab.Screen 
+                name='Search Items' 
+                component={SearchItemsScreen} 
+                options={{
+                    title: "Search Items", 
+                    headerShown: false, 
+                    tabBarIcon: ({ focused, color, size }) => {
+                        return <Icon name="search" type="material-icons" size={size} color={color} />;
+                    },
+                }}
+                />
+            <Tab.Screen 
+                name='My Items' 
+                component={MyItemsScreen} 
+                options={{ 
+                    title: "My Items", 
+                    headerShown: false, 
+                    tabBarIcon: ({ focused, color, size }) => {
+                        return <Icon name="person" type="material-icons" size={size} color={color} />;
+                    },
+                }}
+                />
             <Tab.Screen name='Settings' component={SettingsScreen} options={{ title: "Settings" }} />
             {/*<Tab.Screen name='Chat' component={ChatScreen} />*/}
         </Tab.Navigator>
@@ -77,6 +111,9 @@ export function App() {
                         <Stack.Screen name="Lost Post View" component={LostPostViewScreen} options={({ route }) => ({
                             title: "Missing " + (route!.params as PostViewRouteParams).item.name,
                         })} />
+                        <Stack.Screen name="Search Items" component={SearchItemsScreen} options={{ title: "Search Items" }} />
+                        <Stack.Screen name="New Found Post" component={NewFoundPostScreen} options={{ title: "New Post" }} />
+                        
                     </Stack.Group>
                     
                     {/* Auth screens */}

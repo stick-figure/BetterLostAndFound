@@ -1,12 +1,11 @@
-import { serverTimestamp, addDoc, collection, updateDoc, doc } from "firebase/firestore";
+import { serverTimestamp, addDoc, collection, updateDoc, doc, getDoc } from "firebase/firestore";
 import { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, Image, StyleSheet } from "react-native";
-import { Input } from "react-native-elements";
-import { auth, db } from "../../firebase";
+import { View, Text, TouchableOpacity, Image, StyleSheet, TextInput } from "react-native";
+import { auth, db } from "../../my_firebase";
 import { lightThemeColors } from "../assets/Colors";
 import { CommonActions } from "@react-navigation/native";
 
-export function NewLostPostScreen({ navigation, route }: { navigation: any, route: any }) {
+export function NewFoundPostScreen({ navigation, route }: { navigation: any, route: any }) {
     const [item, setItem] = useState({
         _id: "",
         name: "",
@@ -23,14 +22,14 @@ export function NewLostPostScreen({ navigation, route }: { navigation: any, rout
         name: "",
         pfpUrl: "",
     });
+    const [author, setAuthor] = useState({});
 
     const [message, setMessage] = useState("");
-
-    const [useLocation, setUseLocation] = useState(false);
 
     const [uploading, setUploading] = useState(false);
 
     const uploadPost = () => {
+        setUploading(true);
         const postData = {
             itemId: item._id,
             itemOwnerId: item.ownerId,
@@ -42,16 +41,18 @@ export function NewLostPostScreen({ navigation, route }: { navigation: any, rout
             resolveReason: "",
             views: 0,
         };
+        
 
         navigation.navigate("Loading");
 
-        addDoc(collection(db, "lostPosts"), postData).then((postRef) => {
+        addDoc(collection(db, "foundPosts"), postData).then((postRef) => {
             return updateDoc(doc(db, "items", item._id), {isLost: true, lostPostId: postRef.id, timesLost: item.timesLost + 1});
         }).then(() => {
             navigation.dispatch((state: {routes: any[]}) => {
                 const topScreen = state.routes[0];
                 const thisScreen = state.routes[state.routes.length - 1];
                 const routes = [topScreen, thisScreen];
+                setUploading(false);
                 return CommonActions.reset({
                     ...state,
                     index: routes.length - 1,
@@ -68,6 +69,9 @@ export function NewLostPostScreen({ navigation, route }: { navigation: any, rout
         const unsubscribe = auth.onAuthStateChanged((user) => {
             if (user) {
                 setIsLoggedIn(true);
+                getDoc(doc(db, "users", auth.currentUser!.uid)).then((snapshot) => {
+                    setAuthor({_id: auth.currentUser!.uid, ...snapshot.data()});
+                });
             } else {
                 setIsLoggedIn(false);
             }
@@ -104,7 +108,7 @@ export function NewLostPostScreen({ navigation, route }: { navigation: any, rout
                     </TouchableOpacity>
                 </View>
                 <View>
-                    <Input
+                    <TextInput
                         multiline={true}
                         placeholder="Describe some identifying features"
                         onChangeText={text => setMessage(text)}
@@ -200,4 +204,4 @@ const styles = StyleSheet.create({
 });
 
 
-export default NewLostPostScreen;
+export default NewFoundPostScreen;

@@ -1,13 +1,13 @@
 import { query, collection, where, doc, getDocs, setDoc, DocumentData, onSnapshot, DocumentSnapshot, getDoc } from "firebase/firestore";
 import { SetStateAction, useEffect, useLayoutEffect, useState } from "react";
-import { ActivityIndicator, FlatList, Image, StyleSheet, Text, View } from "react-native";
-import { SafeAreaProvider } from "react-native-safe-area-context";
-import { auth, db } from "../../firebase";
-import { Button, FAB, ListItem } from "react-native-elements";
+import { ActivityIndicator, Button, FlatList, Image, StyleSheet, Text, View } from "react-native";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { auth, db } from "../../my_firebase";
 import { lightThemeColors } from "../assets/Colors";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { CommonActions } from "@react-navigation/native";
-import { getStorage, ref, getDownloadURL } from "firebase/storage";
+import PressableOpacity from "../assets/MyElements";
+import { Icon } from "react-native-elements";
 
 interface ItemTile {
     _id: string,
@@ -19,9 +19,13 @@ interface ItemTile {
 }
 
 export function MyItemsScreen({ navigation }: { navigation: any }) {
-    const [items, setItems] = useState<Array<ItemTile>>([]);
-        
+    const [items, setItems] = useState<ItemTile[]>([]);
+    const [sortedItems, setSortedItems] = useState<ItemTile[]>([]);
+    const [userData, setUserData] = useState({});
+
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+    const [isLoading, setIsLoading] = useState(false);
     
     useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -39,10 +43,8 @@ export function MyItemsScreen({ navigation }: { navigation: any }) {
         if (!isLoggedIn) return;
 
         const unsubscribe = onSnapshot(query(collection(db, 'items'), where("ownerId", "==", auth.currentUser!.uid)), (snapshot: { docs: any[]; }) => {
-            const storage = getStorage();
+            setIsLoading(true);
             const promises = snapshot.docs.map(async (itemDoc) => {
-                const imageRef = ref(storage, 'images/items/' + itemDoc.id);
-
                 let owner;
                 try {
                     owner = await getDoc(doc(db, "users", itemDoc.data().ownerId));
@@ -56,44 +58,90 @@ export function MyItemsScreen({ navigation }: { navigation: any }) {
                     description: itemDoc.data().description,
                     ownerName: (owner?.data() ? (owner as DocumentSnapshot).data()!.name : itemDoc.data().ownerId) || "Unknown User",
                     isLost: itemDoc.data().isLost,
-                    imageSrc: (itemDoc.data().imageSrc ? { uri: itemDoc.data().imageSrc } : require("../assets/defaultimg.jpg")),
+                    imageSrc: (itemDoc.data().imageSrc ? { uri: itemDoc.data().imageSrc } : undefined),
                 };
             });
 
-            Promise.all(promises).then((res) => setItems(res)).catch((error) => {console.warn(error)});
+            Promise.all(promises).then((res) => {
+                setItems(res);
+                setIsLoading(false);
+            }).catch((error) => {console.warn(error)});
+        });
+
+        return unsubscribe;
+    }, [isLoggedIn]);
+
+    useEffect(() => {
+        setSortedItems(items.sort((a, b) => {
+            return a.isLost - b.isLost;
+        }));
+    }, [items]);
+    
+    useEffect(() => {
+        if (!isLoggedIn) return;
+        
+        const unsubscribe = onSnapshot(doc(db, "users", auth.currentUser!.uid), (snapshot) => {
+            setUserData({...snapshot.data()});
         });
 
         return unsubscribe;
     }, [isLoggedIn]);
 
     return (
-        <View style={styles.container}>
+        <SafeAreaView style={styles.container}>
+            <View style={[styles.horizontal, {alignSelf:"flex-start"}]}>
+                <Image 
+                    source={{uri: userData?.pfpUrl}} 
+                    style={styles.pfp}
+                    defaultSource={require("../assets/defaultpfp.jpg")}
+                    />
+                <View>
+                    <Text style={styles.userName}>{userData?.name}</Text>
+                </View>
+            </View>
+            <View style={[styles.horizontal, {width: "100%", justifyContent: "space-around"}]}>
+                <PressableOpacity onPress={() => {}}>
+                    <Text style={styles.addItemTitle}>My Posts</Text>
+                </PressableOpacity>
+                <PressableOpacity onPress={() => {}}>
+                    <Text style={styles.addItemTitle}>a</Text>
+                </PressableOpacity>
+                <PressableOpacity onPress={() => {}}>
+                    <Text style={styles.addItemTitle}>My Items</Text>
+                </PressableOpacity>
+            </View>
+            
             <View style={[styles.horizontal, {width:'100%', alignItems: "flex-end", justifyContent: 'space-between'}]}>
                 <Text>My Items</Text>
-                <Button title='Add Item' onPress={() => navigation.navigate("Add Item")} titleStyle={styles.addItemTitle} />
+                <PressableOpacity onPress={() => navigation.navigate("Add Item")}>
+                    <Text style={styles.addItemTitle}>Add Item</Text>
+                </PressableOpacity>
             </View>
             <View style={styles.itemList}>
                 <FlatList
-                    horizontal={true}
                     keyExtractor={item => item._id.toString()}
-                    ListEmptyComponent={<ActivityIndicator size="large" />}
-                    data={items}
+                    ListEmptyComponent={
+                        <View style={{flex: 1, alignContent: "center", alignSelf: "stretch", justifyContent: "center"}}>
+                            {isLoading ? <ActivityIndicator size="large" /> : <Icon name="cactus" type="material-community" />}
+                        </View>
+                    }
+                    data={sortedItems}
                     renderItem={({ item }) => (
                         <View style={styles.itemListItem}>
-                            <TouchableOpacity
+                            <PressableOpacity
                                 key={item._id.toString()}
                                 onPress={() => { navigation.navigate("Item View", { itemId: item._id, itemName: item.name }) }}>
-                                <Image source={item.imageSrc} style={styles.itemImage} />
+                                <Image source={item.imageSrc} style={styles.itemImage} defaultSource={require("../assets/defaultimg.jpg")}/>
                                 <View style={styles.itemListItemView}>
                                     <Text style={styles.itemTitle}>{item.name}</Text>
-                                    <Text style={styles.itemSubtitle}>{item.ownerName}</Text>
                                 </View>
-                            </TouchableOpacity>
+                            </PressableOpacity>
                         </View>
                     )}
+                    numColumns={3}
                 />
             </View>
-        </View>
+        </SafeAreaView>
     );
 }
 
@@ -111,15 +159,27 @@ const styles = StyleSheet.create({
         color: lightThemeColors.textDark,
         fontSize: 18,
     },
+    userName: {
+        fontSize: 28,
+        fontWeight: "bold",
+    },
+    pfp: {
+        width: 128,
+        aspectRatio: 1/1,
+        borderRadius: 999999,
+        margin: 8,
+        marginRight: 12,
+    },
     itemList: {
         width: "100%",
-        height: 200,
+        flexGrow: 1,
         margin: 10,
         backgroundColor: "white",
     },
     itemListItem: {
-        width: 120,
-        marginLeft: 10,
+        flex: 1,
+        maxWidth: "33%",
+        paddingLeft: 10,
         paddingTop: 10,
         paddingBottom: 10,
     },
@@ -127,9 +187,8 @@ const styles = StyleSheet.create({
         margin: 4,
     },
     itemImage: {
-        width: "100%",
-        maxWidth: 120,
-        maxHeight: 120,
+        width: 120,
+        height: 120,
         aspectRatio: 1,
     },
     itemTitle: {

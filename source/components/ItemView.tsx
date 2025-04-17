@@ -1,12 +1,13 @@
 import { collection, deleteDoc, deleteField, doc, DocumentReference, getDoc, onSnapshot, serverTimestamp, updateDoc } from "firebase/firestore";
-import { useState, useEffect, useCallback } from "react";
-import { View, Text, Button, StyleSheet, Pressable, Alert } from "react-native";
-import { auth, db } from "../../firebase";
-import { Icon, Image } from "react-native-elements";
-import { deleteObject, getDownloadURL, getStorage, ref, StorageError, StorageErrorCode, StorageReference } from "firebase/storage";
+import { useState, useEffect, useCallback, ReactNode } from "react";
+import { View, Text, Button, StyleSheet, Pressable, Alert, TextInput, Image } from "react-native";
+import { auth, db } from "../../my_firebase";
+import { deleteObject, getStorage, ref, StorageReference } from "firebase/storage";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { lightThemeColors } from "../assets/Colors";
 import { CommonActions, RouteProp } from "@react-navigation/native";
+import PressableOpacity from "../assets/MyElements";
+import { Icon } from "react-native-elements";
 
 export type ItemViewRouteParams = {
     itemId: string,
@@ -24,7 +25,7 @@ export function ItemViewScreen({ navigation, route }: { navigation: any, route: 
         lostPostId: "",
         timesLost: -1,
         createdAt: -1,
-        imageSrc: require("../assets/defaultimg.jpg"),
+        imageSrc: "",
     });
     
     const [owner, setOwner] = useState({
@@ -35,6 +36,9 @@ export function ItemViewScreen({ navigation, route }: { navigation: any, route: 
 
     const [itemRef, setItemRef] = useState<DocumentReference>();
     const [imageRef, setImageRef] = useState<StorageReference>();
+
+    const [name, setName] = useState("");
+    const [description, setDescription] = useState("");
 
     const [isOwner, setIsOwner] = useState(false);
 
@@ -97,7 +101,7 @@ export function ItemViewScreen({ navigation, route }: { navigation: any, route: 
                 lostPostId: snapshot.get("lostPostId") as string,
                 createdAt: snapshot.get("createdAt") as number || -1,
                 secretCode: snapshot.get("secretCode") as string || "",
-                imageSrc: snapshot.get("imageSrc") ? { uri: snapshot.get("imageSrc") as string } : require("../assets/defaultimg.jpg"),
+                imageSrc: snapshot.get("imageSrc") as string,
             });
 
             if (snapshot.get("ownerId") as string) {
@@ -132,42 +136,72 @@ export function ItemViewScreen({ navigation, route }: { navigation: any, route: 
         setItemInfo();
     }, [isLoggedIn]);
 
+    const actionButtons = () => {
+        let arr: ReactNode[] = [];
+
+        if (item?.isLost) {
+            arr.push(
+                <View style={{ flex: 1 }}>
+                    <PressableOpacity
+                        onPress={redirectToCurrentLostPost}
+                        style={styles.postButton}>
+                        <Text style={styles.buttonText}>Go to lost post</Text>
+                    </PressableOpacity>
+                </View>
+                
+            );
+            arr.push(
+                <View style={{ flex: 1 }}>
+                    <PressableOpacity
+                        onPress={redirectToNewFoundPost}
+                        style={styles.postButton}>
+                        <Text style={styles.buttonText}>Report item as found</Text>
+                    </PressableOpacity>
+                </View>
+            );
+        } else if (isOwner) {
+            arr.push(
+                <View style={{ flex: 1 }}>
+                    <PressableOpacity
+                        onPress={redirectToNewLostPost}
+                        style={styles.postButton}>
+                        <Text style={styles.buttonText}>Mark item as lost</Text>
+                    </PressableOpacity>
+                </View>
+            );
+        }
+        if (isOwner) {
+            arr.push(
+                <View>
+                    <PressableOpacity
+                        onPress={deleteItemAlert}
+                        style={styles.deleteItemButton}>
+                        <Icon name="delete" type="material-community" />
+                    </PressableOpacity>
+                </View>
+            );
+        }
+        return (
+            <View style={[styles.horizontal, {width: "100%", padding: 8, alignSelf: "center"}]}>
+                <View style={[{flexDirection: "row", flex: 1, height: 40}]}>
+                    {arr}
+                </View>
+            </View>
+            
+        );
+    }
+
     if (isOwner) return (
         <View style={styles.container}>
             <View style={{margin: 5}}>
                 <Image
                     style={styles.itemImage}
-                    source={item.imageSrc} />
-                <Text style={styles.description}>{item.description}</Text>
-                <View style={[styles.horizontal, { display:"flex", alignItems: "center", }]}>
-                    {item.isLost ?  
-                        (<View>
-                            <TouchableOpacity
-                            onPress={redirectToCurrentLostPost}
-                            style={styles.postButton}>
-                            <Text style={styles.buttonText}>Go to lost post</Text>
-                            </TouchableOpacity>
-                        </View>
-                    ) : (
-                        <TouchableOpacity
-                            onPress={redirectToNewLostPost}
-                            style={styles.postButton}>
-                            <Text style={styles.buttonText}>Mark item as lost</Text>
-                        </TouchableOpacity>
-                    )}
-                    <TouchableOpacity
-                        onPress={redirectToNewFoundPost}
-                        style={styles.postButton}>
-                        <Text style={styles.buttonText}>Report item as found</Text>
-                    </TouchableOpacity>
-                    
-                    
-                    <TouchableOpacity
-                        onPress={deleteItemAlert}
-                        style={styles.deleteItemButton}>
-                        <Icon name="delete" />
-                    </TouchableOpacity>
-                </View>
+                    source={item.imageSrc ? {uri: item.imageSrc} : undefined} 
+                    defaultSource={require("../assets/defaultimg.jpg")} />
+                <TextInput 
+                    style={styles.description}
+                    value={description} />
+                {actionButtons()}
                 <Text>Posts mentioning this item</Text>
             </View>
         </View>
@@ -178,22 +212,17 @@ export function ItemViewScreen({ navigation, route }: { navigation: any, route: 
             <View style={[styles.horizontal, {width: "100%", justifyContent: "flex-start"}]}>
                 <Image
                     style={styles.pfp}
-                    source={owner.pfpUrl != "" ? {uri: owner.pfpUrl} : require("../assets/defaultpfp.jpg")} />
+                    source={owner.pfpUrl ? {uri: owner.pfpUrl} : undefined}
+                    defaultSource={require("../assets/defaultpfp.jpg")} />
                 <Text>{owner.name}</Text>
             </View>
             
             <Image
                 style={styles.itemImage}
-                source={item.imageSrc} />
+                source={item.imageSrc ? {uri: item.imageSrc} : undefined}
+                defaultSource={require("../assets/defaultimg.jpg")}/>
             <Text style={styles.description}>{item.description}</Text>
-            <View style={{ width: "100%", alignContent: "center", flexDirection: "row" }}>
-                <Text>{owner.name}</Text>
-                <TouchableOpacity
-                    onPress={redirectToNewFoundPost}
-                    style={styles.postButton}>
-                    <Text style={styles.buttonText}>Report item as found</Text>
-                </TouchableOpacity>
-            </View>
+            {actionButtons()}
         </View>
     );
 }
@@ -223,15 +252,17 @@ const styles = StyleSheet.create({
     },
     postButton: {
         backgroundColor: lightThemeColors.primary,
-        height: 40,
+        width: "100%",
+        height: "100%",
         paddingHorizontal: 10,
         borderRadius: 10,
         alignItems: 'center',
         justifyContent: "center",
+        
     },
     deleteItemButton: {
         backgroundColor: lightThemeColors.red,
-        height: 40,
+        height: "100%",
         borderRadius: 10,
         aspectRatio: 1,
         alignItems: 'center',

@@ -5,7 +5,7 @@ import { useRef, useCallback, useEffect, useState } from "react";
 import { View, Text, Button, StyleSheet } from "react-native";
 import { runOnJS } from "react-native-reanimated";
 import { Camera, CameraRuntimeError, useCameraDevice, CodeScanner, Point, Code } from "react-native-vision-camera";
-import { auth, db } from "../../firebase";
+import { auth, db } from "../../my_firebase";
 
 export function ScanCodeScreen({ navigation }: { navigation: any }) {
     const camera = useRef<Camera>(null);

@@ -1,14 +1,15 @@
 import { addDoc, collection, serverTimestamp, updateDoc } from "firebase/firestore";
-import { getDownloadURL, getStorage, ref, uploadBytes, uploadBytesResumable } from "firebase/storage";
+import { getDownloadURL, getStorage, ref, uploadBytesResumable } from "firebase/storage";
 import { useEffect, useState } from "react";
-import { View, Text, Button, StyleSheet, Image, Pressable, ImageSourcePropType } from "react-native";
-import { Icon, Input, Tooltip } from "react-native-elements";
+import { View, Text, Button, StyleSheet, Image, Pressable, ImageSourcePropType, TextInput } from "react-native";
 import { launchCamera, launchImageLibrary, MediaType } from 'react-native-image-picker';
 
-import { auth, db } from "../../firebase";
+import { auth, db } from "../../my_firebase";
 import { lightThemeColors } from "../assets/Colors";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { CommonActions } from "@react-navigation/native";
+import { Icon, Input } from "react-native-elements";
+import PressableOpacity from "../assets/MyElements";
 
 
 export function AddItemScreen({ navigation, route }: { navigation: any, route: any }) {
@@ -19,7 +20,6 @@ export function AddItemScreen({ navigation, route }: { navigation: any, route: a
 
     const [imgSrc, setImgSrc] = useState({ uri: "" });
     const [uploading, setUploading] = useState(false);
-    const [transferred, setTransferred] = useState(0);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     
     useEffect(() => {
@@ -149,19 +149,19 @@ export function AddItemScreen({ navigation, route }: { navigation: any, route: a
             <View style={styles.imageContainer}>
                 <Image
                     style={styles.itemImage}
-                    source={imgSrc.uri != "" ? imgSrc : require("../assets/defaultpfp.jpg")}
+                    source={imgSrc.uri != "" ? imgSrc : require("../assets/defaultimg.jpg")}
                 />
             </View>
             
 
             <View style={styles.horizontalContainer}>
                 <TouchableOpacity onPress={handleCameraLaunch} style={styles.cameraButton}>
-                    <Icon name="camera" />
+                    <Icon name="camera-alt" type="material-icons" size={20}/>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={openImagePicker} style={styles.uploadButton}>
-                    <Icon name="photo" />
+                    <Icon name="photo-library" type="material-icons" size={20} />
                 </TouchableOpacity>
-                <Text style={styles.text}>Set photo</Text>
+                <Text style={{fontSize: 16}}>Set photo</Text>
             </View>
             
             <Text style={styles.imageLabel}>Select image</Text>
@@ -171,26 +171,29 @@ export function AddItemScreen({ navigation, route }: { navigation: any, route: a
                 placeholder="What is this item called?"
                 onChangeText={text => setName(text)}
                 value={name}
+                editable={!uploading}
             />
             <Input
                 label="Description"
                 placeholder="Describe some identifying features"
                 onChangeText={text => setDescription(text)}
                 value={description}
+                editable={!uploading}
             />
             <Input
-                label="Secret Phrase (Optional)"
+                label="Secret Phrase"
                 placeholder="Phrase to verify you are the owner"
                 onChangeText={text => setSecretPhrase(text)}
                 value={secretPhrase}
+                editable={!uploading}
             />
-            <TouchableOpacity
+            <PressableOpacity
                 style={styles.saveButton}
                 disabled={name.trim().length < 1 || description.trim().length < 1 || imgSrc.uri == "" || uploading}
                 onPress={uploadItem}
             >
                 <Text style={styles.saveButtonText}>Add Item</Text>
-            </TouchableOpacity>
+            </PressableOpacity>
         </View>
     );
 }

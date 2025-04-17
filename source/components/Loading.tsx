@@ -1,7 +1,7 @@
 import firebase from "firebase/compat/app";
 import { useEffect } from "react";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
-import { auth, db } from '../../firebase';
+import { auth, db } from '../../my_firebase';
 
 export function LoadingScreen({ navigation }: { navigation: any }) {
     return (

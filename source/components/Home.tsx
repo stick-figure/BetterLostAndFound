@@ -1,27 +1,26 @@
 import { useEffect, useState } from "react";
-import { View, Button, StyleSheet, Text, FlatList, Image, ActivityIndicator } from "react-native";
-import { FAB, Input, ListItem } from "react-native-elements";
+import { View, Button, StyleSheet, Text, FlatList, Image, ActivityIndicator, SafeAreaView } from "react-native";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { lightThemeColors } from "../assets/Colors";
 import { onSnapshot, query, collection, where, getDoc, DocumentSnapshot, doc, FieldValue, serverTimestamp } from "firebase/firestore";
-import { db, auth } from "../../firebase";
-import { getStorage, ref, getDownloadURL } from "firebase/storage";
+import { db, auth } from "../../my_firebase";
 import { CommonActions } from "@react-navigation/native";
-import { Icon } from "react-native-vector-icons/Icon";
+import { Icon } from "react-native-elements";
 
 interface LostPostListItem {
     _id: string,
     title: string,
     message: string,
     authorName: string,
-    pfpSrc: object,
-    imageSrc: object,
+    pfpUrl: string,
+    imageUrl: string,
     createdAt: FieldValue,
 }
 
 export function HomeScreen({ navigation }: { navigation: any }) {
     const [lostPosts, setLostPosts] = useState<Array<LostPostListItem>>([]);
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
     
     useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -39,7 +38,7 @@ export function HomeScreen({ navigation }: { navigation: any }) {
         if (!isLoggedIn) return;
 
         const unsubscribe = onSnapshot(query(collection(db, 'lostPosts')), (snapshot: { docs: any[]; }) => {
-            const storage = getStorage();
+            setIsLoading(true);
             const promises = snapshot.docs.map(async (postDoc) => {
                 let item;
                 try {
@@ -60,13 +59,15 @@ export function HomeScreen({ navigation }: { navigation: any }) {
                     title: postDoc.data().title,
                     message: postDoc.data().message,
                     authorName: (owner?.data() ? (owner as DocumentSnapshot).data()!.name : postDoc.data().ownerId) || "Unknown User",
-                    pfpSrc: (owner?.data() ? { uri: (owner as DocumentSnapshot).data()!.pfpUrl } : require("../assets/defaultpfp.jpg")),
-                    imageSrc: (item?.data() ? { uri: (item as DocumentSnapshot).data()!.imageSrc } : require("../assets/defaultimg.jpg")),
+                    pfpUrl: owner?.data()?.pfpUrl,
+                    imageUrl: item?.data()?.imageSrc,
                     createdAt: postDoc.data().createdAt,
                 };
             });
 
-            Promise.all(promises).then((res) => setLostPosts(res)).catch((error) => {console.warn(error)});
+            Promise.all(promises).then((res) => {
+                setLostPosts(res); setIsLoading(false);
+            }).catch((error) => {console.warn(error)});
         });
 
         return unsubscribe;
@@ -88,32 +89,39 @@ export function HomeScreen({ navigation }: { navigation: any }) {
     }
 
     return (
-        <View style={styles.container}>
+        <SafeAreaView style={styles.container}>
             <TouchableOpacity
                 onPress={() => navigation.navigate("Return Item")}
                 style={styles.returnItemButton}>
-                <Text style={styles.text}>Report Item as Found</Text>
+                <Text style={styles.text}>Return a found item</Text>
             </TouchableOpacity>
             <View style={styles.itemList}>
                 <FlatList
                     keyExtractor={lostPost => lostPost._id.toString()}
-                    ListEmptyComponent={<ActivityIndicator size="large" />}
+                    ListEmptyComponent={
+                        <View style={{flex: 1, alignContent: "center", alignSelf: "stretch", justifyContent: "center"}}>
+                            {isLoading ? <ActivityIndicator size="large" /> : <Icon name="cactus" type="material-community" />}
+                        </View>
+                    }
                     data={lostPosts}
                     renderItem={({ item }) => (
                         <TouchableOpacity onPress={() => navigateToPost(item._id)}>
                             <View style={styles.itemListItemView}>
-                                <View style={[styles.horizontal, {width: "100%", justifyContent: "flex-start", alignItems: "center"}]}>
+                                <View style={[styles.horizontal, {width: "100%", justifyContent: "flex-start", alignItems: "center", padding: 4}]}>
                                     <Image
                                         style={styles.pfp}
-                                        source={item.pfpSrc} />
+                                        source={{uri: item.pfpUrl}}
+                                        defaultSource={require("../assets/defaultpfp.jpg")} />
                                     <View>
                                         <Text style={styles.userName}>{item.authorName}</Text>
+                                        <Text style={styles.timestamp}>
+                                            {item.createdAt ? new Date((item.createdAt)!.seconds*1000).toLocaleDateString() : "unknown time"}
+                                        </Text>
                                     </View>
                                 </View>
                                 <Text style={styles.itemTitle}>{item.title}</Text>
-                                <Text style={styles.timestamp}>{new Date((item.createdAt).seconds*1000).toLocaleDateString()}</Text>
                                 <Text style={styles.itemContent}>{item.message}</Text>
-                                <Image source={item.imageSrc} style={styles.itemImage} />
+                                <Image source={item.imageUrl ? {uri: item.imageUrl} : undefined} style={styles.itemImage} defaultSource={require("../assets/defaultimg.jpg")} />
                             </View>
                         </TouchableOpacity>
                         
@@ -122,7 +130,7 @@ export function HomeScreen({ navigation }: { navigation: any }) {
             </View>
 
             <Text>Home</Text>
-        </View>
+        </SafeAreaView>
     );
 }
 
@@ -141,6 +149,7 @@ const styles = StyleSheet.create({
         fontSize: 18,
     },
     itemList: {
+        flex: 1,
         width: "100%",
         margin: 10,
         backgroundColor: "white",
@@ -157,6 +166,7 @@ const styles = StyleSheet.create({
         color: lightThemeColors.textLight,
         fontWeight: "bold",
         fontSize: 18,
+        margin: 4,
     },
     itemSubtitle: {
         color: lightThemeColors.textLight,
@@ -166,6 +176,7 @@ const styles = StyleSheet.create({
         color: lightThemeColors.textLight,
         fontSize: 14,
         overflow: "hidden",
+        margin: 4,
     },
     returnItemButton: {
         width: 370,
@@ -178,10 +189,10 @@ const styles = StyleSheet.create({
         borderRadius: 99999,
         width: 42, 
         aspectRatio: 1/1,
+        marginRight: 12,
     },
     userName: {
         fontSize: 15,
-        marginHorizontal: 12,
         fontWeight: "600",
     },
     timestamp: {

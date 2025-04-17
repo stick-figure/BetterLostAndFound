@@ -6,4 +6,7 @@ export const lightThemeColors = {
   inputLight: '#505152',
   textDark: '#fafafe',
   red: "#ee6a5e",
+  dullGrey: "#AAAAAA",
+  dullerGrey: "#7F7F7F",
+  dullestGrey: "#444444",
 };
