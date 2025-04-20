@@ -364,11 +364,11 @@ export function ItemViewScreen({ navigation, route }: { navigation: any, route: 
                     defaultSource={require("../assets/defaultpfp.jpg")} />
                 <Text>{owner.name}</Text>
             </View>
-            <Text style={styles.itemName}>{name}</Text>
             <Image
                 style={styles.itemImage}
                 source={item.imageSrc ? {uri: item.imageSrc} : undefined}
                 defaultSource={require("../assets/defaultimg.jpg")}/>
+            <Text style={styles.itemName}>{name}</Text>
             <Text style={styles.description}>{description}</Text>
             {actionButtons()}
             

@@ -112,8 +112,8 @@ export function MyItemsScreen({ navigation }: { navigation: any }) {
             </View>
             
             <View style={[styles.horizontal, {width:'100%', alignItems: "flex-end", justifyContent: 'space-between'}]}>
-                <Text style={{fontSize: 16, color: lightThemeColors.textLight,}}>My Items</Text>
-                <PressableOpacity onPress={() => navigation.navigate("My Stack", {screen: "Add Item"})}>
+                <Text style={{fontSize: 16, color: lightThemeColors.textLight, margin: 4}}>My Items</Text>
+                <PressableOpacity onPress={() => navigation.navigate("My Stack", {screen: "Add Item"})} style={styles.smallButton}>
                     <Text style={styles.addItemTitle}>Add Item</Text>
                 </PressableOpacity>
             </View>
@@ -160,6 +160,14 @@ const styles = StyleSheet.create({
         color: lightThemeColors.textLight,
         fontSize: 18,
     },
+    smallButton: {
+        padding: 6,
+        backgroundColor: lightThemeColors.primary,
+        borderRadius: 8,
+    },
+    smallButtonText: {
+        color: lightThemeColors.textDark,
+    },
     userName: {
         fontSize: 28,
         fontWeight: "bold",
@@ -196,7 +204,7 @@ const styles = StyleSheet.create({
     },
     itemTitle: {
         color: lightThemeColors.textLight,
-        fontWeight: "bold",
+        fontWeight: "400",
         fontSize: 16,
     },
     itemSubtitle: {
@@ -209,7 +217,7 @@ const styles = StyleSheet.create({
     },
     addItemTitle: {
         fontSize: 14,
-        color: lightThemeColors.textLight,
+        color: lightThemeColors.textDark,
     },
 });
 

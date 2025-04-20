@@ -15,7 +15,7 @@ export function ScanCodeScreen({ navigation }: { navigation: any }) {
     }, [camera])
 
     const cameraPermission = Camera.getCameraPermissionStatus();
-
+    
     const device = useCameraDevice('back');
 
     const isActive = useIsFocused();

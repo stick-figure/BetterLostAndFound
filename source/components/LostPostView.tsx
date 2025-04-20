@@ -306,6 +306,7 @@ const styles = StyleSheet.create({
     },
     postTitle: {
         fontSize: 24,
+        fontWeight: "bold",
         color: lightThemeColors.textLight,
     },
     itemList: {

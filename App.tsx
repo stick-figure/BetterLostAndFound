@@ -177,15 +177,7 @@ function MyStack() {
                         title: route.params!.room.users.filter((user) => user._id != auth.currentUser?.uid)
                                                         .map((user) => user.name)
                                                         .join(", "), 
-                        headerLeft(props) {
-                            return (
-                                <View style={{}}>
-                                    <Image 
-                                        source={{uri: route.params!.room.users.find((user) => user._id != auth.currentUser?.uid).pfpSrc}} 
-                                        defaultSource={require("./source/assets/defaultpfp.jpg")} />
-                                </View>
-                            );
-                        } 
+                        
                     };
                 }} />
             </Stack.Group>

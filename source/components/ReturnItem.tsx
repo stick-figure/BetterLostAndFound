@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     },
     returnItemButton: {
         width: 370,
-        marginTop: 10,
+        marginBottom: 10,
         padding: 10,
         backgroundColor: lightThemeColors.primary,
         borderRadius: 7,
