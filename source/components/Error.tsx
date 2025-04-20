@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Button, StyleSheet, Text, View } from 'react-native';
+import { lightThemeColors } from '../assets/Colors';
 
 
 export function ErrorScreen({ navigation, route }: { navigation: any, route: any }) {
@@ -18,7 +19,7 @@ export function ErrorScreen({ navigation, route }: { navigation: any, route: any
 
 const styles = StyleSheet.create({
     container: {
-
+        backgroundColor: lightThemeColors.background,
     },
     button: {
 

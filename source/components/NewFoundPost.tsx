@@ -1,10 +1,11 @@
 import { serverTimestamp, addDoc, collection, updateDoc, doc, getDoc } from "firebase/firestore";
 import { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, Image, StyleSheet, TextInput } from "react-native";
-import { auth, db } from "../../my_firebase";
+import { auth, db } from "../../ModularFirebase";
 import { lightThemeColors } from "../assets/Colors";
 import { CommonActions } from "@react-navigation/native";
 import { MediaType, launchImageLibrary } from "react-native-image-picker";
+import SafeAreaView from "react-native-safe-area-view";
 
 export function NewFoundPostScreen({ navigation, route }: { navigation: any, route: any }) {
     const [item, setItem] = useState({
@@ -14,7 +15,7 @@ export function NewFoundPostScreen({ navigation, route }: { navigation: any, rou
         ownerId: "",
         isLost: false,
         timesLost: -1,
-        secretCode: "",
+        secretPhrase: "",
         createdAt: -1,
         imageSrc: require("../assets/defaultimg.jpg"),
     });
@@ -65,14 +66,12 @@ export function NewFoundPostScreen({ navigation, route }: { navigation: any, rou
             resolvedAt: -1,
             resolveReason: "",
             views: 0,
-            chatIds: [],
+            roomIds: [],
         };
 
         navigation.navigate("Loading");
 
         addDoc(collection(db, "foundPosts"), postData).then((postRef) => {
-            return updateDoc(doc(db, "items", item._id), {isLost: true, lostPostId: postRef.id, timesLost: item.timesLost as number + 1});
-        }).then(() => {
             navigation.dispatch((state: {routes: any[]}) => {
                 const topScreen = state.routes[0];
                 const thisScreen = state.routes[state.routes.length - 1];
@@ -119,7 +118,7 @@ export function NewFoundPostScreen({ navigation, route }: { navigation: any, rou
     }
 
     return (
-        <View style={styles.container}>
+        <SafeAreaView style={styles.container}>
             <View style={styles.horizontal}>
                 <View style={styles.itemContainer}>
                     <TouchableOpacity
@@ -148,7 +147,7 @@ export function NewFoundPostScreen({ navigation, route }: { navigation: any, rou
                     </TouchableOpacity>
                 </View>
             </View>
-        </View>
+        </SafeAreaView>
     );
 }
 
@@ -156,6 +155,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         alignItems: 'center',
+        backgroundColor: lightThemeColors.background,
     },
     itemContainer: {
         width: 100,
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
         width: "100%",
         height: "40%",
         margin: 10,
-        backgroundColor: "white",
+        backgroundColor: lightThemeColors.foreground,
     },
     itemListItem: {
         width: 120,

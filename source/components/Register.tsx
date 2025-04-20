@@ -1,8 +1,8 @@
 import React, { ErrorInfo, useCallback, useEffect, useState } from 'react';
 import { View, StyleSheet, Image, Text, StatusBar, TextInput } from 'react-native';
-import { auth, db } from '../../my_firebase';
+import { auth, db } from '../../ModularFirebase';
 import { AuthError, AuthErrorCodes, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { addDoc, collection, doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { addDoc, collection, doc, runTransaction, serverTimestamp, setDoc } from 'firebase/firestore';
 import { getDownloadURL, getStorage, ref, uploadBytes } from '@firebase/storage';
 import { launchCamera, launchImageLibrary, MediaType } from 'react-native-image-picker';
 import { NavigationProp } from '@react-navigation/native';
@@ -10,6 +10,7 @@ import { ScrollView, TouchableOpacity } from 'react-native-gesture-handler';
 import { lightThemeColors } from '../assets/Colors';
 import PressableOpacity from '../assets/MyElements';
 import { Icon, Input } from 'react-native-elements';
+import SafeAreaView from 'react-native-safe-area-view';
 
 export function RegisterScreen({ navigation, route }: { navigation: any, route: any }) {
     const [name, setName] = useState("");
@@ -34,36 +35,39 @@ export function RegisterScreen({ navigation, route }: { navigation: any, route: 
             setRegistering(true);
             navigation.navigate("Loading");
 
-            const userCredential = await createUserWithEmailAndPassword(auth, email, password)
-            
-            let pfpUrl;
-            try {
-                if (pfpSrc.uri != "") pfpUrl = await uploadImage(userCredential.user.uid) as string;
-            } catch (error) {
-                pfpUrl = undefined;
-            }
-            
-            const userData = {
-                name: name,
-                email: email,
-                pfpUrl: pfpUrl || await getDownloadURL(ref(getStorage(), "images/pfps/default/defaultpfp.jpg")),
-                emailVertified: false,
-                createdAt: serverTimestamp(),
-                timesOwnItemLost: 0,
-                timesOwnItemFound: 0,
-                timesOthersItemFound: 0,
-                blockedList: [],
-                friendsList: [],
-                privateStats: false,
-            };
-            
-            updateProfile(userCredential.user, {
-                displayName: name,
-                photoURL: pfpUrl || null,
-            });
-            await setDoc(doc(db, "users", userCredential.user.uid), userData);
+            await runTransaction(db, async (transaction) => {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
-            navigation.navigate("Bottom Tabs", { screen: "Home" });
+                let pfpUrl: string | undefined;
+                try {
+                    if (pfpSrc.uri != "") pfpUrl = await uploadImage(userCredential.user.uid) as string;
+                } catch (error) {
+                    pfpUrl = undefined;
+                }
+                
+                const userData = {
+                    name: name,
+                    email: email,
+                    pfpUrl: pfpUrl ?? await getDownloadURL(ref(getStorage(), "images/pfps/default/defaultpfp.jpg")),
+                    emailVertified: false,
+                    createdAt: serverTimestamp(),
+                    timesOwnItemLost: 0,
+                    timesOwnItemFound: 0,
+                    timesOthersItemFound: 0,
+                    blockedList: [],
+                    friendsList: [],
+                    privateStats: false,
+                };
+
+                await updateProfile(userCredential.user, {
+                    displayName: name,
+                    photoURL: pfpUrl || null,
+                });
+
+                transaction.set(doc(db, "users", userCredential.user.uid), userData);
+            });
+            
+            navigation.navigate("My Drawer", { screen: "Bottom Tabs" });
         } catch (error) {
             if (error as AuthError) {
                 navigation.goBack();
@@ -133,7 +137,7 @@ export function RegisterScreen({ navigation, route }: { navigation: any, route: 
 
                 const blob = await (await fetch(pfpSrc.uri)).blob();
                 console.log("uploading images bytes...");
-                    
+                
                 const storage = getStorage();
                 const imageRef = ref(storage, "images/pfps/" + imageId);
 
@@ -152,63 +156,68 @@ export function RegisterScreen({ navigation, route }: { navigation: any, route: 
     }
 
     return (
-        <ScrollView contentContainerStyle={styles.container}>
-            <Text style={styles.subTitle}>Register</Text>
-            <View style={{flexDirection: "row", width: "100%"}}>
-                <View style={styles.pfpContainer}>
-                    <Image
-                        style={styles.pfpImage}
-                        source={pfpSrc.uri != "" ? pfpSrc : require("../assets/defaultpfp.jpg")}
-                    />
+        <SafeAreaView>
+            <ScrollView contentContainerStyle={styles.container}>
+                <Text style={styles.subTitle}>Register</Text>
+                <View style={{flexDirection: "row", width: "100%"}}>
+                    <View style={styles.pfpContainer}>
+                        <Image
+                            style={styles.pfpImage}
+                            source={pfpSrc.uri != "" ? pfpSrc : require("../assets/defaultpfp.jpg")}
+                        />
 
-                    <View style={styles.horizontalContainer}>
-                        <TouchableOpacity onPress={handleCameraLaunch} style={styles.cameraButton}>
-                            <Icon name="camera-alt" type="material-icons" size={20} />
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={openImagePicker} style={styles.uploadButton}>
-                            <Icon name="photo-library" type="material-icons" size={20} />
-                        </TouchableOpacity>
-                        <Text style={{fontSize: 16}}>Set photo</Text>
+                        <View style={styles.horizontalContainer}>
+                            <TouchableOpacity onPress={handleCameraLaunch} style={styles.cameraButton}>
+                                <Icon name="camera-alt" type="material-icons" size={20} />
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={openImagePicker} style={styles.uploadButton}>
+                                <Icon name="photo-library" type="material-icons" size={20} />
+                            </TouchableOpacity>
+                            <Text style={{fontSize: 16}}>Set photo</Text>
+                        </View>
+                    </View>
+                    <View style={{flexGrow: 1}}>
+                        <Input
+                            label="Name"
+                            style={styles.textInput} 
+                            placeholder='Enter your name'
+                            value={name}
+                            editable={!registering}
+                            labelStyle={{color: lightThemeColors.textLight,}}
+                            onChangeText={text => setName(text)} />
+                        <Input
+                            label="Email"
+                            leftIcon={{
+                                name: "email",
+                                type: "material-community"
+                            }}
+                            style={styles.textInput} 
+                            placeholder='Enter your email'
+                            value={email}
+                            editable={!registering}
+                            labelStyle={{color: lightThemeColors.textLight,}}
+                            onChangeText={text => setEmail(text)} />
+                        
+                        <Input
+                            label="Password"
+                            leftIcon={{
+                                name: "lock",
+                                type: "material-community"
+                            }}
+                            style={styles.textInput} 
+                            placeholder='Enter your password'
+                            labelStyle={{color: lightThemeColors.textLight,}}
+                            value={password} onChangeText={text => setPassword(text)}
+                            editable={!registering}
+                            secureTextEntry />
                     </View>
                 </View>
-                <View style={{flexGrow: 1}}>
-                    <Input
-                        label="Name"
-                        style={styles.textInput} 
-                        placeholder='Enter your name'
-                        value={name}
-                        editable={!registering}
-                        onChangeText={text => setName(text)} />
-                    <Input
-                        label="Email"
-                        leftIcon={{
-                            name: "email",
-                            type: "material-community"
-                        }}
-                        style={styles.textInput} 
-                        placeholder='Enter your email'
-                        value={email}
-                        editable={!registering}
-                        onChangeText={text => setEmail(text)} />
-                    
-                    <Input
-                        label="Password"
-                        leftIcon={{
-                            name: "lock",
-                            type: "material-community"
-                        }}
-                        style={styles.textInput} 
-                        placeholder='Enter your password'
-                        value={password} onChangeText={text => setPassword(text)}
-                        editable={!registering}
-                        secureTextEntry />
-                </View>
-            </View>
-            <Text style={styles.errorText}>{errorText}</Text>
-            <PressableOpacity style={styles.registerButton} disabled={name == "" || email == "" || password.length < 6 || registering} onPress={register} >
-                <Text style={styles.registerButtonText}>Register</Text>
-            </PressableOpacity>
-        </ScrollView>
+                <Text style={styles.errorText}>{errorText}</Text>
+                <PressableOpacity style={styles.registerButton} disabled={name == "" || email == "" || password.length < 6 || registering} onPress={register} >
+                    <Text style={styles.registerButtonText}>Register</Text>
+                </PressableOpacity>
+            </ScrollView>
+        </SafeAreaView>
     )
 }
 const styles = StyleSheet.create({
@@ -216,6 +225,7 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         paddingTop: 100,
+        backgroundColor: lightThemeColors.background,
     },
     subTitle: {
         fontSize: 23,
@@ -241,11 +251,10 @@ const styles = StyleSheet.create({
         margin: 10,*/
     },
     errorText: {
-        color: "red",
+        backgroundColor: lightThemeColors.redder,
     },
     pfpContainer: {
         alignSelf: "flex-start",
-        
     },
     horizontalContainer: {
         justifyContent: "flex-start",

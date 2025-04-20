@@ -4,12 +4,13 @@ import { useEffect, useState } from "react";
 import { View, Text, Button, StyleSheet, Image, Pressable, ImageSourcePropType, TextInput } from "react-native";
 import { launchCamera, launchImageLibrary, MediaType } from 'react-native-image-picker';
 
-import { auth, db } from "../../my_firebase";
+import { auth, db } from "../../ModularFirebase";
 import { lightThemeColors } from "../assets/Colors";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { CommonActions } from "@react-navigation/native";
 import { Icon, Input } from "react-native-elements";
 import PressableOpacity from "../assets/MyElements";
+import SafeAreaView from "react-native-safe-area-view";
 
 
 export function AddItemScreen({ navigation, route }: { navigation: any, route: any }) {
@@ -145,7 +146,7 @@ export function AddItemScreen({ navigation, route }: { navigation: any, route: a
     }
 
     return (
-        <View style={styles.container}>
+        <SafeAreaView style={styles.container}>
             <View style={styles.imageContainer}>
                 <Image
                     style={styles.itemImage}
@@ -161,7 +162,7 @@ export function AddItemScreen({ navigation, route }: { navigation: any, route: a
                 <TouchableOpacity onPress={openImagePicker} style={styles.uploadButton}>
                     <Icon name="photo-library" type="material-icons" size={20} />
                 </TouchableOpacity>
-                <Text style={{fontSize: 16}}>Set photo</Text>
+                <Text style={{fontSize: 16, color: lightThemeColors.textLight,}}>Set photo</Text>
             </View>
             
             <Text style={styles.imageLabel}>Select image</Text>
@@ -194,7 +195,7 @@ export function AddItemScreen({ navigation, route }: { navigation: any, route: a
             >
                 <Text style={styles.saveButtonText}>Add Item</Text>
             </PressableOpacity>
-        </View>
+        </SafeAreaView>
     );
 }
 
@@ -202,6 +203,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         alignItems: 'center',
+        backgroundColor: lightThemeColors.background,
     },
     text: {
         fontSize: 16,

@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, Text, TextInput, Pressable } from 'react-native'
-import { auth } from '../../my_firebase';
+import { auth } from '../../ModularFirebase';
 import { AuthErrorCodes, signInWithEmailAndPassword } from 'firebase/auth';
 import { lightThemeColors } from '../assets/Colors';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { CommonActions } from '@react-navigation/native';
 import PressableOpacity from '../assets/MyElements';
 import { Input } from 'react-native-elements';
+import SafeAreaView from 'react-native-safe-area-view';
 
 export function LoginScreen({ navigation }: { navigation: any }) {
     const [email, setEmail] = useState("");
@@ -21,7 +22,7 @@ export function LoginScreen({ navigation }: { navigation: any }) {
     const signIn = () => {
         //        navigation.navigate('Loading');
         signInWithEmailAndPassword(auth, email, password).then((userCredential) => {
-            navigation.replace("Bottom Tabs", { screen: 'Home' });
+            navigation.replace("My Drawer", { screen: 'Bottom Tabs' });
 
         }).catch((error) => {
             console.warn(error);
@@ -42,7 +43,7 @@ export function LoginScreen({ navigation }: { navigation: any }) {
     };
 
     return (
-        <View style={styles.container}>
+        <SafeAreaView style={styles.container}>
             <Text style={styles.title}>Better Lost and Found</Text>
             <Input
                 label="Email"
@@ -75,7 +76,7 @@ export function LoginScreen({ navigation }: { navigation: any }) {
             <PressableOpacity style={styles.loginButton} onPress={signIn} disabled={password == ""}>
                 <Text style={styles.loginButtonText}>Log In</Text>
             </PressableOpacity>
-        </View>
+        </SafeAreaView>
     );
 }
 
@@ -85,6 +86,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: 10,
         paddingTop: 100,
+        backgroundColor: lightThemeColors.background,
     },
     horizontal: {
         flexDirection: "row",
@@ -97,7 +99,7 @@ const styles = StyleSheet.create({
         marginVertical: 15,
     },
     errorText: {
-        color: "red",
+        color: lightThemeColors.redder,
     },
     textInput: {
         textDecorationStyle: "dotted",

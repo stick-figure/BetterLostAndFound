@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { Alert, Text, View } from "react-native";
-import { auth, db } from "../../my_firebase";
+import { auth, db } from "../../ModularFirebase";
 import { deleteUser, signOut } from "firebase/auth";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { collection, deleteDoc, doc, getDocs, onSnapshot, Query, query, where, writeBatch } from "firebase/firestore";
 import { CommonActions } from "@react-navigation/native";
 import { deleteObject } from "firebase/storage";
+import SafeAreaView from "react-native-safe-area-view";
+import { lightThemeColors } from "../assets/Colors";
 
 export function SettingsScreen({ navigation }: { navigation: any }) {
 
@@ -13,7 +15,8 @@ export function SettingsScreen({ navigation }: { navigation: any }) {
 //        navigation.navigate("Loading");
         signOut(auth).then(() => {
             // Sign-out successful.
-            navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Login' }] }));
+            navigation.replace("My Stack", {screen: "Login"});
+//            navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Login' }] }));
         }).catch((error) => {
             // An error happened.
             const errorCode = error.code;
@@ -71,7 +74,11 @@ export function SettingsScreen({ navigation }: { navigation: any }) {
                 onPress: () => console.log('Cancel Pressed'),
                 style: 'cancel',
             },
-            { text: 'OK', onPress: deleteAccount },
+            { 
+                text: 'OK', 
+                onPress: deleteAccount, 
+                style: 'destructive'  
+            },
         ]);
     }
 
@@ -90,16 +97,16 @@ export function SettingsScreen({ navigation }: { navigation: any }) {
     }, []);
 
     return (
-        <View>
+        <SafeAreaView>
             <TouchableOpacity
                 onPress={signOutNow}>
                 <Text>Sign out now</Text>
             </TouchableOpacity>
             <TouchableOpacity
                 onPress={promptDeleteAccount}>
-                <Text>delete account</Text>
+                <Text style={{color: lightThemeColors.redder}}>delete account</Text>
             </TouchableOpacity>
-
-        </View>
+        </SafeAreaView>
     );
 }
+

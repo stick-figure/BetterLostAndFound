@@ -956,6 +956,8 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
+  - react-native-notifications (5.1.0):
+    - React-Core
   - react-native-pager-view (6.7.0):
     - DoubleConversion
     - glog
@@ -1340,6 +1342,7 @@ DEPENDENCIES:
   - React-logger (from `../node_modules/react-native/ReactCommon/logger`)
   - React-Mapbuffer (from `../node_modules/react-native/ReactCommon`)
   - react-native-image-picker (from `../node_modules/react-native-image-picker`)
+  - react-native-notifications (from `../node_modules/react-native-notifications`)
   - react-native-pager-view (from `../node_modules/react-native-pager-view`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
   - React-nativeconfig (from `../node_modules/react-native/ReactCommon`)
@@ -1442,6 +1445,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon"
   react-native-image-picker:
     :path: "../node_modules/react-native-image-picker"
+  react-native-notifications:
+    :path: "../node_modules/react-native-notifications"
   react-native-pager-view:
     :path: "../node_modules/react-native-pager-view"
   react-native-safe-area-context:
@@ -1541,6 +1546,7 @@ SPEC CHECKSUMS:
   React-logger: 70e002e04cc56ff5c12157537405d1644c050703
   React-Mapbuffer: 8d1f0fc6e7280a8ed6da70ece5f283ac5c8032cb
   react-native-image-picker: f1006d8935a3bc0baf8157faaa7857c76a77c8bb
+  react-native-notifications: 3bafa1237ae8a47569a84801f17d80242fe9f6a5
   react-native-pager-view: 176db81d66a35119ec1b512a59bc94a47f73a68f
   react-native-safe-area-context: 70eb1b5a323393076224b817f4508a2ec23be3f9
   React-nativeconfig: 9f223cd321823afdecf59ed00861ab2d69ee0fc1

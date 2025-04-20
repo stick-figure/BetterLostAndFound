@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { View, Button, StyleSheet, Text, FlatList, Image, ActivityIndicator, SafeAreaView } from "react-native";
+import { View, Button, StyleSheet, Text, FlatList, Image, ActivityIndicator } from "react-native";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { lightThemeColors } from "../assets/Colors";
 import { onSnapshot, query, collection, where, getDoc, DocumentSnapshot, doc, FieldValue, serverTimestamp } from "firebase/firestore";
-import { db, auth } from "../../my_firebase";
-import { CommonActions } from "@react-navigation/native";
+import { db, auth } from "../../ModularFirebase";
+import { CommonActions, DrawerActions } from "@react-navigation/native";
 import { Icon } from "react-native-elements";
+import SafeAreaView from "react-native-safe-area-view";
 
 interface LostPostListItem {
     _id: string,
@@ -27,7 +28,8 @@ export function HomeScreen({ navigation }: { navigation: any }) {
             if (user) {
                 setIsLoggedIn(true);
             } else {
-                navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Login' }] }));
+                navigation.replace("My Stack", {screen: "Login"});
+//                navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Login' }] }));
             }
         });
 
@@ -83,7 +85,7 @@ export function HomeScreen({ navigation }: { navigation: any }) {
             itemData._id = postData!.itemId;
             const authorData = (await getDoc(doc(db, "users", postData!.authorId))).data()!;
             authorData._id = postData!.authorId;
-            navigation.navigate("Lost Post View", {post: postData, item: itemData, author: authorData});
+            navigation.navigate("My Stack", {screen: "Lost Post View", params: {post: postData, item: itemData, author: authorData}});
         } catch (err) {
             console.warn(err);
         }
@@ -92,11 +94,6 @@ export function HomeScreen({ navigation }: { navigation: any }) {
 
     return (
         <SafeAreaView style={styles.container}>
-            <TouchableOpacity
-                onPress={() => navigation.navigate("Return Item")}
-                style={styles.returnItemButton}>
-                <Text style={styles.text}>Return a found item</Text>
-            </TouchableOpacity>
             <View style={styles.itemList}>
                 <FlatList
                     keyExtractor={lostPost => lostPost._id.toString()}
@@ -107,26 +104,26 @@ export function HomeScreen({ navigation }: { navigation: any }) {
                     }
                     data={lostPosts}
                     renderItem={({ item }) => (
-                        <TouchableOpacity key={item._id.toString()} onPress={() => navigateToPost(item._id)}>
-                            <View style={styles.itemListItemView}>
-                                <View style={[styles.horizontal, {width: "100%", justifyContent: "flex-start", alignItems: "center", padding: 4}]}>
-                                    <Image
-                                        style={styles.pfp}
-                                        source={{uri: item.pfpUrl}}
-                                        defaultSource={require("../assets/defaultpfp.jpg")} />
-                                    <View>
-                                        <Text style={styles.userName}>{item.authorName}</Text>
-                                        <Text style={styles.timestamp}>
-                                            {item.createdAt ? new Date((item.createdAt)!.seconds*1000).toLocaleDateString() : "unknown time"}
-                                        </Text>
+                        <View style={styles.itemListItemView}>
+                            <TouchableOpacity key={item._id.toString()} onPress={() => navigateToPost(item._id)}>
+                                
+                                    <View style={[styles.horizontal, {width: "100%", justifyContent: "flex-start", alignItems: "center"}]}>
+                                        <Image
+                                            style={styles.pfp}
+                                            source={{uri: item.pfpUrl}}
+                                            defaultSource={require("../assets/defaultpfp.jpg")} />
+                                        <View>
+                                            <Text style={styles.userName}>{item.authorName}</Text>
+                                            <Text style={styles.timestamp}>
+                                                {item.createdAt ? new Date((item.createdAt)!.seconds*1000).toLocaleDateString() : "unknown time"}
+                                            </Text>
+                                        </View>
                                     </View>
-                                </View>
-                                <Text style={styles.itemTitle}>{item.title}</Text>
-                                <Text style={styles.itemContent}>{item.message}</Text>
-                                <Image source={item.imageSrc ? {uri: item.imageSrc} : undefined} style={styles.itemImage} defaultSource={require("../assets/defaultimg.jpg")} />
-                            </View>
-                        </TouchableOpacity>
-                        
+                                    <Text style={styles.itemTitle}>{item.title}</Text>
+                                    <Text style={styles.itemContent}>{item.message}</Text>
+                                    <Image source={item.imageSrc ? {uri: item.imageSrc} : undefined} style={styles.itemImage} defaultSource={require("../assets/defaultimg.jpg")} />
+                            </TouchableOpacity>
+                        </View>
                         )}
                 />
             </View>
@@ -141,20 +138,17 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         padding: 10,
+        backgroundColor: lightThemeColors.background,
     },
     horizontal: {
         flexDirection: "row",
     },
-    text: {
-        textAlign: "center",
-        color: lightThemeColors.textDark,
-        fontSize: 18,
-    },
+    
     itemList: {
         flex: 1,
         width: "100%",
         margin: 10,
-        backgroundColor: "white",
+        backgroundColor: lightThemeColors.foreground,
     },
     itemListItemView: {
         margin: 4,
@@ -180,13 +174,8 @@ const styles = StyleSheet.create({
         overflow: "hidden",
         margin: 4,
     },
-    returnItemButton: {
-        width: 370,
-        marginTop: 10,
-        padding: 10,
-        backgroundColor: lightThemeColors.primary,
-        borderRadius: 7,
-    },
+    
+
     pfp: {
         borderRadius: 99999,
         width: 42, 
@@ -196,10 +185,12 @@ const styles = StyleSheet.create({
     userName: {
         fontSize: 15,
         fontWeight: "600",
+        color: lightThemeColors.textLight,
     },
     timestamp: {
         fontSize: 12,
         margin: 2,
+        color: lightThemeColors.textLight,
     },
 });
 export default HomeScreen;

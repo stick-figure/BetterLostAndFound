@@ -1,12 +1,13 @@
 import { query, collection, where, doc, getDocs, setDoc, DocumentData, onSnapshot, DocumentSnapshot, getDoc } from "firebase/firestore";
 import { SetStateAction, useEffect, useLayoutEffect, useState } from "react";
 import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TextInput, View } from "react-native";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import { auth, db } from "../../my_firebase";
+import SafeAreaView from "react-native-safe-area-view";
+import { auth, db } from "../../ModularFirebase";
 import { lightThemeColors } from "../assets/Colors";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { CommonActions } from "@react-navigation/native";
 import { Icon, SearchBar } from "react-native-elements";
+import PressableOpacity from "../assets/MyElements";
 
 interface ItemTile {
     _id: string,
@@ -102,15 +103,16 @@ export function SearchItemsScreen({ navigation }: { navigation: any }) {
                     data={itemQuery}
                     renderItem={({ item }) => (
                         <View style={styles.itemListItem}>
-                            <TouchableOpacity
+                            <PressableOpacity
                                 key={item._id.toString()}
-                                onPress={() => { navigation.navigate("Item View", { itemId: item._id, itemName: item.name }) }}>
+                                onPress={() => { navigation.navigate("Item View", { itemId: item._id, itemName: item.name }) }}>    
+                            
                                 <Image source={item.imageSrc} style={styles.itemImage} defaultSource={require("../assets/defaultimg.jpg")}/>
                                 <View style={styles.itemListItemView}>
                                     <Text style={styles.itemTitle}>{item.name}</Text>
                                     <Text style={styles.itemSubtitle}>{item.ownerName}</Text>
-                                </View>
-                            </TouchableOpacity>
+                                </View> 
+                            </PressableOpacity>
                         </View>
                     )}
                     numColumns={3}
@@ -125,6 +127,7 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         padding: 10,
+        backgroundColor: lightThemeColors.background,
     },
     horizontal: {
         flexDirection: "row",
@@ -142,7 +145,7 @@ const styles = StyleSheet.create({
         width: "100%",
         flexGrow: 1,
         margin: 10,
-        backgroundColor: "white",
+        backgroundColor: lightThemeColors.foreground,
     },
     itemListItem: {
         width: 120,

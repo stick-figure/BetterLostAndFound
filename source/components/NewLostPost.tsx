@@ -4,30 +4,17 @@ import { useEffect, useState } from "react";
 import { View, Text, StyleSheet, Image } from "react-native";
 import { launchImageLibrary, MediaType } from 'react-native-image-picker';
 
-import { auth, db } from "../../my_firebase";
+import { auth, db } from "../../ModularFirebase";
 import { lightThemeColors } from "../assets/Colors";
 import { CommonActions } from "@react-navigation/native";
 import PressableOpacity from "../assets/MyElements";
 import { Input } from "react-native-elements";
+import SafeAreaView from "react-native-safe-area-view";
 
 
 export function NewLostPostScreen({ navigation, route }: { navigation: any, route: any }) {
-    const [item, setItem] = useState({
-        _id: "",
-        name: "",
-        description: "",
-        ownerId: "",
-        isLost: false,
-        timesLost: 0,
-        secretCode: "",
-        createdAt: -1,
-        imageSrc: require("../assets/defaultimg.jpg"),
-    });
-    const [owner, setOwner] = useState({
-        _id: "",
-        name: "",
-        pfpUrl: "",
-    });
+    const [item, setItem] = useState({});
+    const [owner, setOwner] = useState({});
 
     const [title, setTitle] = useState("");
     const [message, setMessage] = useState("");
@@ -49,7 +36,7 @@ export function NewLostPostScreen({ navigation, route }: { navigation: any, rout
             resolvedAt: -1,
             resolveReason: "",
             views: 0,
-            chatIds: [],
+            roomIds: [],
         };
 
         navigation.navigate("Loading");
@@ -57,7 +44,7 @@ export function NewLostPostScreen({ navigation, route }: { navigation: any, rout
         addDoc(collection(db, "lostPosts"), postData).then((postRef) => {
             return updateDoc(doc(db, "items", item._id), {isLost: true, lostPostId: postRef.id, timesLost: item.timesLost as number + 1});
         }).then(() => {
-            return updateDoc(doc(db, "users", owner._id), {timesLost: item.timesLost as number + 1});
+            return updateDoc(doc(db, "users", owner._id), {timesOwnItemLost: owner.timesOwnItemLost as number + 1});
         }).then(() => {
             navigation.navigate("Lost Post View", {item: item, owner: owner, author: owner, post: postData});
             navigation.dispatch((state: {routes: any[]}) => {
@@ -102,7 +89,7 @@ export function NewLostPostScreen({ navigation, route }: { navigation: any, rout
     }
 
     return (
-        <View style={styles.container}>
+        <SafeAreaView style={styles.container}>
             <View style={styles.itemContainer}>
                 <PressableOpacity
                     onPress={() => { navigation.navigate("Item View", { itemId: item._id, itemName: item.name }) }}
@@ -133,7 +120,7 @@ export function NewLostPostScreen({ navigation, route }: { navigation: any, rout
                 editable={!uploading}>
                 <Text style={styles.saveButtonText}>Post</Text>
             </PressableOpacity>
-        </View>
+        </SafeAreaView>
     );
 }
 
@@ -141,6 +128,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         alignItems: 'center',
+        backgroundColor: lightThemeColors.background,
     },
     itemContainer: {
         width: "100%",
@@ -171,12 +159,11 @@ const styles = StyleSheet.create({
         aspectRatio: 1/1,
         borderRadius: 7,
     },
-    
     itemList: {
         width: "100%",
         height: "40%",
         margin: 10,
-        backgroundColor: "white",
+        backgroundColor: lightThemeColors.foreground,
     },
     itemListItem: {
         width: 120,
