@@ -22,6 +22,7 @@ export function LoginScreen({ navigation }: { navigation: any }) {
     const signIn = () => {
         //        navigation.navigate('Loading');
         signInWithEmailAndPassword(auth, email, password).then((userCredential) => {
+            
             navigation.replace("My Drawer", { screen: 'Bottom Tabs' });
 
         }).catch((error) => {

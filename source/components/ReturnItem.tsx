@@ -85,16 +85,16 @@ export function ReturnItemScreen({ navigation }: { navigation: any }) {
     return (
         <SafeAreaView style={styles.container}>
             <PressableOpacity
-                onPress={() => navigation.navigate("My Stack", {screen: "Search Items"})}
-                style={styles.returnItemButton}>
+                onPress={() => navigation.navigate("My Stack", { screen: "Search Items" })}
+                style={styles.returnItemButton} children={undefined}>
                     <View style={[styles.horizontal, {width: "100%", justifyContent: "center"}]}>
                         <Icon name="search" type="material-icons" color={lightThemeColors.textDark} />
                         <Text style={styles.buttonText}>Search all items</Text>
                     </View>
             </PressableOpacity>
             <PressableOpacity
-                onPress={() => {/*navigation.navigate("New Found Post")*/}}
-                style={styles.returnItemButton}>
+                onPress={() => { } }
+                style={styles.returnItemButton} children={undefined}>
                 <Text style={styles.buttonText}>Report uncataloged item</Text>
             </PressableOpacity>
 
@@ -111,7 +111,7 @@ export function ReturnItemScreen({ navigation }: { navigation: any }) {
                     numColumns={2}
                     renderItem={({ item }) => (
                         <View style={styles.itemListItemView}>
-                            <PressableOpacity onPress={() => navigateToPost(item._id)} key={item._id.toString()}>
+                            <PressableOpacity onPress={() => navigateToPost(item._id)} key={item._id.toString()} children={undefined}>
                             
                                 <View style={[styles.horizontal, {width: "100%", justifyContent: "flex-start", alignItems: "center"}]}>
                                     <Image

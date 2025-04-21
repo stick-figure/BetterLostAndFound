@@ -1,11 +1,13 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { FlatList, Image, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { lightThemeColors } from "../assets/Colors";
 import { auth, db } from "../../ModularFirebase";
-import { addDoc, collection, doc, documentId, DocumentSnapshot, getDoc, getDocs, onSnapshot, query, QuerySnapshot, runTransaction, updateDoc, where } from "firebase/firestore";
+import { addDoc, collection, disableNetwork, doc, documentId, DocumentSnapshot, getDoc, getDocs, onSnapshot, query, QuerySnapshot, runTransaction, updateDoc, where } from "firebase/firestore";
 import PressableOpacity from "../assets/MyElements";
 import SafeAreaView from "react-native-safe-area-view";
 import { CommonActions } from "@react-navigation/native";
+import { Icon } from "react-native-elements";
+import { ScrollView } from "react-native-gesture-handler";
 
 export type PostViewRouteParams = {
     item: {name: string},
@@ -43,32 +45,30 @@ export function LostPostViewScreen({ navigation, route }: { navigation: any, rou
                 if (!postSnapshot.exists()) {
                     throw Error("Document does not exist!");
                 }
+                const userSnapshots = await Promise.all(roomData.userIds.map(async (userId) => transaction.get(doc(db, "users", userId))));
                 
                 const roomRef = doc(collection(db, "rooms"));
-                let postData = {...post};
                 transaction.set(roomRef, roomData);
 
                 roomData._id = roomRef.id;
                 
-                postData = postSnapshot!.data()!;
+                let postData = postSnapshot!.data()!;
                 postData.roomIds.push(roomRef.id);
+
                 transaction.update(postRef, { roomIds: postData.roomIds });
-                setPost(postData);
-            });
+                
+                roomData.users = userSnapshots.map((userSnapshot) => ({_id: userSnapshot.id, ...userSnapshot.data()!}));
 
-            const userSnapshots = await getDocs(query(collection(db, "users"), where(documentId(), "in", roomData.userIds)));
-            
-            roomData.users = userSnapshots.docs.map((userSnapshot) => ({_id: userSnapshot.id, ...userSnapshot.data()!}));
-
-            navigation.navigate("Chat Room", {post: postData, room: roomData});
-            navigation.dispatch((state: {routes: any[]}) => {
-                const topScreen = state.routes[0];
-                const thisScreen = state.routes[state.routes.length - 1];
-                const routes = [topScreen, thisScreen];
-                return CommonActions.reset({
-                    ...state,
-                    index: routes.length - 1,
-                    routes,
+                navigation.navigate("Chat Room", {post: postData, room: roomData});
+                navigation.dispatch((state: {routes: any[]}) => {
+                    const topScreen = state.routes[0];
+                    const thisScreen = state.routes[state.routes.length - 1];
+                    const routes = [topScreen, thisScreen];
+                    return CommonActions.reset({
+                        ...state,
+                        index: routes.length - 1,
+                        routes,
+                    });
                 });
             });
         } catch (err) {
@@ -116,34 +116,40 @@ export function LostPostViewScreen({ navigation, route }: { navigation: any, rou
 
     const updateRooms = async (roomSnapshot: QuerySnapshot) => {
         try {
-            const roomsData = await Promise.all(roomSnapshot.docs.map((doc) => new Promise(async (resolve, reject) => {
+            if (roomSnapshot.empty) throw new Error("roomSnapshot is empty");
+            const roomsData = await Promise.all(roomSnapshot.docs.map((roomDoc) => new Promise(async (resolve, reject) => {
                 try {
-                    const userSnapshots = await getDocs(query(collection(db, "users"), where(documentId(), "in", doc.data()?.userIds)));
+                    if (roomDoc?.data()?.userIds === undefined) throw new Error("userIds is undefined");
+                    const userSnapshots = await getDocs(query(collection(db, "rooms"), where(documentId(), "in", roomDoc.data().userIds)));
                     
                     resolve({
-                        _id: doc.id, 
+                        _id: roomDoc.id, 
                         users: userSnapshots.docs.map((userSnapshot) => ({_id: userSnapshot.id, ...userSnapshot.data()!})), 
-                        ...doc.data()
+                        ...roomDoc.data()
                     });
                     return;
                 } catch (error) {
                     reject(error);
                 }
             })));
-            console.log(roomsData);
+
             setRooms(roomsData);
         } catch (error) {
             console.warn(error);
         }
     }
 
-    useEffect(() => {
-        if ((post?.roomIds == undefined) || post?.roomIds?.length == 0) return;
+    const postUpdateCallback = useCallback(() => {
+        if (post?.roomIds === undefined || post?.roomIds?.length == 0) return;
 
         const unsubscribe = onSnapshot(query(collection(db, "rooms"), where(documentId(), "in", post.roomIds)), updateRooms);
         
         return unsubscribe;
-    }, []);
+    }, [post.roomIds]);
+
+    useEffect(() => {
+        return postUpdateCallback();
+    }, [post.roomIds]);
 
     useEffect(() => {
         if (!isLoggedIn) return;
@@ -151,16 +157,12 @@ export function LostPostViewScreen({ navigation, route }: { navigation: any, rou
         itemData.imageSrc = route.params!.item.imageSrc;
         setItem(itemData);
         setAuthor(route.params!.author);
-        setPost(route.params!.post);
 
         setMessage(route.params!.post.message);
         if (auth.currentUser!.uid == itemData._id) setIsOwner(true);
         if (auth.currentUser!.uid == route.params!.author._id) setIsAuthor(true);
 
-        if (!route.params!.post.roomIds) return;
-        getDocs(query(collection(db, "rooms"), where(documentId(), "in", route.params!.post.roomIds))).then((snapshot) => {
-            updateRooms(snapshot);
-        });
+        if (route.params.post?.roomIds === undefined) return;
     }, [isLoggedIn]);
     
     useEffect(() => {
@@ -176,18 +178,28 @@ export function LostPostViewScreen({ navigation, route }: { navigation: any, rou
             if (rooms.length == 0) {
                 return (
                     <View>
-                        <PressableOpacity onPress={createChatRoom} disabled={isNavigating}>
-                            <Text>Start chat with {author.name || "owner"}</Text>
+                        <PressableOpacity 
+                            style={styles.chatButton}
+                            onPress={createChatRoom} 
+                            disabled={isNavigating}>
+                            <Text style={styles.chatButtonText}>Start chat with {author?.name || "owner"}</Text>
                         </PressableOpacity>
                     </View>
                 );
             } else {
                 return (
-                    <View>
-                        <PressableOpacity onPress={() => {
-                            navigateToChatRoom(rooms.findIndex((room) => room.userIds.includes(auth.currentUser?.uid)))
-                        }} disabled={isNavigating}>
-                            <Text>Chat with {author.name || "owner"}</Text>
+                    <View style={styles.chatListContainer}>
+                        <PressableOpacity 
+                            style={styles.chatItem}
+                            onPress={() => {
+                                navigateToChatRoom(rooms.findIndex((room) => room.userIds.includes(auth.currentUser?.uid)))
+                            }} 
+                            disabled={isNavigating}>
+                            <Image 
+                                style={styles.chatThumbnail}
+                                source={{uri: author?.pfpUrl}}
+                                defaultSource={require("../assets/defaultpfp.jpg")} />
+                            <Text style={styles.chatTitle}>{author?.name || "Chat with owner"}</Text>
                         </PressableOpacity>
                     </View>
                 );
@@ -198,14 +210,33 @@ export function LostPostViewScreen({ navigation, route }: { navigation: any, rou
         return (
             <FlatList
                 keyExtractor={(item) => item._id}
+                scrollEnabled={false}
                 data={rooms}
-                renderItem={({ item }) => 
-                    <PressableOpacity onPress={() => {
-                            navigateToChatRoom(rooms.findIndex(room => item._id))
-                        }} 
-                        disabled={isNavigating}>
-                        <Text>Chat with {(item.users as any[]).find((user) => user._id != auth.currentUser?.uid).name || "unknown user"}</Text>
-                    </PressableOpacity>
+                style={styles.chatListContainer}
+                renderItem={({ item }) => {
+                    const user = (item.users as any[]).find((user) => user._id != auth.currentUser?.uid);
+                    return (
+                        <PressableOpacity 
+                            style={styles.chatItem}
+                            onPress={() => {
+                                navigateToChatRoom(rooms.findIndex(room => item._id))
+                            }} 
+                            disabled={isNavigating}>
+                            <Image 
+                                style={styles.chatThumbnail}
+                                source={{uri: user?.pfpUrl}}
+                                defaultSource={require("../assets/defaultpfp.jpg")} />
+                            <Text style={styles.chatTitle}>{user?.name || "Unknown user"}</Text>
+                        </PressableOpacity>
+                    );
+                }}
+                ListEmptyComponent={
+                    <View style={{height: 52}}>
+                        <View style={{width: "100%", height: "100%", alignItems: "stretch", justifyContent: "center"}}>
+                            <Icon name="cactus" type="material-community" size={40} />
+                            <Text style={styles.text}>No one has set up a chat with you yet</Text>
+                        </View>
+                    </View>
                 }
                  />
                 
@@ -223,40 +254,43 @@ export function LostPostViewScreen({ navigation, route }: { navigation: any, rou
 
     return (
         <SafeAreaView style={styles.container}>
-            <View style={styles.itemContainer}>
-                <View style={[styles.horizontal, {width: "100%", justifyContent: "flex-start", alignItems: "center", padding: 8}]}>
-                    <Image
-                        style={styles.pfp}
-                        source={author.pfpUrl ? {uri: author.pfpUrl} : undefined}
-                        defaultSource={require("../assets/defaultpfp.jpg")} />
-                    <View>
-                        <Text style={styles.userName}>{author.name}</Text>
-                        <Text style={styles.timestamp}>
-                            {item.createdAt ? new Date((item.createdAt)!.seconds*1000).toLocaleDateString() : "unknown time"}
-                        </Text>
+            <ScrollView>
+                <View style={styles.itemContainer}>
+                    <View style={[styles.horizontal, {width: "100%", justifyContent: "flex-start", alignItems: "center", padding: 8}]}>
+                        <Image
+                            style={styles.pfp}
+                            source={author.pfpUrl ? {uri: author.pfpUrl} : undefined}
+                            defaultSource={require("../assets/defaultpfp.jpg")} />
+                        <View>
+                            <Text style={styles.userName}>{author.name}</Text>
+                            <Text style={styles.timestamp}>
+                                {item.createdAt ? new Date((item.createdAt)!.seconds*1000).toLocaleDateString() : "unknown time"}
+                            </Text>
+                        </View>
                     </View>
+                    <Text style={styles.postTitle}>Missing <Text style={{fontWeight: "800"}}>{item.name}</Text></Text>
+                    <PressableOpacity
+                        onPress={() => { navigation.navigate("Item View", { itemId: item._id, itemName: item.name }) }}
+                        disabled={isNavigating}>
+                        <Image source={item.imageSrc ? {uri: item.imageSrc} : undefined} style={styles.itemImage} defaultSource={require("../assets/defaultimg.jpg")} />
+                        <View style={styles.itemListItemView}>
+                            <Text style={styles.itemContent}>Click for item info</Text>
+                        </View>
+                    </PressableOpacity>
                 </View>
-                <Text style={styles.postTitle}>{item.name}</Text>
-                <PressableOpacity
-                    onPress={() => { navigation.navigate("Item View", { itemId: item._id, itemName: item.name }) }}
-                    disabled={isNavigating}>
-                    <Image source={item.imageSrc ? {uri: item.imageSrc} : undefined} style={styles.itemImage} defaultSource={require("../assets/defaultimg.jpg")} />
-                    <View style={styles.itemListItemView}>
-                        <Text style={styles.itemContent}>Click for item info</Text>
-                    </View>
-                </PressableOpacity>
-            </View>
-            <View>
-                <TextInput
-                    multiline={true}
-                    placeholder="Where did you last put this item?"
-                    onChangeText={text => setMessage(text)}
-                    value={message}
-                    editable={isAuthor && !isNavigating}
-                    selectTextOnFocus={false} 
-                    style={styles.message}/>
-            </View>
-            {chatOptions()}
+                <View>
+                    <TextInput
+                        multiline={true}
+                        placeholder="Where did you last put this item?"
+                        onChangeText={text => setMessage(text)}
+                        value={message}
+                        editable={isAuthor && !isNavigating}
+                        selectTextOnFocus={false} 
+                        style={styles.message}/>
+                </View>
+                <Text style={[styles.text, {fontSize: 20, margin: 8}]}>Chat with {!isAuthor && "owner"}</Text>
+                {chatOptions()}
+            </ScrollView>
         </SafeAreaView>
     );
 }
@@ -269,6 +303,9 @@ const styles = StyleSheet.create({
     },
     itemContainer: {
         width: "100%",
+    },
+    text: {
+        color: lightThemeColors.textLight,
     },
     horizontal: {
         flexDirection: "row",
@@ -306,8 +343,9 @@ const styles = StyleSheet.create({
     },
     postTitle: {
         fontSize: 24,
-        fontWeight: "bold",
+        fontWeight: "500",
         color: lightThemeColors.textLight,
+        margin: 8,
     },
     itemList: {
         width: "100%",
@@ -335,7 +373,8 @@ const styles = StyleSheet.create({
     },
     itemContent: {
         color: lightThemeColors.textLight,
-        fontSize: 14,
+        fontSize: 12,
+        alignSelf: "center",
     },
     imageLabel: {
         fontSize: 16,
@@ -344,20 +383,46 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
     },
     message: {
+        fontSize: 16,
         color: lightThemeColors.textLight,
+        margin: 6,
     },
-    saveButton: {
-        width: 280,
+    chatButton: {
+        width: "90%",
         backgroundColor: lightThemeColors.primary,
         borderRadius: 7,
         padding: 10,
     },
-    saveButtonText: {
+    chatButtonText: {
         fontSize: 16,
         textAlign: "center",
         color: lightThemeColors.textDark,
         fontWeight: "bold",
     },
+    chatListContainer: {
+        width: "90%",
+        height: "auto",
+        backgroundColor: lightThemeColors.foreground,
+        alignSelf: 'center',
+        padding: 6,
+    },
+    chatItem: {
+        alignItems: 'center',
+        alignSelf: 'stretch',
+        padding: 4,
+        flexDirection: 'row',
+    },
+    chatThumbnail: {
+        width: 40,
+        aspectRatio: 1,
+        borderRadius: 99999,
+        marginRight: 12,
+    },
+    chatTitle: {
+        fontSize: 18,
+        color: lightThemeColors.textLight,
+        fontWeight: "600",
+    }
 });
 
 
