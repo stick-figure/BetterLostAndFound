@@ -1,4 +1,4 @@
-import React, { ErrorInfo, useCallback, useEffect, useState } from 'react';
+import React, { ErrorInfo, useCallback, useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, Image, Text, StatusBar, TextInput } from 'react-native';
 import { auth, db } from '../../ModularFirebase';
 import { AuthError, AuthErrorCodes, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
@@ -11,15 +11,20 @@ import { lightThemeColors } from '../assets/Colors';
 import PressableOpacity from '../assets/MyElements';
 import { Icon, Input } from 'react-native-elements';
 import SafeAreaView from 'react-native-safe-area-view';
+import PhoneInput from 'react-native-phone-number-input';
 
 export function RegisterScreen({ navigation, route }: { navigation: any, route: any }) {
-    const [name, setName] = useState("");
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [errorText, setErrorText] = useState("");
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
+    const [phoneNumber, setPhoneNumber] = useState('');
+    const [formattedPhoneNumber, setFormattedPhoneNumber] = useState('');
+    const [password, setPassword] = useState('');
+    const [errorText, setErrorText] = useState('');
 
-    const [pfpSrc, setPfpSrc] = useState({ uri: "" });
+    const [pfpSrc, setPfpSrc] = useState({ uri: '' });
     const [registering, setRegistering] = useState(false);
+
+    const phoneInput = useRef<PhoneInput>(null);
     
     const transferFilledInfo = useCallback(() => {
         setEmail(route.params!.email);
@@ -33,14 +38,14 @@ export function RegisterScreen({ navigation, route }: { navigation: any, route: 
     const register = async () => {
         try {
             setRegistering(true);
-            navigation.navigate("Loading");
+            navigation.navigate('Loading');
 
             await runTransaction(db, async (transaction) => {
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
                 let pfpUrl: string | undefined;
                 try {
-                    if (pfpSrc.uri != "") pfpUrl = await uploadImage(userCredential.user.uid) as string;
+                    if (pfpSrc.uri != '') pfpUrl = await uploadImage(userCredential.user.uid) as string;
                 } catch (error) {
                     pfpUrl = undefined;
                 }
@@ -48,7 +53,8 @@ export function RegisterScreen({ navigation, route }: { navigation: any, route: 
                 const userData = {
                     name: name,
                     email: email,
-                    pfpUrl: pfpUrl ?? await getDownloadURL(ref(getStorage(), "images/pfps/default/defaultpfp.jpg")),
+                    phoneNumber: phoneNumber,
+                    pfpUrl: pfpUrl ?? await getDownloadURL(ref(getStorage(), 'images/pfps/default/defaultpfp.jpg')),
                     emailVertified: false,
                     createdAt: serverTimestamp(),
                     timesOwnItemLost: 0,
@@ -64,22 +70,22 @@ export function RegisterScreen({ navigation, route }: { navigation: any, route: 
                     photoURL: pfpUrl || null,
                 });
 
-                transaction.set(doc(db, "users", userCredential.user.uid), userData);
+                transaction.set(doc(db, 'users', userCredential.user.uid), userData);
             });
             
-            navigation.navigate("My Drawer", { screen: "Bottom Tabs" });
+            navigation.navigate('My Drawer', { screen: 'Bottom Tabs' });
         } catch (error) {
             if (error as AuthError) {
                 navigation.goBack();
                 switch ((error as AuthError).code) {
                     case AuthErrorCodes.EMAIL_EXISTS:
-                        setErrorText("Email is already in use.");
+                        setErrorText('Email is already in use.');
                         break;
                     case AuthErrorCodes.INVALID_EMAIL:
-                        setErrorText("Invalid email.");
+                        setErrorText('Invalid email.');
                         break;
                     default:
-                        setErrorText((error as AuthError).code + " " + (error as AuthError).message);
+                        setErrorText((error as AuthError).code + ' ' + (error as AuthError).message);
                 }
             } else {
                 console.warn(error);
@@ -91,7 +97,7 @@ export function RegisterScreen({ navigation, route }: { navigation: any, route: 
 
     const openImagePicker = () => {
         const options = {
-            mediaType: "photo" as MediaType,
+            mediaType: 'photo' as MediaType,
             includeBase64: false,
             maxHeight: 2000,
             maxWidth: 2000,
@@ -107,7 +113,7 @@ export function RegisterScreen({ navigation, route }: { navigation: any, route: 
                 const source = { uri: response.assets[0].uri! };
                 setPfpSrc(source);
             }
-        }).catch(() => { console.log("whoop de doo") });
+        }).catch(() => { console.log('whoop de doo') });
     };
 
     const handleCameraLaunch = () => {
@@ -133,13 +139,13 @@ export function RegisterScreen({ navigation, route }: { navigation: any, route: 
     const uploadImage = (imageId: string) => {
         return new Promise(async (resolve, reject) => {
             try {
-                console.log("fetching image now, " + pfpSrc.uri);
+                console.log('fetching image now, ' + pfpSrc.uri);
 
                 const blob = await (await fetch(pfpSrc.uri)).blob();
-                console.log("uploading images bytes...");
+                console.log('uploading images bytes...');
                 
                 const storage = getStorage();
-                const imageRef = ref(storage, "images/pfps/" + imageId);
+                const imageRef = ref(storage, 'images/pfps/' + imageId);
 
                 await uploadBytes(imageRef, blob)
                 const url = await getDownloadURL(imageRef!);
@@ -156,64 +162,85 @@ export function RegisterScreen({ navigation, route }: { navigation: any, route: 
     }
 
     return (
-        <SafeAreaView>
+        <SafeAreaView style={{flex: 1, padding: 3}}>
             <ScrollView contentContainerStyle={styles.container}>
                 <Text style={styles.subTitle}>Register</Text>
-                <View style={{flexDirection: "row", width: "100%"}}>
+                <View style={{flexDirection: 'row', width: '100%'}}>
                     <View style={styles.pfpContainer}>
                         <Image
                             style={styles.pfpImage}
-                            source={pfpSrc.uri != "" ? pfpSrc : require("../assets/defaultpfp.jpg")}
+                            source={pfpSrc.uri != '' ? pfpSrc : require('../assets/defaultpfp.jpg')}
                         />
 
                         <View style={styles.horizontalContainer}>
                             <TouchableOpacity onPress={handleCameraLaunch} style={styles.cameraButton}>
-                                <Icon name="camera-alt" type="material-icons" size={20} />
+                                <Icon name='camera-alt' type='material-icons' size={20} />
                             </TouchableOpacity>
                             <TouchableOpacity onPress={openImagePicker} style={styles.uploadButton}>
-                                <Icon name="photo-library" type="material-icons" size={20} />
+                                <Icon name='photo-library' type='material-icons' size={20} />
                             </TouchableOpacity>
-                            <Text style={{fontSize: 16}}>Set photo</Text>
+                            <Text style={{fontSize: 16}}>Set photo*</Text>
                         </View>
                     </View>
                     <View style={{flexGrow: 1}}>
                         <Input
-                            label="Name"
+                            label='Name*'
                             style={styles.textInput} 
                             placeholder='Enter your name'
                             value={name}
                             editable={!registering}
                             labelStyle={{color: lightThemeColors.textLight,}}
                             onChangeText={text => setName(text)} />
-                        <Input
-                            label="Email"
-                            leftIcon={{
-                                name: "email",
-                                type: "material-community"
-                            }}
-                            style={styles.textInput} 
-                            placeholder='Enter your email'
-                            value={email}
-                            editable={!registering}
-                            labelStyle={{color: lightThemeColors.textLight,}}
-                            onChangeText={text => setEmail(text)} />
-                        
-                        <Input
-                            label="Password"
-                            leftIcon={{
-                                name: "lock",
-                                type: "material-community"
-                            }}
-                            style={styles.textInput} 
-                            placeholder='Enter your password'
-                            labelStyle={{color: lightThemeColors.textLight,}}
-                            value={password} onChangeText={text => setPassword(text)}
-                            editable={!registering}
-                            secureTextEntry />
                     </View>
                 </View>
+                
+                <View style={{alignSelf: 'flex-start', margin: 10}}>
+                    <Text style={[styles.text, {fontWeight: 'bold', fontSize: 16,}]}>Phone Number (optional)</Text>
+                </View>
+                <PhoneInput
+                    ref={phoneInput}
+                    placeholder='Enter your phone number'
+                    defaultCode='US'
+                    value={phoneNumber}
+                    layout='first'
+                    onChangeText={(text) => {
+                        setPhoneNumber(text);
+                    }}
+                    onChangeFormattedText={(text) => {
+                        setFormattedPhoneNumber(text);
+                    }}
+                    withDarkTheme
+                    withShadow 
+                    containerStyle={{marginBottom: 20}}
+                />
+                
+                <Input
+                    label='Email*'
+                    leftIcon={{
+                        name: 'email',
+                        type: 'material-community'
+                    }}
+                    style={styles.textInput} 
+                    placeholder='Enter your email'
+                    value={email}
+                    editable={!registering}
+                    labelStyle={{color: lightThemeColors.textLight,}}
+                    onChangeText={text => setEmail(text)} />
+                <Input
+                    label='Password*'
+                    leftIcon={{
+                        name: 'lock',
+                        type: 'material-community'
+                    }}
+                    style={styles.textInput} 
+                    placeholder='Enter your password'
+                    labelStyle={{color: lightThemeColors.textLight,}}
+                    value={password} onChangeText={text => setPassword(text)}
+                    editable={!registering}
+                    secureTextEntry />
+                <Text style={[styles.text, {alignSelf: 'flex-end', fontSize: 12, color: lightThemeColors.red}]}>*Required</Text>
                 <Text style={styles.errorText}>{errorText}</Text>
-                <PressableOpacity style={styles.registerButton} disabled={name == "" || email == "" || password.length < 6 || registering} onPress={register} >
+                <PressableOpacity style={styles.registerButton} disabled={name == '' || email == '' || password.length < 5 || (phoneNumber != '' && !phoneInput.current?.isValidNumber(phoneNumber)) || registering} onPress={register} >
                     <Text style={styles.registerButtonText}>Register</Text>
                 </PressableOpacity>
             </ScrollView>
@@ -229,8 +256,8 @@ const styles = StyleSheet.create({
     },
     subTitle: {
         fontSize: 23,
-        textAlign: "center",
-        fontWeight: "600",
+        textAlign: 'center',
+        fontWeight: '600',
         color: lightThemeColors.textLight,
         marginVertical: 20,
     },
@@ -239,11 +266,11 @@ const styles = StyleSheet.create({
         color: lightThemeColors.textLight,
     },
     textInput: {/*
-        textDecorationStyle: "dotted",
+        textDecorationStyle: 'dotted',
         fontWeight: 600,
         fontSize: 20,
-        width: "80%", 
-        overflow: "hidden",
+        width: '80%', 
+        overflow: 'hidden',
         borderBottomWidth: 2,
         borderColor: lightThemeColors.dullGrey,
         borderRadius: 1,
@@ -251,15 +278,15 @@ const styles = StyleSheet.create({
         margin: 10,*/
     },
     errorText: {
-        backgroundColor: lightThemeColors.redder,
+        color: lightThemeColors.redder,
     },
     pfpContainer: {
-        alignSelf: "flex-start",
+        alignSelf: 'flex-start',
     },
     horizontalContainer: {
-        justifyContent: "flex-start",
-        alignItems: "center",
-        flexDirection: "row",
+        justifyContent: 'flex-start',
+        alignItems: 'center',
+        flexDirection: 'row',
         padding: 10,
     },
     registerButton: {
@@ -268,20 +295,20 @@ const styles = StyleSheet.create({
         padding: 10,
         backgroundColor: lightThemeColors.primary,
         borderRadius: 7,
-        alignItems: "center",
+        alignItems: 'center',
     },
     registerButtonText: {
-        textAlign: "center",
+        textAlign: 'center',
         color: lightThemeColors.textDark,
         fontSize: 16,
-        fontWeight: "bold",
+        fontWeight: 'bold',
     },
     uploadButton: {
         borderRadius: 5,
         width: 25,
         height: 25,
         marginRight: 4,
-        alignItems: "center",
+        alignItems: 'center',
         justifyContent: 'center', 
         backgroundColor: lightThemeColors.secondary,
     },
@@ -290,14 +317,14 @@ const styles = StyleSheet.create({
         width: 25,
         height: 25,
         marginRight: 4,
-        alignItems: "center",
+        alignItems: 'center',
         justifyContent: 'center', 
         backgroundColor: lightThemeColors.secondary,
     },
     pfpImage: {
         width: 128,
         height: 128,
-        alignSelf: "center",
+        alignSelf: 'center',
     }
 });
 

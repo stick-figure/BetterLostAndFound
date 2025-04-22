@@ -2,7 +2,7 @@ import React, { useCallback, useState, useLayoutEffect, useEffect } from 'react'
 import { View, Text, StyleSheet } from 'react-native';
 import { auth, db } from '../../ModularFirebase';
 import { signOut } from 'firebase/auth';
-import { collection, addDoc, getDocs, query, orderBy, onSnapshot, doc, serverTimestamp, CollectionReference } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, orderBy, onSnapshot, doc, serverTimestamp, CollectionReference, documentId, where } from 'firebase/firestore';
 import { Avatar, Bubble, BubbleProps, GiftedChat, IMessage, InputToolbar, InputToolbarProps } from 'react-native-gifted-chat';
 
 import {
@@ -10,26 +10,62 @@ import {
     ImageURISource,
 } from 'react-native';
 import { lightThemeColors } from '../assets/Colors';
-import { CommonActions } from '@react-navigation/native';
+import { CommonActions, useNavigation, useRoute } from '@react-navigation/native';
 import SafeAreaView from 'react-native-safe-area-view';
+import PressableOpacity from '../assets/MyElements';
 
 type ImageProps = DefaultImageProps & {
     source: ImageURISource;
 };
 
-export function ChatRoomScreen({ navigation, route }: { navigation: any, route: any }) {
+export function ChatRoomScreen() {
+    const navigation = useNavigation();
+    const route = useRoute();
+
     const [room, setRoom] = useState({});
-    const [users, setUsers] = useState([]);
+    const [users, setUsers] = useState<any[]>([]);
 
     const [messages, setMessages] = useState<IMessage[]>([]);
-    
+
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
     useEffect(() => {
-        setRoom(route.params!.room);
-        setRoom(route.params!.users);
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+            if (user) {
+                setIsLoggedIn(true);
+            } else {
+                setIsLoggedIn(false);
+            }
+        });
+
+        return unsubscribe;
+    }, []);
+
+    useEffect(() => {
+        if (!isLoggedIn) return;
+
+        const unsubscribe = onSnapshot(doc(db, 'rooms', route.params!.room._id), (snapshot) => {
+
+            setRoom({_id: snapshot.id, ...snapshot.data});
+            if (snapshot.get('userIds') != users.map(user => user._id)) {
+                if (snapshot.get('userIds') === undefined) throw new Error('no users found in snapshot..?');
+                getDocs(query(collection(db, 'users'), where(documentId(), 'in', snapshot.get('userIds')))).then((usersSnapshot) => {
+                    setUsers(usersSnapshot.docs.map((doc) => ({_id: doc.id, ...doc.data()})));
+                }).catch((error) => {
+                    console.warn(error);
+                });
+            }
+        });
+
+        return unsubscribe;
+    }, [isLoggedIn]);
+
+    useEffect(() => {
+        if (!isLoggedIn) return;
+
         if (!route?.params?.room?._id) {
             return;
         }
-        const unsubscribe = onSnapshot(query(collection(db, "rooms", route.params!.room._id, "messages"), orderBy('createdAt', 'desc')), 
+        const unsubscribe = onSnapshot(query(collection(db, 'rooms', route.params!.room._id, 'messages'), orderBy('createdAt', 'desc')), 
             (snapshot) => {
                 setMessages(
                     snapshot.docs.map(doc => ({
@@ -43,7 +79,20 @@ export function ChatRoomScreen({ navigation, route }: { navigation: any, route: 
         );
 
         return unsubscribe;
-    }, []);
+    }, [isLoggedIn]);
+
+    useEffect(() => {
+        navigation.setOptions({ 
+            title: route.params!.room.users.filter(
+                (user) => user._id != auth.currentUser?.uid
+            ).map(
+                (user) => user.name
+            ).join(
+                ', '
+            ),
+            headerBackTitle: 'Back',
+        });
+    }, [users]);
 
     const onSend = useCallback((messages: IMessage[] = []) => {
         const { _id, createdAt, text, user, } = messages[0];
@@ -62,8 +111,8 @@ export function ChatRoomScreen({ navigation, route }: { navigation: any, route: 
             <InputToolbar
                 {...props}
                 containerStyle={{
-                    backgroundColor: "white",
-                    borderTopColor: "#E8E8E8",
+                    backgroundColor: 'white',
+                    borderTopColor: '#E8E8E8',
                     borderTopWidth: 1,
                     padding: 8,
                 }}
@@ -79,6 +128,22 @@ export function ChatRoomScreen({ navigation, route }: { navigation: any, route: 
         )
     }
 
+    const renderAccessory = (props: InputToolbarProps<IMessage>) => {
+        if (room.type == 'found') {
+
+        }
+        return (
+            <View>
+                <PressableOpacity>
+                    <Text>accessory</Text>
+                </PressableOpacity>
+                <PressableOpacity>
+                    <Text>accessory</Text>
+                </PressableOpacity>
+            </View>
+        );
+    };
+
     return (
 //        <SafeAreaView>
             <GiftedChat
@@ -86,14 +151,14 @@ export function ChatRoomScreen({ navigation, route }: { navigation: any, route: 
                 showAvatarForEveryMessage={true}
                 onSend={messages => onSend(messages)}
                 user={{
-                    _id: auth?.currentUser?.uid ?? "unknown user",
-                    name: auth?.currentUser?.displayName ?? "Unknown User",
+                    _id: auth?.currentUser?.uid ?? 'unknown user',
+                    name: auth?.currentUser?.displayName ?? 'Unknown User',
                     avatar: auth?.currentUser?.photoURL ?? 'https://gravatar.com/avatar/94d45dbdba988afacf30d916e7aaad69?s=200&d=mp&r=x',
                 }}
                 scrollToBottom
                 renderBubble={(props) => renderBubble(props)}
                 renderInputToolbar={(props) => renderInputToolbar(props)}
-                renderAccessory={() => <View><Text>accessory</Text></View>}
+                renderAccessory={(props) => renderAccessory(props)}
                 renderActions={() => <View><Text>actions</Text></View>}
                 
                 messagesContainerStyle={styles.messageContainer}

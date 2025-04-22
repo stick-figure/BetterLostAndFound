@@ -1,36 +1,20 @@
-import { query, collection, where, doc, getDocs, setDoc, DocumentData, onSnapshot, DocumentSnapshot, getDoc, limit } from 'firebase/firestore';
-import { SetStateAction, useEffect, useLayoutEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TextInput, View } from 'react-native';
-import SafeAreaView from 'react-native-safe-area-view';
+import { onSnapshot, query, collection, where, getDoc, doc, DocumentSnapshot } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
+import { SafeAreaView, View, FlatList, ActivityIndicator, Image, Text, StyleSheet } from 'react-native';
+import { SearchBar, Icon } from 'react-native-elements';
 import { auth, db } from '../../ModularFirebase';
-import { lightThemeColors } from '../assets/Colors';
-import { TouchableOpacity } from 'react-native-gesture-handler';
-import { CommonActions, useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
-import { Icon, SearchBar } from 'react-native-elements';
 import PressableOpacity from '../assets/MyElements';
+import { lightThemeColors } from '../assets/Colors';
 
-interface ItemTile {
-    _id: string,
-    name: string,
-    description: string,
-    ownerName: string,
-    isLost: boolean,
-    imageSrc: object,
-}
 
-export function SearchItemsScreen() {
-    const navigation = useNavigation();
-    const route = useRoute();
-
-    const [items, setItems] = useState<ItemTile[]>([]);
-    const [itemQuery, setItemQuery] =  useState<ItemTile[]>([]);
+export function PostLostItemScreen({ navigation }: { navigation: any }) {
+    const [items, setItems] = useState<any[]>([]);
+    const [itemQuery, setItemQuery] = useState<any[]>([]);
     const [search, setSearch] = useState('');
-    
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+    const [isLoggedIn, setIsLoggedIn] = useState(true);
     const [isLoading, setIsLoading] = useState(false);
 
-    const isFocused = useIsFocused();
-    
     useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged((user) => {
             if (user) {
@@ -44,9 +28,9 @@ export function SearchItemsScreen() {
     }, []);
 
     useEffect(() => {
-        if (!isLoggedIn) return;
+        if (!isLoggedIn || auth?.currentUser === undefined) return;
 
-        const unsubscribe = onSnapshot(query(collection(db, 'items'), limit(20)), (snapshot: { docs: any[]; }) => {
+        const unsubscribe = onSnapshot(query(collection(db, 'items'), where('ownerId', '==', auth.currentUser?.uid), where('isLost', '==', false)), (snapshot: { docs: any[]; }) => {
             setIsLoading(true);
             const promises = snapshot.docs.map(async (itemDoc) => {
 
@@ -90,6 +74,15 @@ export function SearchItemsScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
+            <View style={{margin: 4, padding: 4}}>
+                <Text style={styles.text}>Can't find your item in this list?</Text>
+                <PressableOpacity
+                    onPress={() => navigation.navigate('My Stack', {screen: 'Add Item'})}
+                    style={styles.bigButton}>
+                    <Text style={styles.bigButtonText}>Add new item</Text>
+                </PressableOpacity>
+            </View>
+            <Text style={styles.subtitle}>Choose an item</Text>
             <SearchBar
                 placeholder='Type Here...'
                 onChangeText={(text) => updateSearch(text)}
@@ -139,7 +132,6 @@ export function SearchItemsScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        alignItems: 'center',
         padding: 10,
         backgroundColor: lightThemeColors.background,
     },
@@ -147,9 +139,28 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
     },
     text: {
+        color: lightThemeColors.textLight,
+        fontSize: 14,
+    },
+    subtitle: {
+        color: lightThemeColors.textLight,
+        fontSize: 20,
+        margin: 8,
+        marginTop: 8,
+        fontWeight: "bold",
+    },
+    bigButton: {
+        width: '90%',
+        alignSelf: 'center',
+        backgroundColor: lightThemeColors.primaryButton,
+        borderRadius: 7,
+        padding: 10,
+        margin: 4,
+    },
+    bigButtonText: {
+        fontSize: 16,
         textAlign: 'center',
-        color: lightThemeColors.textDark,
-        fontSize: 18,
+        color: lightThemeColors.primaryButtonText,
     },
     searchBar: {
         backgroundColor: lightThemeColors.foreground,
@@ -174,25 +185,20 @@ const styles = StyleSheet.create({
         backgroundColor: lightThemeColors.foreground,
     },
     itemList: {
-        width: '100%',
         flexGrow: 1,
-        margin: 10,
+        padding: 10,
         backgroundColor: lightThemeColors.foreground,
     },
     itemListItem: {
         flex: 1,
         maxWidth: '33%',
-        marginLeft: 10,
-        paddingTop: 10,
-        paddingBottom: 10,
+        padding: 10,
     },
     itemListItemView: {
         margin: 4,
     },
     itemImage: {
         width: '100%',
-        maxWidth: 120,
-        maxHeight: 120,
         aspectRatio: 1,
     },
     itemTitle: {
@@ -213,4 +219,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default SearchItemsScreen;
+export default PostLostItemScreen;

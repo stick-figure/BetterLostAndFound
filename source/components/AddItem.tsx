@@ -1,25 +1,25 @@
-import { addDoc, collection, serverTimestamp, updateDoc } from "firebase/firestore";
-import { getDownloadURL, getStorage, ref, uploadBytesResumable } from "firebase/storage";
-import { useEffect, useState } from "react";
-import { View, Text, Button, StyleSheet, Image, Pressable, ImageSourcePropType, TextInput } from "react-native";
+import { addDoc, collection, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { getDownloadURL, getStorage, ref, uploadBytesResumable } from 'firebase/storage';
+import { useEffect, useState } from 'react';
+import { View, Text, Button, StyleSheet, Image, Pressable, ImageSourcePropType, TextInput } from 'react-native';
 import { launchCamera, launchImageLibrary, MediaType } from 'react-native-image-picker';
 
-import { auth, db } from "../../ModularFirebase";
-import { lightThemeColors } from "../assets/Colors";
-import { TouchableOpacity } from "react-native-gesture-handler";
-import { CommonActions } from "@react-navigation/native";
-import { Icon, Input } from "react-native-elements";
-import PressableOpacity from "../assets/MyElements";
-import SafeAreaView from "react-native-safe-area-view";
+import { auth, db } from '../../ModularFirebase';
+import { lightThemeColors } from '../assets/Colors';
+import { ScrollView, TouchableOpacity } from 'react-native-gesture-handler';
+import { CommonActions } from '@react-navigation/native';
+import { Icon, Input } from 'react-native-elements';
+import PressableOpacity from '../assets/MyElements';
+import SafeAreaView from 'react-native-safe-area-view';
 
 
 export function AddItemScreen({ navigation, route }: { navigation: any, route: any }) {
-    const [name, setName] = useState("");
-    const [description, setDescription] = useState("");
-    const [secretPhrase, setSecretPhrase] = useState("");
+    const [name, setName] = useState('');
+    const [description, setDescription] = useState('');
+    const [secretPhrase, setSecretPhrase] = useState('');
     const [tags, setTags] = useState([]);
 
-    const [imgSrc, setImgSrc] = useState({ uri: "" });
+    const [imgSrc, setImgSrc] = useState({ uri: '' });
     const [uploading, setUploading] = useState(false);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     
@@ -37,7 +37,7 @@ export function AddItemScreen({ navigation, route }: { navigation: any, route: a
 
     const openImagePicker = () => {
         const options = {
-            mediaType: "photo" as MediaType,
+            mediaType: 'photo' as MediaType,
             includeBase64: false,
             maxHeight: 2000,
             maxWidth: 2000,
@@ -53,7 +53,7 @@ export function AddItemScreen({ navigation, route }: { navigation: any, route: a
                 const source = { uri: response.assets[0].uri! };
                 setImgSrc(source);
             }
-        }).catch(() => { console.log("whoop de doo") });
+        }).catch(() => { console.log('whoop de doo') });
     };
 
     const handleCameraLaunch = () => {
@@ -67,7 +67,7 @@ export function AddItemScreen({ navigation, route }: { navigation: any, route: a
         launchCamera(options, (response) => {
             if (response.didCancel) {
                 console.warn('User cancelled camera');
-            } else if (response.errorCode == "camera_unavailable") {
+            } else if (response.errorCode == 'camera_unavailable') {
                 
             }else if (response.errorCode) {
                 console.warn('Camera Error', response.errorCode, ': ', response.errorMessage);
@@ -77,22 +77,26 @@ export function AddItemScreen({ navigation, route }: { navigation: any, route: a
             }
         });
     }
+    
+    const chooseImageFromWeb = () => {
+
+    }
 
     const uploadImage = (imageId: string) => {
         return new Promise(async (resolve, reject) => {
             try {
                 setUploading(true);
-                navigation.navigate("Loading");
+                navigation.navigate('Loading');
                 const response = await fetch(imgSrc.uri);
                 const blob = await response.blob();
 
                 const storage = getStorage();
-                const imageRef = ref(storage, "images/items/" + imageId);
+                const imageRef = ref(storage, 'images/items/' + imageId);
                 console.log(imageRef.fullPath);
 
                 uploadBytesResumable(imageRef, blob).then(async () => {
                     const url = await getDownloadURL(imageRef);
-                    setImgSrc({ uri: "" });
+                    setImgSrc({ uri: '' });
                     resolve(url);
                     setUploading(false);
                     return;
@@ -115,26 +119,27 @@ export function AddItemScreen({ navigation, route }: { navigation: any, route: a
             isLost: false,
             secretPhrase: secretPhrase,
             createdAt: serverTimestamp(),
-            imageSrc: ""
+            imageSrc: '',
+            timesLost: 0,
         };
         
-        navigation.navigate("Loading");
+        navigation.navigate('Loading');
         
-        const docRef = addDoc(collection(db, "items"), itemData);
+        const docRef = addDoc(collection(db, 'items'), itemData);
         docRef.then((dRef) => {
             return Promise.all([dRef, uploadImage(dRef.id)]);
         }).then(([dRef, url]) => {
             console.log(dRef, url)
             return updateDoc(dRef, {imageSrc: url});
         }).then(() => {
-            navigation.navigate("My Items");
-//            navigation.navigate("Bottom Tabs", {screen: "My Items"});
+            navigation.navigate('My Items');
+//            navigation.navigate('Bottom Tabs', {screen: 'My Items'});
 
         }).catch((error) => {
             // An error happened.
             const errorCode = error.code;
             const errorMessage = error.message;
-            navigation.navigate("Error", { code: errorCode, message: errorMessage });
+            navigation.navigate('Error', { code: errorCode, message: errorMessage });
         });
     }
 
@@ -142,59 +147,65 @@ export function AddItemScreen({ navigation, route }: { navigation: any, route: a
         return (
             <View style={styles.container}>
                 <Text>Uploading...</Text>
-            </View>);
+            </View>
+        );
     }
 
     return (
-        <SafeAreaView style={styles.container}>
-            <View style={styles.imageContainer}>
-                <Image
-                    style={styles.itemImage}
-                    source={imgSrc.uri != "" ? imgSrc : require("../assets/defaultimg.jpg")}
-                />
-            </View>
-            
+        <SafeAreaView style={{flex: 1, width: '100%', backgroundColor: lightThemeColors.background}}>
+            <ScrollView contentContainerStyle={styles.container}>
+                <View style={styles.imageContainer}>
+                    <Image
+                        style={styles.itemImage}
+                        source={imgSrc.uri != '' ? imgSrc : require('../assets/defaultimg.jpg')}
+                    />
+                </View>
+                
 
-            <View style={styles.horizontalContainer}>
-                <TouchableOpacity onPress={handleCameraLaunch} style={styles.cameraButton}>
-                    <Icon name="camera-alt" type="material-icons" size={20}/>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={openImagePicker} style={styles.uploadButton}>
-                    <Icon name="photo-library" type="material-icons" size={20} />
-                </TouchableOpacity>
-                <Text style={{fontSize: 16, color: lightThemeColors.textLight,}}>Set photo</Text>
-            </View>
-            
-            <Text style={styles.imageLabel}>Select image</Text>
-            
-            <Input
-                label="Name"
-                placeholder="What is this item called?"
-                onChangeText={text => setName(text)}
-                value={name}
-                editable={!uploading}
-            />
-            <Input
-                label="Description"
-                placeholder="Describe some identifying features"
-                onChangeText={text => setDescription(text)}
-                value={description}
-                editable={!uploading}
-            />
-            <Input
-                label="Secret Phrase"
-                placeholder="Phrase to verify you are the owner"
-                onChangeText={text => setSecretPhrase(text)}
-                value={secretPhrase}
-                editable={!uploading}
-            />
-            <PressableOpacity
-                style={styles.saveButton}
-                disabled={name.trim().length < 1 || description.trim().length < 1 || imgSrc.uri == "" || uploading}
-                onPress={uploadItem}
-            >
-                <Text style={styles.saveButtonText}>Add Item</Text>
-            </PressableOpacity>
+                <View style={styles.horizontalContainer}>
+                    <TouchableOpacity onPress={handleCameraLaunch} style={styles.iconButton}>
+                        <Icon name='camera-alt' type='material-icons' size={20}/>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={openImagePicker} style={styles.iconButton}>
+                        <Icon name='photo-library' type='material-icons' size={20} />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => {}} style={styles.iconButton}>
+                        <Icon name='web-plus' type='material-community' size={20} />
+                    </TouchableOpacity>
+                    <Text style={{fontSize: 16, color: lightThemeColors.textLight,}}>Set photo*</Text>
+                </View>
+                
+                <Text style={styles.imageLabel}>Select image</Text>
+                
+                <Input
+                    label='Name*'
+                    placeholder='What is this item called?'
+                    onChangeText={text => setName(text)}
+                    value={name}
+                    editable={!uploading}
+                />
+                <Input
+                    label='Description*'
+                    placeholder='Describe some identifying features'
+                    onChangeText={text => setDescription(text)}
+                    value={description}
+                    editable={!uploading}
+                />
+                <Input
+                    label='Secret Phrase (optional)'
+                    placeholder='Phrase to verify you are the owner'
+                    onChangeText={text => setSecretPhrase(text)}
+                    value={secretPhrase}
+                    editable={!uploading}
+                />
+                <PressableOpacity
+                    style={styles.saveButton}
+                    disabled={name.trim().length < 1 || description.trim().length < 1 || imgSrc.uri == '' || uploading}
+                    onPress={uploadItem}
+                >
+                    <Text style={styles.saveButtonText}>Add Item</Text>
+                </PressableOpacity>
+            </ScrollView>
         </SafeAreaView>
     );
 }
@@ -214,13 +225,13 @@ const styles = StyleSheet.create({
         color: lightThemeColors.textLight,
     },
     horizontalContainer: {
-        justifyContent: "flex-start",
-        alignItems: "center",
-        flexDirection: "row",
+        justifyContent: 'flex-start',
+        alignItems: 'center',
+        flexDirection: 'row',
         padding: 10,
     },
     imagePressableContainer: {
-        width: "100%",
+        width: '100%',
         alignItems: 'center',
     },
     imageContainer: {
@@ -233,39 +244,30 @@ const styles = StyleSheet.create({
     },
     imageLabel: {
         fontSize: 16,
-        textAlign: "center",
+        textAlign: 'center',
         color: lightThemeColors.textLight,
-        fontWeight: "bold",
+        fontWeight: 'bold',
     },
-    uploadButton: {
+    iconButton: {
         borderRadius: 5,
         width: 25,
         height: 25,
         marginRight: 4,
-        alignItems: "center",
-        justifyContent: 'center', 
-        backgroundColor: lightThemeColors.secondary,
-    },
-    cameraButton: {
-        borderRadius: 5,
-        width: 25,
-        height: 25,
-        marginRight: 4,
-        alignItems: "center",
+        alignItems: 'center',
         justifyContent: 'center', 
         backgroundColor: lightThemeColors.secondary,
     },
     saveButton: {
         width: 280,
-        backgroundColor: lightThemeColors.primary,
+        backgroundColor: lightThemeColors.primaryButton,
         borderRadius: 7,
         padding: 10,
     },
     saveButtonText: {
         fontSize: 16,
-        textAlign: "center",
-        color: lightThemeColors.textDark,
-        fontWeight: "bold",
+        textAlign: 'center',
+        color: lightThemeColors.primaryButtonText,
+        fontWeight: 'bold',
     }
 });
 

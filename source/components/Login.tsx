@@ -10,10 +10,10 @@ import { Input } from 'react-native-elements';
 import SafeAreaView from 'react-native-safe-area-view';
 
 export function LoginScreen({ navigation }: { navigation: any }) {
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
     const [signingIn, setSigningIn] = useState(false);
-    const [errorText, setErrorText] = useState("");
+    const [errorText, setErrorText] = useState('');
     
     const openRegisterScreen = () => {
         navigation.navigate('Register', { email: email, password: password });
@@ -23,22 +23,22 @@ export function LoginScreen({ navigation }: { navigation: any }) {
         //        navigation.navigate('Loading');
         signInWithEmailAndPassword(auth, email, password).then((userCredential) => {
             
-            navigation.replace("My Drawer", { screen: 'Bottom Tabs' });
+            navigation.replace('My Drawer', { screen: 'Bottom Tabs' });
 
         }).catch((error) => {
             console.warn(error);
             switch (error.code) {
                 case AuthErrorCodes.INVALID_PASSWORD:
-                    setErrorText("Wrong password.");
+                    setErrorText('Wrong password.');
                     break;
                 case AuthErrorCodes.INVALID_LOGIN_CREDENTIALS:
-                    setErrorText("Invalid username or password.");
+                    setErrorText('Invalid username or password.');
                     break;
                 case AuthErrorCodes.INVALID_EMAIL:
-                    setErrorText("Invalid email.");
+                    setErrorText('Invalid email.');
                     break;
                 default:
-                    setErrorText(error.code + " " + error.message);
+                    setErrorText(error.code + ' ' + error.message);
             }
         });
     };
@@ -47,10 +47,10 @@ export function LoginScreen({ navigation }: { navigation: any }) {
         <SafeAreaView style={styles.container}>
             <Text style={styles.title}>Better Lost and Found</Text>
             <Input
-                label="Email"
+                label='Email'
                 leftIcon={{
-                    name: "email",
-                    type: "material-community"
+                    name: 'email',
+                    type: 'material-community'
                 }}
                 placeholder='Enter your email'
                 value={email}
@@ -59,10 +59,10 @@ export function LoginScreen({ navigation }: { navigation: any }) {
             />
             
             <Input
-                label="Password"
+                label='Password'
                 leftIcon={{
-                    name: "lock",
-                    type: "material-community"
+                    name: 'lock',
+                    type: 'material-community'
                 }}
                 placeholder='Enter your password'
                 value={password}
@@ -74,7 +74,7 @@ export function LoginScreen({ navigation }: { navigation: any }) {
             <PressableOpacity style={styles.signupButton} onPress={openRegisterScreen} disabled={signingIn}>
                 <Text style={styles.signupButtonText}>Sign Up</Text>
             </PressableOpacity>
-            <PressableOpacity style={styles.loginButton} onPress={signIn} disabled={password == ""}>
+            <PressableOpacity style={styles.loginButton} onPress={signIn} disabled={password == ''}>
                 <Text style={styles.loginButtonText}>Log In</Text>
             </PressableOpacity>
         </SafeAreaView>
@@ -90,12 +90,12 @@ const styles = StyleSheet.create({
         backgroundColor: lightThemeColors.background,
     },
     horizontal: {
-        flexDirection: "row",
+        flexDirection: 'row',
     },
     title: {
         fontSize: 24,
-        textAlign: "center",
-        fontWeight: "bold",
+        textAlign: 'center',
+        fontWeight: 'bold',
         color: lightThemeColors.textLight,
         marginVertical: 15,
     },
@@ -103,11 +103,11 @@ const styles = StyleSheet.create({
         color: lightThemeColors.redder,
     },
     textInput: {
-        textDecorationStyle: "dotted",
+        textDecorationStyle: 'dotted',
         fontWeight: 600,
         fontSize: 20,
-        width: "80%", 
-        overflow: "hidden",
+        width: '80%', 
+        overflow: 'hidden',
         borderBottomWidth: 2,
         borderColor: lightThemeColors.dullGrey,
         borderRadius: 1,
@@ -125,10 +125,10 @@ const styles = StyleSheet.create({
         borderRadius: 7,
     },
     loginButtonText: {
-        textAlign: "center",
+        textAlign: 'center',
         color: lightThemeColors.textLight,
         fontSize: 16,
-        fontWeight: "bold",
+        fontWeight: 'bold',
     },
     signupButton: {
         width: 370,
@@ -138,10 +138,10 @@ const styles = StyleSheet.create({
         borderRadius: 7,
     },
     signupButtonText: {
-        textAlign: "center",
+        textAlign: 'center',
         color: lightThemeColors.textDark,
         fontSize: 16,
-        fontWeight: "bold",
+        fontWeight: 'bold',
     }
 });
 

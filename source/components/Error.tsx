@@ -10,7 +10,7 @@ export function ErrorScreen({ navigation, route }: { navigation: any, route: any
             <Text>{route.params!.message}</Text>
             <View style={styles.button}>
                 <Button
-                    title="erm what the sigma"
+                    title='erm what the sigma'
                     onPress={() => navigation.goBack()} />
             </View>
         </View>
@@ -23,7 +23,7 @@ const styles = StyleSheet.create({
     },
     button: {
 
-    }
+    },
 });
 
 export default ErrorScreen;

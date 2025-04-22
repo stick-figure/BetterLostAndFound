@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { Pressable, Animated, StyleSheet } from "react-native";
+import { Pressable, Animated, StyleSheet } from 'react-native';
 
 const PressableOpacity = ({ children, ...props }) => {
   const animated = useRef(new Animated.Value(1)).current;

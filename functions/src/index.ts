@@ -1,28 +1,28 @@
 /**
  * Import function triggers from their respective submodules:
  *
- * import {onCall} from "firebase-functions/v2/https";
- * import {onDocumentWritten} from "firebase-functions/v2/firestore";
+ * import {onCall} from 'firebase-functions/v2/https';
+ * import {onDocumentWritten} from 'firebase-functions/v2/firestore';
  *
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-import {onRequest, onCall} from "firebase-functions/v2/https";
-import * as logger from "firebase-functions/logger";
+import {onRequest, onCall} from 'firebase-functions/v2/https';
+import * as logger from 'firebase-functions/logger';
 
-import {onDocumentWritten} from "firebase-functions/v2/firestore";
-import { initializeApp } from "firebase-admin/app";
-import { getAuth } from "firebase-admin/auth";
-import { getDownloadURL, getStorage } from "firebase-admin/storage"; 
-import { getFirestore, Timestamp } from "firebase-admin/firestore";
-import firebaseConfig from "../../FirebaseConfig";
+import {onDocumentWritten} from 'firebase-functions/v2/firestore';
+import { initializeApp } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
+import { getDownloadURL, getStorage } from 'firebase-admin/storage'; 
+import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import firebaseConfig from '../../FirebaseConfig';
 
 // Start writing functions
 // https://firebase.google.com/docs/functions/typescript
 
 // export const helloWorld = onRequest((request, response) => {
-//     logger.info("Hello logs!", {structuredData: true});
-//     response.send("Hello from Firebase!");
+//     logger.info('Hello logs!', {structuredData: true});
+//     response.send('Hello from Firebase!');
 // });
 
 interface UserData {
@@ -48,10 +48,21 @@ export const createUser = onCall(async (request, response) => {
         const storage = getStorage();
         const bucket = storage.bucket(firebaseConfig.storageBucket);
 
-        const userRef = db.collection("users").doc();
+        const userRef = db.collection('users').doc();
         const result = await db.runTransaction((transaction) => {
             return new Promise(async (resolve, reject) => {
                 try {
+                    if (request.data.phoneNumber !== undefined) {
+                        try {
+                            const existingUser = await auth.getUserByPhoneNumber(request.data.phoneNumber);
+                            reject(new Error(`Phone number ${phoneNumber} already in use by ${existingUser.uid}`));
+                            return;
+                        } catch (error) {
+                            if (error.code === 'auth/user-not-found') {
+                            // User not found.
+                            }
+                        }
+                    }
                     const userData: UserData = {
                         id: userRef.id,
                         name: request.data.name,

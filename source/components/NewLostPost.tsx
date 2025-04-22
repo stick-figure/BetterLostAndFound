@@ -1,23 +1,23 @@
-import { addDoc, collection, doc, serverTimestamp, updateDoc } from "firebase/firestore";
-import { getStorage, ref, uploadBytes } from "firebase/storage";
-import { useEffect, useState } from "react";
-import { View, Text, StyleSheet, Image } from "react-native";
+import { addDoc, collection, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes } from 'firebase/storage';
+import { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import { launchImageLibrary, MediaType } from 'react-native-image-picker';
 
-import { auth, db } from "../../ModularFirebase";
-import { lightThemeColors } from "../assets/Colors";
-import { CommonActions } from "@react-navigation/native";
-import PressableOpacity from "../assets/MyElements";
-import { Input } from "react-native-elements";
-import SafeAreaView from "react-native-safe-area-view";
+import { auth, db } from '../../ModularFirebase';
+import { lightThemeColors } from '../assets/Colors';
+import { CommonActions } from '@react-navigation/native';
+import PressableOpacity from '../assets/MyElements';
+import { Input } from 'react-native-elements';
+import SafeAreaView from 'react-native-safe-area-view';
 
 
 export function NewLostPostScreen({ navigation, route }: { navigation: any, route: any }) {
     const [item, setItem] = useState({});
     const [owner, setOwner] = useState({});
 
-    const [title, setTitle] = useState("");
-    const [message, setMessage] = useState("");
+    const [title, setTitle] = useState('');
+    const [message, setMessage] = useState('');
 
     const [useLocation, setUseLocation] = useState(false);
 
@@ -27,6 +27,7 @@ export function NewLostPostScreen({ navigation, route }: { navigation: any, rout
         setUploading(true);
 
         const postData = {
+            type: 'lost',
             itemId: item._id,
             title: title.trim().length > 0 ? title : item.name,
             message: message,
@@ -34,19 +35,19 @@ export function NewLostPostScreen({ navigation, route }: { navigation: any, rout
             createdAt: serverTimestamp(),
             resolved: false,
             resolvedAt: -1,
-            resolveReason: "",
+            resolveReason: '',
             views: 0,
             roomIds: [],
         };
 
-        navigation.navigate("Loading");
+        navigation.navigate('Loading');
 
-        addDoc(collection(db, "lostPosts"), postData).then((postRef) => {
-            return updateDoc(doc(db, "items", item._id), {isLost: true, lostPostId: postRef.id, timesLost: item.timesLost as number + 1});
+        addDoc(collection(db, 'posts'), postData).then((postRef) => {
+            return updateDoc(doc(db, 'items', item._id), {isLost: true, lostPostId: postRef.id, timesLost: item.timesLost as number + 1});
         }).then(() => {
-            return updateDoc(doc(db, "users", owner._id), {timesOwnItemLost: owner.timesOwnItemLost as number + 1});
+            return updateDoc(doc(db, 'users', owner._id), {timesOwnItemLost: owner.timesOwnItemLost as number + 1});
         }).then(() => {
-            navigation.navigate("Lost Post View", {item: item, owner: owner, author: owner, post: postData});
+            navigation.navigate('Lost Post View', {item: item, owner: owner, author: owner, post: postData});
             navigation.dispatch((state: {routes: any[]}) => {
                 const topScreen = state.routes[0];
                 const thisScreen = state.routes[state.routes.length - 1];
@@ -92,22 +93,25 @@ export function NewLostPostScreen({ navigation, route }: { navigation: any, rout
         <SafeAreaView style={styles.container}>
             <View style={styles.itemContainer}>
                 <PressableOpacity
-                    onPress={() => { navigation.navigate("Item View", { itemId: item._id, itemName: item.name }) }}
+                    onPress={() => { navigation.navigate('Item View', { itemId: item._id, itemName: item.name }) }}
                     disabled={uploading}>
                         <View style={styles.horizontal}>
-                        <Image source={item.imageSrc} style={styles.itemImage} />
+                        <Image 
+                            source={{uri: item.imageSrc}} 
+                            defaultSource={require('../assets/defaultimg.jpg')} 
+                            style={styles.itemImage} />
                             <View style={styles.itemListItemView}>
                                 <Text style={styles.itemTitle}>{item.name}</Text>
                                 <Text style={styles.itemSubtitle}>{owner.name}</Text>
-                                <Text style={styles.itemSubtitle}>{item.description.slice(0,140)}</Text>
+                                <Text style={styles.itemSubtitle}>{item.description !== undefined && item.description!.slice(0,140)}</Text>
                             </View>
                         </View>
                 </PressableOpacity>
             </View>
             <Input
-                label="Message"
+                label='Message*'
                 multiline={true}
-                placeholder=""
+                placeholder=''
                 onChangeText={text => setMessage(text)}
                 value={message}
                 editable={!uploading}
@@ -131,23 +135,24 @@ const styles = StyleSheet.create({
         backgroundColor: lightThemeColors.background,
     },
     itemContainer: {
-        width: "100%",
-        alignSelf: "flex-start",
+        width: '100%',
+        alignSelf: 'flex-start',
+        margin: 8,
     },
     horizontal: {
-        flexDirection: "row",
+        flexDirection: 'row',
     },
     multilineTextInput: {
-        width: "90%",
+        width: '90%',
         height: 300,
-        overflow: "scroll",
+        overflow: 'scroll',
     },
     addItemTitle: {
         margin: 20,
         color: lightThemeColors.textLight,
     },
     imagePressableContainer: {
-        width: "100%",
+        width: '100%',
         alignItems: 'center',
     },
     imageContainer: {
@@ -155,13 +160,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     itemImage: {
-        width: "30%",
+        width: '30%',
         aspectRatio: 1/1,
         borderRadius: 7,
     },
     itemList: {
-        width: "100%",
-        height: "40%",
+        width: '100%',
+        height: '40%',
         margin: 10,
         backgroundColor: lightThemeColors.foreground,
     },
@@ -176,8 +181,8 @@ const styles = StyleSheet.create({
     },
     itemTitle: {
         color: lightThemeColors.textLight,
-        fontWeight: "bold",
-        fontSize: 16,
+        fontWeight: 'bold',
+        fontSize: 18,
     },
     itemSubtitle: {
         color: lightThemeColors.textLight,
@@ -185,13 +190,13 @@ const styles = StyleSheet.create({
     },
     itemContent: {
         color: lightThemeColors.textLight,
-        fontSize: 14,
+        fontSize: 16,
     },
     imageLabel: {
         fontSize: 16,
-        textAlign: "center",
+        textAlign: 'center',
         color: lightThemeColors.textLight,
-        fontWeight: "bold",
+        fontWeight: 'bold',
     },
     saveButton: {
         width: 280,
@@ -201,9 +206,9 @@ const styles = StyleSheet.create({
     },
     saveButtonText: {
         fontSize: 16,
-        textAlign: "center",
+        textAlign: 'center',
         color: lightThemeColors.textDark,
-        fontWeight: "bold",
+        fontWeight: 'bold',
     }
 });
 

@@ -1,32 +1,32 @@
-import { serverTimestamp, addDoc, collection, updateDoc, doc, getDoc } from "firebase/firestore";
-import { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, Image, StyleSheet, TextInput } from "react-native";
-import { auth, db } from "../../ModularFirebase";
-import { lightThemeColors } from "../assets/Colors";
-import { CommonActions } from "@react-navigation/native";
-import { MediaType, launchImageLibrary } from "react-native-image-picker";
-import SafeAreaView from "react-native-safe-area-view";
+import { serverTimestamp, addDoc, collection, updateDoc, doc, getDoc } from 'firebase/firestore';
+import { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, Image, StyleSheet, TextInput } from 'react-native';
+import { auth, db } from '../../ModularFirebase';
+import { lightThemeColors } from '../assets/Colors';
+import { CommonActions } from '@react-navigation/native';
+import { MediaType, launchImageLibrary } from 'react-native-image-picker';
+import SafeAreaView from 'react-native-safe-area-view';
+import PressableOpacity from '../assets/MyElements';
+import { Input } from 'react-native-elements';
 
 export function NewFoundPostScreen({ navigation, route }: { navigation: any, route: any }) {
     const [item, setItem] = useState({
-        _id: "",
-        name: "",
-        description: "",
-        ownerId: "",
+        _id: '',
+        name: '',
+        description: '',
+        ownerId: '',
         isLost: false,
         timesLost: -1,
-        secretPhrase: "",
+        secretPhrase: '',
         createdAt: -1,
-        imageSrc: require("../assets/defaultimg.jpg"),
+        imageSrc: require('../assets/defaultimg.jpg'),
     });
-    const [owner, setOwner] = useState({
-        _id: "",
-        name: "",
-        pfpUrl: "",
-    });
+
+    const [owner, setOwner] = useState({});
     const [author, setAuthor] = useState({});
 
-    const [message, setMessage] = useState("");
+    const [title, setTitle] = useState('');
+    const [message, setMessage] = useState('');
     
     const [imageUris, setImageUris] = useState<string[]>([]);
 
@@ -34,7 +34,7 @@ export function NewFoundPostScreen({ navigation, route }: { navigation: any, rou
 
     const openImagePicker = () => {
         const options = {
-            mediaType: "photo" as MediaType,
+            mediaType: 'photo' as MediaType,
             includeBase64: false,
             maxHeight: 2000,
             maxWidth: 2000,
@@ -56,22 +56,25 @@ export function NewFoundPostScreen({ navigation, route }: { navigation: any, rou
         setUploading(true);
 
         const postData = {
+            type: 'found',
             itemId: item._id,
             itemOwnerId: item.ownerId,
+            title: title,
             message: message,
             imageUrls: [],
             authorId: auth.currentUser?.uid,
             createdAt: serverTimestamp(),
             resolved: false,
             resolvedAt: -1,
-            resolveReason: "",
+            resolveReason: '',
             views: 0,
             roomIds: [],
         };
 
-        navigation.navigate("Loading");
+        navigation.navigate('Loading');
 
-        addDoc(collection(db, "foundPosts"), postData).then((postRef) => {
+        addDoc(collection(db, 'posts'), postData).then((postRef) => {
+            navigation.navigate('Found Post View', {item: item, owner: owner, author: owner, post: postData});
             navigation.dispatch((state: {routes: any[]}) => {
                 const topScreen = state.routes[0];
                 const thisScreen = state.routes[state.routes.length - 1];
@@ -83,7 +86,6 @@ export function NewFoundPostScreen({ navigation, route }: { navigation: any, rou
                     routes,
                 });
             });
-//            navigation.navigate("Lost Post View", {item: item, owner: owner, author: owner, post: postData});
         });
     }
 
@@ -93,7 +95,7 @@ export function NewFoundPostScreen({ navigation, route }: { navigation: any, rou
         const unsubscribe = auth.onAuthStateChanged((user) => {
             if (user) {
                 setIsLoggedIn(true);
-                getDoc(doc(db, "users", auth.currentUser!.uid)).then((snapshot) => {
+                getDoc(doc(db, 'users', auth.currentUser!.uid)).then((snapshot) => {
                     setAuthor({_id: auth.currentUser!.uid, ...snapshot.data()});
                 });
             } else {
@@ -119,34 +121,39 @@ export function NewFoundPostScreen({ navigation, route }: { navigation: any, rou
 
     return (
         <SafeAreaView style={styles.container}>
-            <View style={styles.horizontal}>
-                <View style={styles.itemContainer}>
-                    <TouchableOpacity
-                        onPress={() => { navigation.navigate("Item View", { itemId: item._id, itemName: item.name }) }}>
-                        <Image source={item.imageSrc} style={styles.itemImage} />
-                        <View style={styles.itemListItemView}>
-                            <Text style={styles.itemTitle}>{item.name}</Text>
-                            <Text style={styles.itemSubtitle}>{owner.name}</Text>
-                            <Text style={styles.itemSubtitle}>{item.description}</Text>
+            <View style={styles.itemContainer}>
+                <PressableOpacity
+                    onPress={() => { navigation.navigate('Item View', { itemId: item._id, itemName: item.name }) }}
+                    disabled={uploading}>
+                        <View style={styles.horizontal}>
+                        <Image 
+                            source={{uri: item.imageSrc}} 
+                            defaultSource={require('../assets/defaultimg.jpg')} 
+                            style={styles.itemImage} />
+                            <View style={styles.itemListItemView}>
+                                <Text style={styles.itemTitle}>{item.name}</Text>
+                                <Text style={styles.itemSubtitle}>{owner.name}</Text>
+                                <Text style={styles.itemSubtitle}>{item.description !== undefined && item.description!.slice(0,140)}</Text>
+                            </View>
                         </View>
-                    </TouchableOpacity>
-                </View>
-                <View>
-                    <TextInput
-                        multiline={true}
-                        placeholder="Describe some identifying features"
-                        onChangeText={text => setMessage(text)}
-                        value={message}
-                    />
-                    <TouchableOpacity
-                        style={styles.saveButton}
-                        disabled={message.trim().length <= 0}
-                        onPress={uploadPost}
-                    >
-                        <Text style={styles.saveButtonText}>Post</Text>
-                    </TouchableOpacity>
-                </View>
+                </PressableOpacity>
             </View>
+            <Input
+                label='Message*'
+                multiline={true}
+                placeholder=''
+                onChangeText={text => setMessage(text)}
+                value={message}
+                editable={!uploading}
+                style={styles.multilineTextInput}
+            />
+            <PressableOpacity
+                style={styles.saveButton}
+                disabled={message.trim().length <= 0}
+                onPress={uploadPost}
+                editable={!uploading}>
+                <Text style={styles.saveButtonText}>Post</Text>
+            </PressableOpacity>
         </SafeAreaView>
     );
 }
@@ -158,17 +165,24 @@ const styles = StyleSheet.create({
         backgroundColor: lightThemeColors.background,
     },
     itemContainer: {
-        width: 100,
+        width: '100%',
+        alignSelf: 'flex-start',
+        margin: 8,
     },
     horizontal: {
-        flexDirection: "row",
+        flexDirection: 'row',
+    },
+    multilineTextInput: {
+        width: '90%',
+        height: 300,
+        overflow: 'scroll',
     },
     addItemTitle: {
         margin: 20,
         color: lightThemeColors.textLight,
     },
     imagePressableContainer: {
-        width: "100%",
+        width: '100%',
         alignItems: 'center',
     },
     imageContainer: {
@@ -176,13 +190,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     itemImage: {
-        width: "100%",
-        aspectRatio: 1 / 1,
+        width: '30%',
+        aspectRatio: 1/1,
+        borderRadius: 7,
     },
-    
     itemList: {
-        width: "100%",
-        height: "40%",
+        width: '100%',
+        height: '40%',
         margin: 10,
         backgroundColor: lightThemeColors.foreground,
     },
@@ -197,8 +211,8 @@ const styles = StyleSheet.create({
     },
     itemTitle: {
         color: lightThemeColors.textLight,
-        fontWeight: "bold",
-        fontSize: 16,
+        fontWeight: 'bold',
+        fontSize: 18,
     },
     itemSubtitle: {
         color: lightThemeColors.textLight,
@@ -206,13 +220,13 @@ const styles = StyleSheet.create({
     },
     itemContent: {
         color: lightThemeColors.textLight,
-        fontSize: 14,
+        fontSize: 16,
     },
     imageLabel: {
         fontSize: 16,
-        textAlign: "center",
+        textAlign: 'center',
         color: lightThemeColors.textLight,
-        fontWeight: "bold",
+        fontWeight: 'bold',
     },
     saveButton: {
         width: 280,
@@ -222,11 +236,11 @@ const styles = StyleSheet.create({
     },
     saveButtonText: {
         fontSize: 16,
-        textAlign: "center",
+        textAlign: 'center',
         color: lightThemeColors.textDark,
-        fontWeight: "bold",
+        fontWeight: 'bold',
     }
-});
+});    
 
 
 export default NewFoundPostScreen;

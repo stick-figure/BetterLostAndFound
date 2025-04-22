@@ -1,27 +1,27 @@
-import { useEffect, useState } from "react";
-import { Alert, Text, View } from "react-native";
-import { auth, db } from "../../ModularFirebase";
-import { deleteUser, signOut } from "firebase/auth";
-import { TouchableOpacity } from "react-native-gesture-handler";
-import { collection, deleteDoc, doc, getDocs, onSnapshot, Query, query, where, writeBatch } from "firebase/firestore";
-import { CommonActions } from "@react-navigation/native";
-import { deleteObject } from "firebase/storage";
-import SafeAreaView from "react-native-safe-area-view";
-import { lightThemeColors } from "../assets/Colors";
+import { useEffect, useState } from 'react';
+import { Alert, Text, View } from 'react-native';
+import { auth, db } from '../../ModularFirebase';
+import { deleteUser, signOut } from 'firebase/auth';
+import { TouchableOpacity } from 'react-native-gesture-handler';
+import { collection, deleteDoc, doc, getDocs, Query, query, where, writeBatch } from 'firebase/firestore';
+import { CommonActions } from '@react-navigation/native';
+import { deleteObject } from 'firebase/storage';
+import SafeAreaView from 'react-native-safe-area-view';
+import { lightThemeColors } from '../assets/Colors';
 
 export function SettingsScreen({ navigation }: { navigation: any }) {
 
     const signOutNow = () => {
-//        navigation.navigate("Loading");
+//        navigation.navigate('Loading');
         signOut(auth).then(() => {
             // Sign-out successful.
-            navigation.replace("My Stack", {screen: "Login"});
+            navigation.replace('My Stack', {screen: 'Login'});
 //            navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Login' }] }));
         }).catch((error) => {
             // An error happened.
             const errorCode = error.code;
             const errorMessage = error.message;
-            navigation.navigate("Error", { code: errorCode, message: errorMessage });
+            navigation.navigate('Error', { code: errorCode, message: errorMessage });
         });
     }
 
@@ -41,7 +41,7 @@ export function SettingsScreen({ navigation }: { navigation: any }) {
 
             await batch.commit();
         }
-        console.log("deleted");
+        console.log('deleted');
     }
 
     const deleteStorageRecursively = async (query: Query) => {
@@ -50,11 +50,11 @@ export function SettingsScreen({ navigation }: { navigation: any }) {
 
     const deleteAccount = () => {
 
-        navigation.navigate("Loading");
-        deleteFirestoreRecursively(query(collection(db, "lostPosts"), where("authorId", "==", auth.currentUser!.uid))).then(() => {
-            return deleteFirestoreRecursively(query(collection(db, "items"), where("ownerId", "==", auth.currentUser!.uid)));
+        navigation.navigate('Loading');
+        deleteFirestoreRecursively(query(collection(db, 'posts'), where('authorId', '==', auth.currentUser!.uid))).then(() => {
+            return deleteFirestoreRecursively(query(collection(db, 'items'), where('ownerId', '==', auth.currentUser!.uid)));
         }).then(() => {
-            return deleteDoc(doc(db, "users", auth.currentUser!.uid));
+            return deleteDoc(doc(db, 'users', auth.currentUser!.uid));
         }).then(() => {
             return deleteUser(auth.currentUser!)
         }).then(() => {
@@ -63,7 +63,7 @@ export function SettingsScreen({ navigation }: { navigation: any }) {
             // An error happened.
             const errorCode = error.code;
             const errorMessage = error.message;
-            navigation.navigate("Error", {code: errorCode, message: errorMessage});
+            navigation.navigate('Error', {code: errorCode, message: errorMessage});
         });
     }
 
