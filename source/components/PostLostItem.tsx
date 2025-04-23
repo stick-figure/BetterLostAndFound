@@ -1,10 +1,10 @@
 import { onSnapshot, query, collection, where, getDoc, doc, DocumentSnapshot } from 'firebase/firestore';
-import { useEffect, useState } from 'react';
-import { SafeAreaView, View, FlatList, ActivityIndicator, Image, Text, StyleSheet } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { SafeAreaView, View, FlatList, ActivityIndicator, Image, Text, StyleSheet, useColorScheme } from 'react-native';
 import { SearchBar, Icon } from 'react-native-elements';
 import { auth, db } from '../../ModularFirebase';
 import PressableOpacity from '../assets/MyElements';
-import { lightThemeColors } from '../assets/Colors';
+import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 
 
 export function PostLostItemScreen({ navigation }: { navigation: any }) {
@@ -36,18 +36,18 @@ export function PostLostItemScreen({ navigation }: { navigation: any }) {
 
                 let owner;
                 try {
-                    owner = await getDoc(doc(db, 'users', itemDoc.data().ownerId));
+                    owner = await getDoc(doc(db, 'users', itemDoc.get('ownerId')));
                 } catch (err) {
                     
                 }
                 
                 return {
                     _id: itemDoc.id,
-                    name: itemDoc.data().name,
-                    description: itemDoc.data().description,
-                    ownerName: (owner?.data() ? (owner as DocumentSnapshot).data()!.name : itemDoc.data().ownerId) || 'Unknown User',
-                    isLost: itemDoc.data().isLost,
-                    imageSrc: (itemDoc.data().imageSrc ? { uri: itemDoc.data().imageSrc } : undefined),
+                    name: itemDoc.get('name'),
+                    description: itemDoc.get('description'),
+                    ownerName: owner?.get('name') || itemDoc.get('ownerId') || 'Unknown User',
+                    isLost: itemDoc.get('isLost'),
+                    imageSrc: itemDoc.get('imageSrc') ? { uri: itemDoc.get('imageSrc') } : undefined,
                 };
             });
 
@@ -71,6 +71,98 @@ export function PostLostItemScreen({ navigation }: { navigation: any }) {
         });
         setItemQuery(myItemQuery);
     };
+
+    const isDarkMode = useColorScheme() === 'dark';
+    const colors = isDarkMode ? DarkThemeColors : LightThemeColors;
+    const styles = useMemo(() => StyleSheet.create({
+        container: {
+            flex: 1,
+            padding: 10,
+            backgroundColor: colors.background,
+        },
+        horizontal: {
+            flexDirection: 'row',
+        },
+        text: {
+            color: colors.text,
+            fontSize: 14,
+        },
+        subtitle: {
+            color: colors.text,
+            fontSize: 20,
+            margin: 8,
+            marginTop: 8,
+            fontWeight: "bold",
+        },
+        bigButton: {
+            width: '90%',
+            alignSelf: 'center',
+            backgroundColor: colors.primary,
+            borderRadius: 7,
+            padding: 10,
+            margin: 4,
+        },
+        bigButtonText: {
+            fontSize: 16,
+            textAlign: 'center',
+            color: colors.primaryContrastText,
+        },
+        searchBar: {
+            backgroundColor: colors.card,
+            borderWidth: 0,
+        },
+        searchBarContainer: {
+            width: '100%',
+            backgroundColor: colors.background,
+            borderWidth: 0,
+        },
+        searchBarLabel: {
+            backgroundColor: colors.background,
+            borderWidth: 0,
+        },
+        searchBarInput: {
+            backgroundColor: colors.background,
+            color: colors.text,
+            borderWidth: 0,
+        },
+        searchBarInputContainer: {
+            borderWidth: 0,
+            backgroundColor: colors.card,
+        },
+        itemList: {
+            flexGrow: 1,
+            padding: 10,
+            backgroundColor: colors.card,
+        },
+        itemListItem: {
+            flex: 1,
+            maxWidth: `${100/3}%`,
+            padding: 10,
+        },
+        listItemInfo: {
+            margin: 4,
+        },
+        itemImage: {
+            width: '100%',
+            aspectRatio: 1,
+        },
+        itemTitle: {
+            color: colors.text,
+            fontWeight: 'bold',
+            fontSize: 16,
+        },
+        itemSubtitle: {
+            color: colors.text,
+            fontSize: 12,
+        },
+        itemContent: {
+            color: colors.text,
+            fontSize: 14,
+        },
+        addItemTitle: {
+            fontSize: 14,
+        },
+    }), [isDarkMode]);
 
     return (
         <SafeAreaView style={styles.container}>
@@ -104,7 +196,7 @@ export function PostLostItemScreen({ navigation }: { navigation: any }) {
                     keyExtractor={item => item._id.toString()}
                     ListEmptyComponent={
                         <View style={{flex: 1, alignContent: 'center', alignSelf: 'stretch', justifyContent: 'center'}}>
-                            {isLoading ? <ActivityIndicator size='large' /> : <Icon name='cactus' type='material-community' />}
+                            {isLoading ? <ActivityIndicator size='large' /> : <Icon name='cactus' type='material-community' color={colors.text} />}
                         </View>
                     }
                     data={itemQuery}
@@ -115,7 +207,7 @@ export function PostLostItemScreen({ navigation }: { navigation: any }) {
                                 onPress={() => { navigation.navigate('Item View', { itemId: item._id, itemName: item.name }) }}>    
                             
                                 <Image source={item.imageSrc} style={styles.itemImage} defaultSource={require('../assets/defaultimg.jpg')}/>
-                                <View style={styles.itemListItemView}>
+                                <View style={styles.listItemInfo}>
                                     <Text style={styles.itemTitle}>{item.name}</Text>
                                     <Text style={styles.itemSubtitle}>{item.ownerName}</Text>
                                 </View> 
@@ -128,95 +220,5 @@ export function PostLostItemScreen({ navigation }: { navigation: any }) {
         </SafeAreaView>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        padding: 10,
-        backgroundColor: lightThemeColors.background,
-    },
-    horizontal: {
-        flexDirection: 'row',
-    },
-    text: {
-        color: lightThemeColors.textLight,
-        fontSize: 14,
-    },
-    subtitle: {
-        color: lightThemeColors.textLight,
-        fontSize: 20,
-        margin: 8,
-        marginTop: 8,
-        fontWeight: "bold",
-    },
-    bigButton: {
-        width: '90%',
-        alignSelf: 'center',
-        backgroundColor: lightThemeColors.primaryButton,
-        borderRadius: 7,
-        padding: 10,
-        margin: 4,
-    },
-    bigButtonText: {
-        fontSize: 16,
-        textAlign: 'center',
-        color: lightThemeColors.primaryButtonText,
-    },
-    searchBar: {
-        backgroundColor: lightThemeColors.foreground,
-        borderWidth: 0,
-    },
-    searchBarContainer: {
-        width: '100%',
-        backgroundColor: lightThemeColors.background,
-        borderWidth: 0,
-    },
-    searchBarLabel: {
-        backgroundColor: lightThemeColors.background,
-        borderWidth: 0,
-    },
-    searchBarInput: {
-        backgroundColor: lightThemeColors.background,
-        color: lightThemeColors.textLight,
-        borderWidth: 0,
-    },
-    searchBarInputContainer: {
-        borderWidth: 0,
-        backgroundColor: lightThemeColors.foreground,
-    },
-    itemList: {
-        flexGrow: 1,
-        padding: 10,
-        backgroundColor: lightThemeColors.foreground,
-    },
-    itemListItem: {
-        flex: 1,
-        maxWidth: '33%',
-        padding: 10,
-    },
-    itemListItemView: {
-        margin: 4,
-    },
-    itemImage: {
-        width: '100%',
-        aspectRatio: 1,
-    },
-    itemTitle: {
-        color: lightThemeColors.textLight,
-        fontWeight: 'bold',
-        fontSize: 16,
-    },
-    itemSubtitle: {
-        color: lightThemeColors.textLight,
-        fontSize: 12,
-    },
-    itemContent: {
-        color: lightThemeColors.textLight,
-        fontSize: 14,
-    },
-    addItemTitle: {
-        fontSize: 14,
-    },
-});
 
 export default PostLostItemScreen;

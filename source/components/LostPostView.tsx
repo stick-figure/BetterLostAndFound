@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useState } from 'react';
-import { FlatList, Image, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { lightThemeColors } from '../assets/Colors';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { FlatList, Image, Modal, Pressable, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, useColorScheme, View } from 'react-native';
+import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { auth, db } from '../../ModularFirebase';
 import { addDoc, collection, disableNetwork, doc, documentId, DocumentSnapshot, getDoc, getDocs, onSnapshot, query, QuerySnapshot, runTransaction, serverTimestamp, updateDoc, where } from 'firebase/firestore';
 import PressableOpacity from '../assets/MyElements';
 import SafeAreaView from 'react-native-safe-area-view';
-import { CommonActions, useIsFocused } from '@react-navigation/native';
-import { Icon } from 'react-native-elements';
+import { CommonActions, useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
+import { CheckBox, Icon } from 'react-native-elements';
 import { ScrollView } from 'react-native-gesture-handler';
 import { timestampToString } from './SomeFunctions';
 
@@ -14,7 +14,9 @@ export type PostViewRouteParams = {
     item: {name: string},
 }
 
-export function LostPostViewScreen({ navigation, route }: { navigation: any, route: any }) {
+export function LostPostViewScreen() {
+    const navigation = useNavigation();
+    const route = useRoute();
     const [item, setItem] = useState({});
 
     const [author, setAuthor] = useState({});
@@ -40,6 +42,8 @@ export function LostPostViewScreen({ navigation, route }: { navigation: any, rou
     const createChatRoom = async () => {
         try {
             setIsNavigating(true);
+            if ([auth.currentUser?.uid, author._id, post._id].includes(undefined)) 
+                throw new Error('missing an id, idk which');
             const roomData = {
                 userIds: [auth.currentUser?.uid, author._id],
                 postId: post._id,
@@ -130,8 +134,8 @@ export function LostPostViewScreen({ navigation, route }: { navigation: any, rou
             if (roomSnapshot.empty) throw new Error('roomSnapshot is empty');
             const roomsData = await Promise.all(roomSnapshot.docs.map((roomDoc) => new Promise(async (resolve, reject) => {
                 try {
-                    if (roomDoc?.data()?.userIds === undefined) throw new Error('userIds is undefined');
-                    const userSnapshots = await getDocs(query(collection(db, 'users'), where(documentId(), 'in', roomDoc.data().userIds)));
+                    if (roomDoc?.get('userIds') === undefined) throw new Error('userIds is undefined');
+                    const userSnapshots = await getDocs(query(collection(db, 'users'), where(documentId(), 'in', roomDoc.get('userIds'))));
                     
                     resolve({
                         _id: roomDoc.id, 
@@ -148,6 +152,41 @@ export function LostPostViewScreen({ navigation, route }: { navigation: any, rou
         } catch (error) {
             console.warn(error);
         }
+    }
+    const [reasonIndex, setReasonIndex] = useState(0);
+
+    const [modalVisible, setModalVisible] = useState(false);
+    const resolvePostModal = () => {
+        return (
+            <Modal
+                animationType='slide'
+                transparent={true}
+                visible={modalVisible}
+                onRequestClose={() => {
+                    setModalVisible(false);
+                }}>
+                <View style={styles.modalBackground}>
+                    <View style={styles.modalContent}>
+                        <Pressable>
+                            <Icon name='cross' type='material-community' />
+                        </Pressable>
+                        <Text style={styles.text}>Resolve Post</Text>
+                        <CheckBox
+                            checked={reasonIndex === 0}
+                            onPress={() => setReasonIndex(0)}
+                            checkedIcon="dot-circle-o"
+                            uncheckedIcon="circle-o"
+                        />
+                        <CheckBox
+                            checked={reasonIndex === 1}
+                            onPress={() => setReasonIndex(1)}
+                            checkedIcon="dot-circle-o"
+                            uncheckedIcon="circle-o"
+                        />
+                    </View>
+                </View>
+            </Modal>
+        );
     }
 
     const resolvePost = () => new Promise((resolve, reject) => {
@@ -173,7 +212,7 @@ export function LostPostViewScreen({ navigation, route }: { navigation: any, rou
     useEffect(() => {
         if (!isLoggedIn) return;
         const itemData = {...route.params!.item};
-        itemData.imageSrc = route.params!.item.imageSrc;
+
         setItem(itemData);
         setAuthor(route.params!.author);
 
@@ -197,7 +236,7 @@ export function LostPostViewScreen({ navigation, route }: { navigation: any, rou
             return (
                 <PressableOpacity 
                     style={styles.bigButton}
-                    onPress={() => ''} 
+                    onPress={() => setModalVisible(!modalVisible)} 
                     disabled={isNavigating}>
                     <Text style={styles.bigButtonText}>Resolve post</Text>
                 </PressableOpacity>
@@ -266,7 +305,7 @@ export function LostPostViewScreen({ navigation, route }: { navigation: any, rou
                 ListEmptyComponent={
                     <View style={{height: 100}}>
                         <View style={{width: '100%', height: '100%', alignItems: 'stretch', justifyContent: 'center'}}>
-                            <Icon name='cactus' type='material-community' size={42} />
+                            <Icon name='cactus' type='material-community' size={42} color={colors.text} />
                             <Text style={[styles.text, {alignSelf: 'center'}]}>No one has set up a chat with you yet</Text>
                         </View>
                     </View>
@@ -277,16 +316,183 @@ export function LostPostViewScreen({ navigation, route }: { navigation: any, rou
 
     }
 
+    const isDarkMode = useColorScheme() === 'dark';
+    const colors = isDarkMode ? DarkThemeColors : LightThemeColors;
+    const styles = useMemo(() => StyleSheet.create({
+        container: {
+            flex: 1,
+            color: colors.text,
+            backgroundColor: colors.background,
+        },
+        itemContainer: {
+            width: '100%',
+        },
+        text: {
+            color: colors.text,
+        },
+        horizontal: {
+            flexDirection: 'row',
+        },
+        modalBackground: {
+            alignSelf: 'center',
+            justifyContent: 'center',
+            margin: 20,
+            backgroundColor: 'white',
+            borderRadius: 20,
+            padding: 35,
+            alignItems: 'center',
+            shadowColor: '#000',
+            shadowOffset: {
+                width: 0,
+                height: 2,
+            },
+            shadowOpacity: 0.25,
+            shadowRadius: 4,
+            elevation: 5,
+        },
+        modalContent: {
+            width: 300,
+            padding: 20,
+            backgroundColor: 'white',
+            borderRadius: 10,
+            alignItems: 'center',
+        },
+        userHeader: {
+            flexDirection: 'row',
+            width: '100%', 
+            justifyContent: 
+            'flex-start', 
+            alignItems: 'center', 
+            padding: 8, 
+            backgroundColor: colors.card,
+        },
+        pfp: {
+            borderRadius: 99999,
+            width: 42, 
+            aspectRatio: 1/1,
+            marginRight: 12,
+            color: colors.text,
+        },
+        userName: {
+            fontSize: 15,
+            fontWeight: '600',
+            color: colors.text,
+        },
+        timestamp: {
+            fontSize: 12,
+            margin: 2,
+            color: colors.text,
+        },
+        addItemTitle: {
+            margin: 20,
+            color: colors.text,
+        },
+        imagePressableContainer: {
+            alignItems: 'center',
+        },
+        imageContainer: {
+            flexDirection: 'row',
+            alignItems: 'center',
+        },
+        itemImage: {
+            aspectRatio: 1 / 1,
+        },
+        postTitle: {
+            fontSize: 24,
+            fontWeight: '500',
+            color: colors.text,
+            margin: 8,
+        },
+        itemList: {
+            width: '100%',
+            height: '40%',
+            margin: 10,
+            backgroundColor: colors.card,
+        },
+        itemListItem: {
+            width: 120,
+            marginLeft: 10,
+            paddingTop: 10,
+            paddingBottom: 10,
+        },
+        itemListItemView: {
+            margin: 4,
+        },
+        itemTitle: {
+            color: colors.text,
+            fontWeight: 'bold',
+            fontSize: 16,
+        },
+        itemSubtitle: {
+            color: colors.text,
+            fontSize: 12,
+        },
+        itemContent: {
+            color: colors.text,
+            fontSize: 12,
+            alignSelf: 'center',
+        },
+        imageLabel: {
+            fontSize: 16,
+            textAlign: 'center',
+            color: colors.text,
+            fontWeight: 'bold',
+        },
+        message: {
+            fontSize: 16,
+            color: colors.text,
+            margin: 6,
+        },
+        bigButton: {
+            width: '90%',
+            backgroundColor: colors.primary,
+            borderRadius: 7,
+            padding: 10,
+            alignSelf: 'center',
+        },
+        bigButtonText: {
+            fontSize: 16,
+            textAlign: 'center',
+            color: colors.primaryContrastText,
+            fontWeight: 'bold',
+        },
+        chatListContainer: {
+            width: '90%',
+            height: 'auto',
+            backgroundColor: colors.card,
+            alignSelf: 'center',
+            padding: 6,
+        },
+        chatItem: {
+            alignItems: 'center',
+            alignSelf: 'stretch',
+            padding: 4,
+            flexDirection: 'row',
+        },
+        chatThumbnail: {
+            width: 40,
+            aspectRatio: 1,
+            borderRadius: 99999,
+            marginRight: 12,
+        },
+        chatTitle: {
+            fontSize: 18,
+            color: colors.text,
+            fontWeight: '600',
+        },
+    }), [isDarkMode]);
+
+
     if (post?._id == '') {
         return (
             <View>
-                <Text>Post not found</Text>
+                <Text style={styles.text}>Post not found</Text>
             </View>
         );
     }
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={styles.container}> 
             <ScrollView>
                 <View style={styles.itemContainer}>
                     <View style={styles.userHeader}>
@@ -297,7 +503,7 @@ export function LostPostViewScreen({ navigation, route }: { navigation: any, rou
                         <View>
                             <Text style={styles.userName}>{author.name}</Text>
                             <Text style={styles.timestamp}>
-                                {item.createdAt ? timestampToString(item.createdAt!, now, true, true) : 'unknown time'}
+                                {post.createdAt ? timestampToString(post.createdAt!, now, true, true) : 'unknown time'}
                             </Text>
                         </View>
                     </View>
@@ -305,7 +511,7 @@ export function LostPostViewScreen({ navigation, route }: { navigation: any, rou
                     <PressableOpacity
                         onPress={() => { navigation.navigate('Item View', { itemId: item._id, itemName: item.name }) }}
                         disabled={isNavigating}>
-                        <Image source={item.imageSrc ? {uri: item.imageSrc} : undefined} style={styles.itemImage} defaultSource={require('../assets/defaultimg.jpg')} />
+                        <Image source={post?.imageUrls ? {uri: post.imageUrls[0]} : undefined} style={styles.itemImage} defaultSource={require('../assets/defaultimg.jpg')} />
                         <View style={styles.itemListItemView}>
                             <Text style={styles.itemContent}>Click for item info</Text>
                         </View>
@@ -321,6 +527,7 @@ export function LostPostViewScreen({ navigation, route }: { navigation: any, rou
                         selectTextOnFocus={false} 
                         style={styles.message}/>
                 </View>
+                {resolvePostModal()}
                 {actionButtons()}
                 <Text style={[styles.text, {fontSize: 20, margin: 8}]}>Chat with {!isAuthor && 'owner'}</Text>
                 {chatOptions()}
@@ -328,146 +535,6 @@ export function LostPostViewScreen({ navigation, route }: { navigation: any, rou
         </SafeAreaView>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        color: lightThemeColors.textLight,
-        backgroundColor: lightThemeColors.background,
-    },
-    itemContainer: {
-        width: '100%',
-    },
-    text: {
-        color: lightThemeColors.textLight,
-    },
-    horizontal: {
-        flexDirection: 'row',
-    },
-    userHeader: {
-        flexDirection: 'row',
-        width: '100%', 
-        justifyContent: 
-        'flex-start', 
-        alignItems: 'center', 
-        padding: 8, 
-        backgroundColor: lightThemeColors.foreground,
-    },
-    pfp: {
-        borderRadius: 99999,
-        width: 42, 
-        aspectRatio: 1/1,
-        marginRight: 12,
-        color: lightThemeColors.textLight,
-    },
-    userName: {
-        fontSize: 15,
-        fontWeight: '600',
-        color: lightThemeColors.textLight,
-    },
-    timestamp: {
-        fontSize: 12,
-        margin: 2,
-        color: lightThemeColors.textLight,
-    },
-    addItemTitle: {
-        margin: 20,
-        color: lightThemeColors.textLight,
-    },
-    imagePressableContainer: {
-        alignItems: 'center',
-    },
-    imageContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    itemImage: {
-        aspectRatio: 1 / 1,
-    },
-    postTitle: {
-        fontSize: 24,
-        fontWeight: '500',
-        color: lightThemeColors.textLight,
-        margin: 8,
-    },
-    itemList: {
-        width: '100%',
-        height: '40%',
-        margin: 10,
-        backgroundColor: lightThemeColors.foreground,
-    },
-    itemListItem: {
-        width: 120,
-        marginLeft: 10,
-        paddingTop: 10,
-        paddingBottom: 10,
-    },
-    itemListItemView: {
-        margin: 4,
-    },
-    itemTitle: {
-        color: lightThemeColors.textLight,
-        fontWeight: 'bold',
-        fontSize: 16,
-    },
-    itemSubtitle: {
-        color: lightThemeColors.textLight,
-        fontSize: 12,
-    },
-    itemContent: {
-        color: lightThemeColors.textLight,
-        fontSize: 12,
-        alignSelf: 'center',
-    },
-    imageLabel: {
-        fontSize: 16,
-        textAlign: 'center',
-        color: lightThemeColors.textLight,
-        fontWeight: 'bold',
-    },
-    message: {
-        fontSize: 16,
-        color: lightThemeColors.textLight,
-        margin: 6,
-    },
-    bigButton: {
-        width: '90%',
-        backgroundColor: lightThemeColors.primaryButton,
-        borderRadius: 7,
-        padding: 10,
-        alignSelf: 'center',
-    },
-    bigButtonText: {
-        fontSize: 16,
-        textAlign: 'center',
-        color: lightThemeColors.primaryButtonText,
-        fontWeight: 'bold',
-    },
-    chatListContainer: {
-        width: '90%',
-        height: 'auto',
-        backgroundColor: lightThemeColors.foreground,
-        alignSelf: 'center',
-        padding: 6,
-    },
-    chatItem: {
-        alignItems: 'center',
-        alignSelf: 'stretch',
-        padding: 4,
-        flexDirection: 'row',
-    },
-    chatThumbnail: {
-        width: 40,
-        aspectRatio: 1,
-        borderRadius: 99999,
-        marginRight: 12,
-    },
-    chatTitle: {
-        fontSize: 18,
-        color: lightThemeColors.textLight,
-        fontWeight: '600',
-    },
-});
 
 
 export default LostPostViewScreen;

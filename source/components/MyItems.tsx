@@ -1,9 +1,9 @@
 import { query, collection, where, doc, getDocs, setDoc, DocumentData, onSnapshot, DocumentSnapshot, getDoc } from 'firebase/firestore';
-import { SetStateAction, useEffect, useLayoutEffect, useState } from 'react';
-import { ActivityIndicator, Button, FlatList, Image, StyleSheet, Text, View } from 'react-native';
+import { SetStateAction, useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Button, FlatList, Image, StyleSheet, Text, useColorScheme, View } from 'react-native';
 import SafeAreaView, { SafeAreaProvider } from 'react-native-safe-area-view';
 import { auth, db } from '../../ModularFirebase';
-import { lightThemeColors } from '../assets/Colors';
+import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { CommonActions } from '@react-navigation/native';
 import PressableOpacity from '../assets/MyElements';
@@ -47,18 +47,18 @@ export function MyItemsScreen({ navigation }: { navigation: any }) {
             const promises = snapshot.docs.map(async (itemDoc) => {
                 let owner;
                 try {
-                    owner = await getDoc(doc(db, 'users', itemDoc.data().ownerId));
+                    owner = await getDoc(doc(db, 'users', itemDoc.get('ownerId')));
                 } catch (err) {
                     
                 }
                 
                 return {
                     _id: itemDoc.id,
-                    name: itemDoc.data().name,
-                    description: itemDoc.data().description,
-                    ownerName: (owner?.data() ? (owner as DocumentSnapshot).data()!.name : itemDoc.data().ownerId) || 'Unknown User',
-                    isLost: itemDoc.data().isLost,
-                    imageSrc: (itemDoc.data().imageSrc ? { uri: itemDoc.data().imageSrc } : undefined),
+                    name: itemDoc.get('name'),
+                    description: itemDoc.get('descriptions'),
+                    ownerName: owner?.get('name') || itemDoc.get('ownerId') || 'Unknown User',
+                    isLost: itemDoc.get('isLost'),
+                    imageSrc: (itemDoc.get('imageSrc') ? { uri: itemDoc.get('imageSrc') } : undefined),
                 };
             });
 
@@ -87,6 +87,108 @@ export function MyItemsScreen({ navigation }: { navigation: any }) {
         return unsubscribe;
     }, [isLoggedIn]);
 
+    const isDarkMode = useColorScheme() === 'dark';
+    const colors = isDarkMode ? DarkThemeColors : LightThemeColors;
+    const styles = useMemo(() => StyleSheet.create({
+        container: {
+            flex: 1,
+            alignItems: 'center',
+            padding: 10,
+            backgroundColor: colors.background,
+        },
+        horizontal: {
+            flexDirection: 'row',
+        },
+        text: {
+            textAlign: 'center',
+            color: colors.text,
+            fontSize: 16,
+        },
+        smallButton: {
+            padding: 6,
+            backgroundColor: colors.primary,
+            borderRadius: 8,
+        },
+        smallButtonText: {
+            color: colors.primaryContrastText,
+        },
+        userName: {
+            fontSize: 28,
+            fontWeight: 'bold',
+            color: colors.text,
+        },
+        userStats: {
+            flexDirection: 'row',
+            justifyContent: 'space-evenly',
+            alignItems: 'center',
+            flexGrow: 1,
+            alignSelf: 'stretch', 
+            marginTop: 5,
+        },
+        userStat: {
+            flexDirection: 'column',
+            alignItems: 'center',
+            alignSelf: 'stretch',
+            justifyContent: 'space-between',
+        },
+        userStatLabel: {
+            fontSize: 12,
+            width: 80,
+            textAlign: 'center',
+        },
+        userStatValue: {
+            fontSize: 24,
+            textAlign: 'center',
+        },
+        pfp: {
+            width: 128,
+            aspectRatio: 1/1,
+            borderRadius: 999999,
+            margin: 8,
+            marginRight: 12,
+            color: colors.text,
+        },
+        itemList: {
+            width: '100%',
+            flexGrow: 1,
+            margin: 10,
+            backgroundColor: colors.card,
+        },
+        itemListItem: {
+            flex: 1,
+            maxWidth: `${100/3}%`,
+            alignSelf: 'stretch',
+            paddingBottom: 10,
+            padding: 3,
+        },
+        itemListItemView: {
+            flex: 1,
+            backgroundColor: colors.card,
+            alignSelf: 'stretch',
+        },
+        itemImage: {
+            width: '100%',
+            aspectRatio: 1,
+        },
+        itemTitle: {
+            color: colors.text,
+            fontWeight: '400',
+            fontSize: 16,
+        },
+        itemSubtitle: {
+            color: colors.text,
+            fontSize: 12,
+        },
+        itemContent: {
+            color: colors.text,
+            fontSize: 14,
+        },
+        addItemTitle: {
+            fontSize: 14,
+            color: colors.contrastText,
+        },
+    }), [isDarkMode]);
+
     return (
         <SafeAreaView style={styles.container}>
             <View style={[styles.horizontal, {alignSelf:'flex-start'}]}>
@@ -95,8 +197,9 @@ export function MyItemsScreen({ navigation }: { navigation: any }) {
                     style={styles.pfp}
                     defaultSource={require('../assets/defaultpfp.jpg')}
                     />
-                <View style={{flexGrow: 1}}>
+                <View style={{flexGrow: 1, alignItems: 'flex-start'}}>
                     <Text style={styles.userName}>{userData?.name}</Text>
+                    <Text style={styles.text}>Waaagh</Text>
                     <View style={styles.userStats}>
                         <View style={styles.userStat}>
                             <Text style={styles.userStatLabel}>Times own item lost</Text>
@@ -122,7 +225,7 @@ export function MyItemsScreen({ navigation }: { navigation: any }) {
             </View>
             
             <View style={[styles.horizontal, {width:'100%', alignItems: 'flex-end', justifyContent: 'space-between'}]}>
-                <Text style={{fontSize: 16, color: lightThemeColors.textLight, margin: 4}}>My Items</Text>
+                <Text style={{fontSize: 16, color: colors.text, margin: 4}}>My Items</Text>
                 <PressableOpacity onPress={() => navigation.navigate('My Stack', {screen: 'Add Item'})} style={styles.smallButton}>
                     <Text style={styles.addItemTitle}>Add Item</Text>
                 </PressableOpacity>
@@ -132,17 +235,17 @@ export function MyItemsScreen({ navigation }: { navigation: any }) {
                     keyExtractor={item => item._id.toString()}
                     ListEmptyComponent={
                         <View style={{flex: 1, alignContent: 'center', alignSelf: 'stretch', justifyContent: 'center'}}>
-                            {isLoading ? <ActivityIndicator size='large' /> : <Icon name='cactus' type='material-community' />}
+                            {isLoading ? <ActivityIndicator size='large' /> : <Icon name='cactus' type='material-community' color={colors.text} />}
                         </View>
                     }
                     data={sortedItems}
                     renderItem={({ item }) => (
-                        <View style={styles.itemListItem}>
+                        <View style={[styles.itemListItem, item.isLost ? {backgroundColor: 'red',} : {}]}>
                             <PressableOpacity
                                 key={item._id.toString()}
                                 onPress={() => { navigation.navigate('My Stack', {screen: 'Item View', params: { itemId: item._id, itemName: item.name } }) }}>
-                                <Image source={item.imageSrc} style={styles.itemImage} defaultSource={require('../assets/defaultimg.jpg')}/>
                                 <View style={styles.itemListItemView}>
+                                    <Image source={item.imageSrc} style={styles.itemImage} defaultSource={require('../assets/defaultimg.jpg')}/>
                                     <Text style={styles.itemTitle}>{item.name}</Text>
                                 </View>
                             </PressableOpacity>
@@ -154,104 +257,5 @@ export function MyItemsScreen({ navigation }: { navigation: any }) {
         </SafeAreaView>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        alignItems: 'center',
-        padding: 10,
-        backgroundColor: lightThemeColors.background,
-    },
-    horizontal: {
-        flexDirection: 'row',
-    },
-    text: {
-        textAlign: 'center',
-        color: lightThemeColors.textLight,
-        fontSize: 18,
-    },
-    smallButton: {
-        padding: 6,
-        backgroundColor: lightThemeColors.primary,
-        borderRadius: 8,
-    },
-    smallButtonText: {
-        color: lightThemeColors.textDark,
-    },
-    userName: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: lightThemeColors.textLight,
-    },
-    userStats: {
-        flexDirection: 'row',
-        justifyContent: 'space-evenly',
-        alignItems: 'center',
-        flexGrow: 1,
-    },
-    userStat: {
-        flexDirection: 'column',
-        alignItems: 'center',
-        alignSelf: 'stretch',
-        justifyContent: 'space-between',
-        
-        paddingVertical: 10,
-    },
-    userStatLabel: {
-        fontSize: 12,
-        width: 80,
-        textAlign: 'center',
-    },
-    userStatValue: {
-        fontSize: 24,
-        textAlign: 'center',
-    },
-    pfp: {
-        width: 128,
-        aspectRatio: 1/1,
-        borderRadius: 999999,
-        margin: 8,
-        marginRight: 12,
-        color: lightThemeColors.textLight,
-    },
-    itemList: {
-        width: '100%',
-        flexGrow: 1,
-        margin: 10,
-        backgroundColor: lightThemeColors.foreground,
-    },
-    itemListItem: {
-        flex: 1,
-        maxWidth: '33%',
-        paddingLeft: 10,
-        paddingTop: 10,
-        paddingBottom: 10,
-    },
-    itemListItemView: {
-        margin: 4,
-    },
-    itemImage: {
-        width: 120,
-        height: 120,
-        aspectRatio: 1,
-    },
-    itemTitle: {
-        color: lightThemeColors.textLight,
-        fontWeight: '400',
-        fontSize: 16,
-    },
-    itemSubtitle: {
-        color: lightThemeColors.textLight,
-        fontSize: 12,
-    },
-    itemContent: {
-        color: lightThemeColors.textLight,
-        fontSize: 14,
-    },
-    addItemTitle: {
-        fontSize: 14,
-        color: lightThemeColors.textDark,
-    },
-});
 
 export default MyItemsScreen;

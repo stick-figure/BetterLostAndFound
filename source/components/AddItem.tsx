@@ -1,19 +1,21 @@
 import { addDoc, collection, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { getDownloadURL, getStorage, ref, uploadBytesResumable } from 'firebase/storage';
-import { useEffect, useState } from 'react';
-import { View, Text, Button, StyleSheet, Image, Pressable, ImageSourcePropType, TextInput } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { View, Text, Button, StyleSheet, Image, Pressable, ImageSourcePropType, TextInput, useColorScheme } from 'react-native';
 import { launchCamera, launchImageLibrary, MediaType } from 'react-native-image-picker';
 
 import { auth, db } from '../../ModularFirebase';
-import { lightThemeColors } from '../assets/Colors';
+import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { ScrollView, TouchableOpacity } from 'react-native-gesture-handler';
-import { CommonActions } from '@react-navigation/native';
+import { CommonActions, useTheme, useNavigation, useRoute } from '@react-navigation/native';
 import { Icon, Input } from 'react-native-elements';
 import PressableOpacity from '../assets/MyElements';
 import SafeAreaView from 'react-native-safe-area-view';
 
+export function AddItemScreen() {
+    const navigation = useNavigation();
+    const route = useRoute();
 
-export function AddItemScreen({ navigation, route }: { navigation: any, route: any }) {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [secretPhrase, setSecretPhrase] = useState('');
@@ -143,16 +145,80 @@ export function AddItemScreen({ navigation, route }: { navigation: any, route: a
         });
     }
 
+    const isDarkMode = useColorScheme() === 'dark';
+    const colors = isDarkMode ? DarkThemeColors : LightThemeColors;
+    const styles = useMemo(() => StyleSheet.create({
+        container: {
+            flex: 1,
+            alignItems: 'center',
+            backgroundColor: colors.background,
+        },
+        text: {
+            fontSize: 16,
+            color: colors.text,
+        },
+        addItemTitle: {
+            margin: 20,
+            color: colors.text,
+        },
+        horizontalContainer: {
+            justifyContent: 'flex-start',
+            alignItems: 'center',
+            flexDirection: 'row',
+            padding: 10,
+        },
+        imagePressableContainer: {
+            width: '100%',
+            alignItems: 'center',
+        },
+        imageContainer: {
+            flexDirection: 'row',
+            alignItems: 'center',
+        },
+        itemImage: {
+            flex: 1,
+            aspectRatio: 1 / 1,
+        },
+        imageLabel: {
+            fontSize: 16,
+            textAlign: 'center',
+            color: colors.text,
+            fontWeight: 'bold',
+        },
+        iconButton: {
+            borderRadius: 5,
+            width: 25,
+            height: 25,
+            marginRight: 4,
+            alignItems: 'center',
+            justifyContent: 'center', 
+            backgroundColor: colors.secondary,
+        },
+        saveButton: {
+            width: 280,
+            backgroundColor: colors.primary,
+            borderRadius: 7,
+            padding: 10,
+        },
+        saveButtonText: {
+            fontSize: 16,
+            textAlign: 'center',
+            color: colors.primaryContrastText,
+            fontWeight: 'bold',
+        },
+    }), [isDarkMode]);
+
+    
     if (uploading) {
         return (
             <View style={styles.container}>
-                <Text>Uploading...</Text>
+                <Text style={styles.text}>Uploading...</Text>
             </View>
         );
     }
 
     return (
-        <SafeAreaView style={{flex: 1, width: '100%', backgroundColor: lightThemeColors.background}}>
+        <SafeAreaView style={{flex: 1, width: '100%', backgroundColor: colors.background}}>
             <ScrollView contentContainerStyle={styles.container}>
                 <View style={styles.imageContainer}>
                     <Image
@@ -164,15 +230,15 @@ export function AddItemScreen({ navigation, route }: { navigation: any, route: a
 
                 <View style={styles.horizontalContainer}>
                     <TouchableOpacity onPress={handleCameraLaunch} style={styles.iconButton}>
-                        <Icon name='camera-alt' type='material-icons' size={20}/>
+                        <Icon name='camera-alt' type='material-icons' size={20} color={colors.text} />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={openImagePicker} style={styles.iconButton}>
-                        <Icon name='photo-library' type='material-icons' size={20} />
+                        <Icon name='photo-library' type='material-icons' size={20} color={colors.text} />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => {}} style={styles.iconButton}>
-                        <Icon name='web-plus' type='material-community' size={20} />
+                        <Icon name='web-plus' type='material-community' size={20} color={colors.text} />
                     </TouchableOpacity>
-                    <Text style={{fontSize: 16, color: lightThemeColors.textLight,}}>Set photo*</Text>
+                    <Text style={{fontSize: 16, color: colors.text,}}>Set photo*</Text>
                 </View>
                 
                 <Text style={styles.imageLabel}>Select image</Text>
@@ -209,67 +275,5 @@ export function AddItemScreen({ navigation, route }: { navigation: any, route: a
         </SafeAreaView>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        alignItems: 'center',
-        backgroundColor: lightThemeColors.background,
-    },
-    text: {
-        fontSize: 16,
-        color: lightThemeColors.textLight,
-    },
-    addItemTitle: {
-        margin: 20,
-        color: lightThemeColors.textLight,
-    },
-    horizontalContainer: {
-        justifyContent: 'flex-start',
-        alignItems: 'center',
-        flexDirection: 'row',
-        padding: 10,
-    },
-    imagePressableContainer: {
-        width: '100%',
-        alignItems: 'center',
-    },
-    imageContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    itemImage: {
-        flex: 1,
-        aspectRatio: 1 / 1,
-    },
-    imageLabel: {
-        fontSize: 16,
-        textAlign: 'center',
-        color: lightThemeColors.textLight,
-        fontWeight: 'bold',
-    },
-    iconButton: {
-        borderRadius: 5,
-        width: 25,
-        height: 25,
-        marginRight: 4,
-        alignItems: 'center',
-        justifyContent: 'center', 
-        backgroundColor: lightThemeColors.secondary,
-    },
-    saveButton: {
-        width: 280,
-        backgroundColor: lightThemeColors.primaryButton,
-        borderRadius: 7,
-        padding: 10,
-    },
-    saveButtonText: {
-        fontSize: 16,
-        textAlign: 'center',
-        color: lightThemeColors.primaryButtonText,
-        fontWeight: 'bold',
-    }
-});
-
 
 export default AddItemScreen;

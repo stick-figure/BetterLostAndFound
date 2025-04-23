@@ -3,10 +3,11 @@ import {
     Image,
     StyleSheet,
     Text,
+    useColorScheme,
     View,
 } from 'react-native';
 
-import { DrawerActions, NavigationAction, NavigationContainer, useNavigation } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, DrawerActions, NavigationAction, NavigationContainer, useNavigation } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createDrawerNavigator } from '@react-navigation/drawer';
@@ -34,7 +35,7 @@ import LostPostViewScreen, { PostViewRouteParams } from './source/components/Los
 import SearchItemsScreen from './source/components/SearchItems';
 import NewFoundPostScreen from './source/components/NewFoundPost';
 import { Icon } from 'react-native-elements';
-import { lightThemeColors } from './source/assets/Colors';
+import { DarkThemeColors, LightThemeColors } from './source/assets/Colors';
 import { PostLostItemScreen } from './source/components/PostLostItem';
 import MyChatRoomsScreen from './source/components/MyChatRooms';
 
@@ -43,14 +44,20 @@ const Tab = createBottomTabNavigator();
 const Drawer = createDrawerNavigator();
 
 function HomeTab() {
+    const scheme = useColorScheme();
+    const colors = scheme === 'dark' ? DarkThemeColors : LightThemeColors;
+
     return (
         <Tab.Navigator
             initialRouteName={'Bottom Tabs'}
             screenOptions={{
-                tabBarActiveTintColor: lightThemeColors.primaryVibrant,
-                tabBarActiveBackgroundColor: lightThemeColors.foreground,
-                tabBarInactiveTintColor: lightThemeColors.dullGrey,
-                tabBarInactiveBackgroundColor: lightThemeColors.foreground,
+                tabBarActiveTintColor: colors.primary,
+                tabBarActiveBackgroundColor: colors.card,
+                tabBarInactiveTintColor: colors.border,
+                tabBarInactiveBackgroundColor: colors.card,
+                headerStyle: {
+                    backgroundColor: colors.card,
+                },
             }}>
             <Tab.Screen 
                 name='Home' 
@@ -69,7 +76,8 @@ function HomeTab() {
                     title: 'Return Item', 
                     headerShown: false, 
                     tabBarIcon: ({ focused, color, size }) => {
-                        return <Icon name='search' type={focused ? 'font-awesome' : 'material-icons'} size={size} color={color} />;
+                        if (focused) return <Icon name='search' type='feather' size={size} color={color} />;
+                        return <Icon name='search' type='octicons' size={size} color={color} />;
                     },
                 }} />
             <Tab.Screen 
@@ -96,12 +104,49 @@ function HomeTab() {
     );
 }
 function MyDrawer() {
+    const scheme = useColorScheme();
+    const colors = scheme === 'dark' ? DarkThemeColors : LightThemeColors;
+    const navigation = useNavigation();
+
     return (
         <Drawer.Navigator
             initialRouteName={'Drawer'}
             screenOptions={{
                 drawerType: 'slide',
-                drawerActiveTintColor: lightThemeColors.primaryVibrant,
+                drawerActiveTintColor: colors.primary,
+                headerTitleStyle: {
+                    color: colors.text,
+                },
+                headerStyle: {
+                    backgroundColor: colors.card,
+                    elevation: 0,
+                    shadowOpacity: 0.5,
+                    shadowOffset: {width: 3, height: 3},
+                },
+                drawerStyle: {
+                    backgroundColor: colors.card,
+                },
+                drawerInactiveTintColor: colors.text,
+                headerTintColor: colors.primary,
+                headerLeft: ({ tintColor, pressColor, pressOpacity, labelVisible }) => {
+                    return (
+                        <PressableOpacity 
+                            onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+                            activeOpacity={pressOpacity}
+                            style={{
+                                flexGrow: 1,
+//                                height: "100%",
+                                alignItems: 'center',
+                                flexDirection: 'column',
+                                aspectRatio: 1}}>
+                            <Icon name='menu' type='ionicon' size={22} color={tintColor} style={{
+                                flexGrow: 1,
+                                alignSelf:'center',
+                                flexDirection: 'column',
+                            }}/>
+                        </PressableOpacity>
+                    );
+                }
             }}>
             <Drawer.Screen 
                 name='Home Tabs' 
@@ -157,15 +202,18 @@ function MyDrawer() {
 }
 
 function MyStack() {
+    const scheme = useColorScheme();
+    const colors = scheme === 'dark' ? DarkThemeColors : LightThemeColors;
+
     return (
         <Stack.Navigator
             screenOptions={{
-                headerTintColor: lightThemeColors.textLight,
+                headerTintColor: colors.text,
                 headerBackTitleStyle: {
-                    color: lightThemeColors.primaryVibrant,
+                    color: colors.primary,
                 },
                 headerStyle: {
-                    backgroundColor: lightThemeColors.foreground,
+                    backgroundColor: colors.card,
                     elevation: 0,
                     shadowOpacity: 0.5,
                     shadowOffset: {width: 3, height: 3},
@@ -204,13 +252,11 @@ function MyStack() {
                 <Stack.Screen name='Error' component={ErrorScreen} options={{ title: 'Error' }} />
                 <Stack.Screen name='Loading' component={LoadingScreen} options={{ title: 'Loading' }} />
             </Stack.Group>
-
         </Stack.Navigator>
     );
 }
 
 export function App() {
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
     /*
     useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -223,7 +269,7 @@ export function App() {
 
         return unsubscribe;
     }, []);*/
-
+    
     return (
         <SafeAreaProvider>
             <NavigationContainer>

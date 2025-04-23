@@ -1,18 +1,20 @@
 import { addDoc, collection, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes } from 'firebase/storage';
-import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, Image, useColorScheme } from 'react-native';
 import { launchImageLibrary, MediaType } from 'react-native-image-picker';
 
 import { auth, db } from '../../ModularFirebase';
-import { lightThemeColors } from '../assets/Colors';
-import { CommonActions } from '@react-navigation/native';
+import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
+import { CommonActions, useNavigation, useRoute } from '@react-navigation/native';
 import PressableOpacity from '../assets/MyElements';
 import { Input } from 'react-native-elements';
 import SafeAreaView from 'react-native-safe-area-view';
 
 
-export function NewLostPostScreen({ navigation, route }: { navigation: any, route: any }) {
+export function NewLostPostScreen() {
+    const navigation = useNavigation();
+    const route = useRoute();
     const [item, setItem] = useState({});
     const [owner, setOwner] = useState({});
 
@@ -27,7 +29,7 @@ export function NewLostPostScreen({ navigation, route }: { navigation: any, rout
         setUploading(true);
 
         const postData = {
-            type: 'lost',
+            type: 'Lost',
             itemId: item._id,
             title: title.trim().length > 0 ? title : item.name,
             message: message,
@@ -38,6 +40,7 @@ export function NewLostPostScreen({ navigation, route }: { navigation: any, rout
             resolveReason: '',
             views: 0,
             roomIds: [],
+            imageUrls: [item.imageSrc],
         };
 
         navigation.navigate('Loading');
@@ -82,10 +85,101 @@ export function NewLostPostScreen({ navigation, route }: { navigation: any, rout
         if (route.params?.owner) setOwner(route.params!.owner);
     }, [isLoggedIn]);
 
+    const isDarkMode = useColorScheme() === 'dark';
+    const colors = isDarkMode ? DarkThemeColors : LightThemeColors;
+    const styles = useMemo(() => StyleSheet.create({
+        container: {
+            flex: 1,
+            alignItems: 'center',
+            backgroundColor: colors.background,
+        },
+        text: {
+            fontSize: 14,
+            color: colors.text,
+        },
+        itemContainer: {
+            width: '100%',
+            alignSelf: 'flex-start',
+            margin: 8,
+        },
+        horizontal: {
+            flexDirection: 'row',
+        },
+        multilineTextInput: {
+            width: '90%',
+            height: 300,
+            overflow: 'scroll',
+        },
+        addItemTitle: {
+            margin: 20,
+            color: colors.text,
+        },
+        imagePressableContainer: {
+            width: '100%',
+            alignItems: 'center',
+        },
+        imageContainer: {
+            flexDirection: 'row',
+            alignItems: 'center',
+        },
+        itemImage: {
+            width: '30%',
+            aspectRatio: 1/1,
+            borderRadius: 7,
+        },
+        itemList: {
+            width: '100%',
+            height: '40%',
+            margin: 10,
+            backgroundColor: colors.card,
+        },
+        itemListItem: {
+            width: 120,
+            marginLeft: 10,
+            paddingTop: 10,
+            paddingBottom: 10,
+        },
+        itemListItemView: {
+            margin: 4,
+        },
+        itemTitle: {
+            color: colors.text,
+            fontWeight: 'bold',
+            fontSize: 18,
+        },
+        itemSubtitle: {
+            color: colors.text,
+            fontSize: 12,
+        },
+        itemContent: {
+            color: colors.text,
+            fontSize: 16,
+        },
+        imageLabel: {
+            fontSize: 16,
+            textAlign: 'center',
+            color: colors.text,
+            fontWeight: 'bold',
+        },
+        saveButton: {
+            width: 280,
+            backgroundColor: colors.primary,
+            borderRadius: 7,
+            padding: 10,
+        },
+        saveButtonText: {
+            fontSize: 16,
+            textAlign: 'center',
+            color: colors.primaryContrastText,
+            fontWeight: 'bold',
+        }
+    }), [isDarkMode]);
+
+
     if (uploading) {
         return (
             <View style={styles.container}>
-                <Text>Uploading...</Text>
+                <Text style={styles.text}>Uploading...</Text>
             </View>);
     }
 
@@ -127,90 +221,6 @@ export function NewLostPostScreen({ navigation, route }: { navigation: any, rout
         </SafeAreaView>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        alignItems: 'center',
-        backgroundColor: lightThemeColors.background,
-    },
-    itemContainer: {
-        width: '100%',
-        alignSelf: 'flex-start',
-        margin: 8,
-    },
-    horizontal: {
-        flexDirection: 'row',
-    },
-    multilineTextInput: {
-        width: '90%',
-        height: 300,
-        overflow: 'scroll',
-    },
-    addItemTitle: {
-        margin: 20,
-        color: lightThemeColors.textLight,
-    },
-    imagePressableContainer: {
-        width: '100%',
-        alignItems: 'center',
-    },
-    imageContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    itemImage: {
-        width: '30%',
-        aspectRatio: 1/1,
-        borderRadius: 7,
-    },
-    itemList: {
-        width: '100%',
-        height: '40%',
-        margin: 10,
-        backgroundColor: lightThemeColors.foreground,
-    },
-    itemListItem: {
-        width: 120,
-        marginLeft: 10,
-        paddingTop: 10,
-        paddingBottom: 10,
-    },
-    itemListItemView: {
-        margin: 4,
-    },
-    itemTitle: {
-        color: lightThemeColors.textLight,
-        fontWeight: 'bold',
-        fontSize: 18,
-    },
-    itemSubtitle: {
-        color: lightThemeColors.textLight,
-        fontSize: 12,
-    },
-    itemContent: {
-        color: lightThemeColors.textLight,
-        fontSize: 16,
-    },
-    imageLabel: {
-        fontSize: 16,
-        textAlign: 'center',
-        color: lightThemeColors.textLight,
-        fontWeight: 'bold',
-    },
-    saveButton: {
-        width: 280,
-        backgroundColor: lightThemeColors.primary,
-        borderRadius: 7,
-        padding: 10,
-    },
-    saveButtonText: {
-        fontSize: 16,
-        textAlign: 'center',
-        color: lightThemeColors.textDark,
-        fontWeight: 'bold',
-    }
-});
 
 
 export default NewLostPostScreen;

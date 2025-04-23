@@ -1,24 +1,27 @@
 import { collection, deleteDoc, deleteField, doc, DocumentReference, getDoc, onSnapshot, serverTimestamp, updateDoc } from 'firebase/firestore';
-import { useState, useEffect, useCallback, ReactNode } from 'react';
-import { View, Text, Button, StyleSheet, Pressable, Alert, TextInput, Image, ScrollView } from 'react-native';
+import { useState, useEffect, useCallback, ReactNode, useMemo } from 'react';
+import { View, Text, Button, StyleSheet, Pressable, Alert, TextInput, Image, ScrollView, StatusBar, useColorScheme } from 'react-native';
 import { auth, db } from '../../ModularFirebase';
 import { deleteObject, getDownloadURL, getStorage, ref, StorageReference, uploadBytesResumable, UploadTask } from 'firebase/storage';
 import { TouchableOpacity } from 'react-native-gesture-handler';
-import { lightThemeColors } from '../assets/Colors';
-import { CommonActions, RouteProp, useFocusEffect, useIsFocused } from '@react-navigation/native';
+import { CommonActions, RouteProp, useFocusEffect, useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
 import PressableOpacity from '../assets/MyElements';
 import { Icon } from 'react-native-elements';
 import SafeAreaView from 'react-native-safe-area-view';
 import { MediaType, launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import firebase from 'firebase/compat/app';
 import { timestampToString } from './SomeFunctions';
+import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 
 export type ItemViewRouteParams = {
     itemId: string,
     itemName: string,
 }
 
-export function ItemViewScreen({ navigation, route }: { navigation: any, route: any }) {
+export function ItemViewScreen() {
+    const navigation = useNavigation();
+    const route = useRoute();
+    
     const [item, setItem] = useState({});
     
     const [owner, setOwner] = useState({});
@@ -37,8 +40,36 @@ export function ItemViewScreen({ navigation, route }: { navigation: any, route: 
     const [uploadProgress, setUploadProgress] = useState(-1);
 
     const [isOwner, setIsOwner] = useState(false);
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
     const isFocused = useIsFocused();
+    /*useEffect(() => {
+        navigation.addListener('beforeRemove', (e) => {
+            if (!hasUnsavedChanges) {
+                // If we don't have unsaved changes, then we don't need to do anything
+                return;
+            }
+
+            // Prevent default behavior of leaving the screen
+            e.preventDefault();
+
+            // Prompt the user before leaving the screen
+            Alert.alert(
+                'Discard changes?',
+                'You have unsaved changes. Are you sure to discard them and leave the screen?',
+                [
+                    { text: "Don't leave", style: 'cancel', onPress: () => {} },
+                    {
+                        text: 'Discard',
+                        style: 'destructive',
+                        // If the user confirmed, then we dispatch the action we blocked earlier
+                        // This will continue the action that had triggered the removal of the screen
+                        onPress: () => navigation.dispatch(e.data.action),
+                    },
+                ]
+            );
+        });
+    }, [navigation, hasUnsavedChanges]);*/
 
     const redirectToNewFoundPost = () => {
         navigation.navigate('New Found Post', { item: item, owner: owner });
@@ -121,6 +152,7 @@ export function ItemViewScreen({ navigation, route }: { navigation: any, route: 
                     console.log('ImagePicker Error: ', response.errorMessage);
                 } else if (response.assets) {
                     setImageUri(response.assets[0].uri!);
+                    setHasUnsavedChanges(true);
                 }
             }).catch(() => { console.log('whoop de doo') });
         };
@@ -142,6 +174,7 @@ export function ItemViewScreen({ navigation, route }: { navigation: any, route: 
                     console.warn('Camera Error', response.errorCode, ': ', response.errorMessage);
                 } else {
                     setImageUri(response.assets![0].uri!);
+                    setHasUnsavedChanges(true);
                 }
             });
         }
@@ -185,6 +218,8 @@ export function ItemViewScreen({ navigation, route }: { navigation: any, route: 
 
     const saveEdits = useCallback(async () => {
         try {
+            if (!hasUnsavedChanges) return;
+
             setIsUploading(true);
             setIsEditable(false);
 
@@ -197,8 +232,8 @@ export function ItemViewScreen({ navigation, route }: { navigation: any, route: 
                 setImageUri('');
             }
             let snapshot = await getDoc(itemRef!);
-            setItem({_id: snapshot.id, ...snapshot.data()!})
-            
+            setItem({_id: snapshot.id, ...snapshot.data()!});
+            setHasUnsavedChanges(false);
         } catch (error) {
             console.warn(error);
         } finally {
@@ -288,6 +323,130 @@ export function ItemViewScreen({ navigation, route }: { navigation: any, route: 
         );
     }
 
+    
+    const isDarkMode = useColorScheme() === 'dark';
+    const colors = isDarkMode ? DarkThemeColors : LightThemeColors;
+    const styles = useMemo(() => StyleSheet.create({
+        container: {
+            flex: 1,
+            backgroundColor: colors.background,
+        },
+        horizontal: {
+            flexDirection: 'row',
+        },
+        text: {
+            color: colors.text,
+            fontSize: 14,
+        },
+        buttonText: {
+            textAlign: 'left',
+            color: colors.primaryContrastText,
+            fontSize: 15,
+        },
+        userHeader: {
+            flexDirection: 'row',
+            width: '100%', 
+            justifyContent: 'flex-start', 
+            alignItems: 'center', 
+            padding: 8, 
+            backgroundColor: colors.card,
+        },
+        pfp: {
+            borderRadius: 99999,
+            width: 42, 
+            aspectRatio: 1/1,
+            marginRight: 12,
+            color: colors.text,
+        },
+        userName: {
+            fontSize: 15,
+            fontWeight: '600',
+            color: colors.text,
+        },
+        timestamp: {
+            fontSize: 12,
+            margin: 2,
+            color: colors.text,
+        },
+        itemImage: {
+            width: '100%',
+            marginBottom: 12,
+            aspectRatio: 1 / 1,
+        },
+        textInput: {
+            textDecorationStyle: 'dotted',
+            fontWeight: 600,
+            fontSize: 18,
+            width: '80%', 
+            overflow: 'hidden',
+            borderTopWidth: 2,
+            backgroundColor: colors.card,
+            borderColor: colors.border,
+            borderRadius: 1,
+            padding: 6,
+            margin: 5,
+        },
+        itemName: {
+            fontSize: 20,
+            marginVertical: 10,
+            color: colors.text,
+        },
+        description: {
+            fontSize: 16,
+            marginVertical: 10,
+            color: colors.text,
+        },
+        actionButton: {
+            backgroundColor: colors.primary,
+            width: '100%',
+            height: '100%',
+            paddingHorizontal: 10,
+            borderRadius: 10,
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+        scaryActionButton: {
+            backgroundColor: colors.red,
+            width: '100%',
+            height: '100%',
+            paddingHorizontal: 10,
+            borderRadius: 10,
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+        startEditButton: {
+            backgroundColor: colors.secondary,
+            width: '100%',
+            height: '100%',
+            paddingHorizontal: 10,
+            borderRadius: 10,
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+        finishEditButton: {
+            backgroundColor: isDarkMode ? 'green' : 'lime',
+            width: '100%',
+            height: '100%',
+            paddingHorizontal: 10,
+            borderRadius: 10,
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+        editButtonText: {
+            color: colors.contrastText,
+            fontSize: 15,
+        },
+        deleteItemButton: {
+            backgroundColor: colors.red,
+            height: '100%',
+            borderRadius: 10,
+            aspectRatio: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+    }), [isDarkMode]);
+
+
     if (isOwner) return (
         <SafeAreaView style={styles.container}>
             <ScrollView style={{padding: 5}}>
@@ -301,15 +460,15 @@ export function ItemViewScreen({ navigation, route }: { navigation: any, route: 
                             onPress={handleCameraLaunch} 
                             style={styles.cameraButton} 
                             disabled={!isEditable || isUploading}>
-                            <Icon name='camera-alt' type='material-icons' size={20}/>
+                            <Icon name='camera-alt' type='material-icons' size={20} color={colors.text}/>
                         </PressableOpacity>
                         <PressableOpacity 
                             onPress={openImagePicker} 
                             style={styles.uploadButton}
                             disabled={!isEditable || isUploading}>
-                            <Icon name='photo-library' type='material-icons' size={20} />
+                            <Icon name='photo-library' type='material-icons' size={20} color={colors.text} />
                         </PressableOpacity>
-                        <Text style={{fontSize: 16, color: lightThemeColors.textLight,}}>Set photo*</Text>
+                        <Text style={{fontSize: 16, color: colors.text,}}>Set photo*</Text>
                     </View>
                 ) : (
                     <View></View>
@@ -325,12 +484,18 @@ export function ItemViewScreen({ navigation, route }: { navigation: any, route: 
 
                 <TextInput 
                     style={isEditable ? styles.textInput : styles.itemName}
-                    onChangeText={(text) => setName(text)}
+                    onChangeText={(text) => {
+                        if (!hasUnsavedChanges) setHasUnsavedChanges(true); 
+                        setName(text)
+                    }}
                     value={name} 
                     editable={isEditable && !isUploading} />
                 <TextInput 
                     style={isEditable ? [styles.textInput,{height: 100}] : styles.description}
-                    onChangeText={(text) => setDescription(text)}
+                    onChangeText={(text) => {
+                        if (!hasUnsavedChanges) setHasUnsavedChanges(true); 
+                        setDescription(text)
+                    }}
                     value={description} 
                     multiline
                     editable={isEditable && !isUploading} />
@@ -339,7 +504,7 @@ export function ItemViewScreen({ navigation, route }: { navigation: any, route: 
                     <View style={[styles.horizontal, {alignItems: 'center', justifyContent: 'space-between'}]}>
                         <View>
                             <Text style={styles.text}>Owner: {owner.name}</Text>
-                            <Text style={styles.text}>Added on {item.createdAt ? timestampToString(item.createdAt, undefined, true, true) : 'some day in history'}</Text>
+                            <Text style={styles.text}>Added on {item.createdAt ? timestampToString(item.createdAt, undefined, true, false) : 'some day in history'}</Text>
                             <Text style={styles.text}>Lost {item.timesLost} {item.timesLost == 1 ? 'time' : 'times'}</Text>
                         </View>
                         
@@ -360,14 +525,14 @@ export function ItemViewScreen({ navigation, route }: { navigation: any, route: 
                                     onPress={() => setIsEditable(true)}
                                     style={styles.startEditButton}
                                     disabled={isUploading}>
-                                    <Icon name='pencil' type='material-community'  color='#000' />
+                                    <Icon name='pencil' type='material-community' color={colors.secondaryContrastText} />
                                 </PressableOpacity>
                             ) : (
                                 <PressableOpacity
                                     onPress={() => {saveEdits(); setIsEditable(false)}}
                                     style={styles.finishEditButton}
                                     disabled={!isEditable || isUploading}>
-                                    <Icon name='check' type='material-community' color='#FFF' />
+                                    <Icon name='check' type='material-community' color={colors.contrastText} />
                                 </PressableOpacity>
                             )}
                            
@@ -383,11 +548,11 @@ export function ItemViewScreen({ navigation, route }: { navigation: any, route: 
                     </View>
                 </View>
                 
-                <Text>Posts mentioning this item</Text>
+                <Text style={styles.text}>Posts mentioning this item</Text>
             </ScrollView>
         </SafeAreaView>
     );
-    
+
     return (
         <SafeAreaView style={styles.container}>
             <ScrollView>
@@ -414,131 +579,10 @@ export function ItemViewScreen({ navigation, route }: { navigation: any, route: 
                 </View>
                 {actionButtons()}
                 
-                <Text>Posts mentioning this item</Text>
+                <Text style={styles.text}>Posts mentioning this item</Text>
             </ScrollView>
         </SafeAreaView>
     );
 }
-
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: lightThemeColors.background,
-    },
-    horizontal: {
-        flexDirection: 'row',
-    },
-    text: {
-        color: lightThemeColors.textLight,
-        fontSize: 14,
-    },
-    buttonText: {
-        textAlign: 'left',
-        color: '#FFF',
-        fontSize: 15,
-    },
-    userHeader: {
-        flexDirection: 'row',
-        width: '100%', 
-        justifyContent: 'flex-start', 
-        alignItems: 'center', 
-        padding: 8, 
-        backgroundColor: lightThemeColors.foreground,
-    },
-    pfp: {
-        borderRadius: 99999,
-        width: 42, 
-        aspectRatio: 1/1,
-        marginRight: 12,
-        color: lightThemeColors.textLight,
-    },
-    userName: {
-        fontSize: 15,
-        fontWeight: '600',
-        color: lightThemeColors.textLight,
-    },
-    timestamp: {
-        fontSize: 12,
-        margin: 2,
-        color: lightThemeColors.textLight,
-    },
-    itemImage: {
-        width: '100%',
-        marginBottom: 12,
-        aspectRatio: 1 / 1,
-    },
-    textInput: {
-        textDecorationStyle: 'dotted',
-        fontWeight: 600,
-        fontSize: 18,
-        width: '80%', 
-        overflow: 'hidden',
-        borderTopWidth: 2,
-        backgroundColor: lightThemeColors.foreground,
-        borderColor: lightThemeColors.dullGrey,
-        borderRadius: 1,
-        padding: 6,
-        margin: 5,
-    },
-    itemName: {
-        fontSize: 20,
-        marginVertical: 10,
-        color: lightThemeColors.textLight,
-    },
-    description: {
-        fontSize: 16,
-        marginVertical: 10,
-        color: lightThemeColors.textLight,
-    },
-    actionButton: {
-        backgroundColor: lightThemeColors.primary,
-        width: '100%',
-        height: '100%',
-        paddingHorizontal: 10,
-        borderRadius: 10,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    scaryActionButton: {
-        backgroundColor: lightThemeColors.red,
-        width: '100%',
-        height: '100%',
-        paddingHorizontal: 10,
-        borderRadius: 10,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    startEditButton: {
-        backgroundColor: lightThemeColors.secondary,
-        width: '100%',
-        height: '100%',
-        paddingHorizontal: 10,
-        borderRadius: 10,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    finishEditButton: {
-        backgroundColor: 'green',
-        width: '100%',
-        height: '100%',
-        paddingHorizontal: 10,
-        borderRadius: 10,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    editButtonText: {
-        color: lightThemeColors.textLight,
-        fontSize: 15,
-    },
-    deleteItemButton: {
-        backgroundColor: lightThemeColors.red,
-        height: '100%',
-        borderRadius: 10,
-        aspectRatio: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-});
 
 export default ItemViewScreen;

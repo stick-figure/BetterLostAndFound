@@ -1,12 +1,12 @@
 import { query, collection, where, doc, getDocs, setDoc, DocumentData, onSnapshot, DocumentSnapshot, getDoc, limit } from 'firebase/firestore';
-import { SetStateAction, useEffect, useLayoutEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SetStateAction, useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TextInput, useColorScheme, View } from 'react-native';
 import SafeAreaView from 'react-native-safe-area-view';
 import { auth, db } from '../../ModularFirebase';
-import { lightThemeColors } from '../assets/Colors';
+import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { CommonActions, useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
-import { Icon, SearchBar } from 'react-native-elements';
+import { colors, Icon, SearchBar } from 'react-native-elements';
 import PressableOpacity from '../assets/MyElements';
 
 interface ItemTile {
@@ -52,18 +52,18 @@ export function SearchItemsScreen() {
 
                 let owner;
                 try {
-                    owner = await getDoc(doc(db, 'users', itemDoc.data().ownerId));
+                    owner = await getDoc(doc(db, 'users', itemDoc.get('ownerId')));
                 } catch (err) {
                     
                 }
                 
                 return {
                     _id: itemDoc.id,
-                    name: itemDoc.data().name,
-                    description: itemDoc.data().description,
-                    ownerName: (owner?.data() ? (owner as DocumentSnapshot).data()!.name : itemDoc.data().ownerId) || 'Unknown User',
-                    isLost: itemDoc.data().isLost,
-                    imageSrc: (itemDoc.data().imageSrc ? { uri: itemDoc.data().imageSrc } : undefined),
+                    name: itemDoc.get('name'),
+                    description: itemDoc.get('description'),
+                    ownerName: owner?.get('name') || itemDoc.get('ownerId') || 'Unknown User',
+                    isLost: itemDoc.get('isLost'),
+                    imageSrc: itemDoc.get('imageSrc') ? { uri: itemDoc.get('imageSrc') } : undefined,
                 };
             });
 
@@ -88,6 +88,85 @@ export function SearchItemsScreen() {
         setItemQuery(myItemQuery);
     };
 
+    const isDarkMode = useColorScheme() === 'dark';
+    const colors = isDarkMode ? DarkThemeColors : LightThemeColors;
+    const styles = useMemo(() => StyleSheet.create({
+        container: {
+            flex: 1,
+            alignItems: 'center',
+            padding: 10,
+            backgroundColor: colors.background,
+        },
+        horizontal: {
+            flexDirection: 'row',
+        },
+        text: {
+            textAlign: 'center',
+            color: colors.contrastText,
+            fontSize: 18,
+        },
+        searchBar: {
+            backgroundColor: colors.card,
+            borderWidth: 0,
+        },
+        searchBarContainer: {
+            width: '100%',
+            backgroundColor: colors.background,
+            borderWidth: 0,
+        },
+        searchBarLabel: {
+            backgroundColor: colors.background,
+            borderWidth: 0,
+        },
+        searchBarInput: {
+            backgroundColor: colors.background,
+            color: colors.text,
+            borderWidth: 0,
+        },
+        searchBarInputContainer: {
+            borderWidth: 0,
+            backgroundColor: colors.card,
+        },
+        itemList: {
+            width: '100%',
+            flexGrow: 1,
+            margin: 10,
+            backgroundColor: colors.card,
+        },
+        itemListItem: {
+            flex: 1,
+            maxWidth: '33%',
+            marginLeft: 10,
+            paddingTop: 10,
+            paddingBottom: 10,
+        },
+        itemListItemView: {
+            margin: 4,
+        },
+        itemImage: {
+            width: '100%',
+            maxWidth: 120,
+            maxHeight: 120,
+            aspectRatio: 1,
+        },
+        itemTitle: {
+            color: colors.text,
+            fontWeight: 'bold',
+            fontSize: 16,
+        },
+        itemSubtitle: {
+            color: colors.text,
+            fontSize: 12,
+        },
+        itemContent: {
+            color: colors.text,
+            fontSize: 14,
+        },
+        addItemTitle: {
+            fontSize: 14,
+        },
+    }), [isDarkMode]);
+
     return (
         <SafeAreaView style={styles.container}>
             <SearchBar
@@ -111,7 +190,7 @@ export function SearchItemsScreen() {
                     keyExtractor={item => item._id.toString()}
                     ListEmptyComponent={
                         <View style={{flex: 1, alignContent: 'center', alignSelf: 'stretch', justifyContent: 'center'}}>
-                            {isLoading ? <ActivityIndicator size='large' /> : <Icon name='cactus' type='material-community' />}
+                            {isLoading ? <ActivityIndicator size='large' /> : <Icon name='cactus' type='material-community' color={colors.text} />}
                         </View>
                     }
                     data={itemQuery}
@@ -137,80 +216,7 @@ export function SearchItemsScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        alignItems: 'center',
-        padding: 10,
-        backgroundColor: lightThemeColors.background,
-    },
-    horizontal: {
-        flexDirection: 'row',
-    },
-    text: {
-        textAlign: 'center',
-        color: lightThemeColors.textDark,
-        fontSize: 18,
-    },
-    searchBar: {
-        backgroundColor: lightThemeColors.foreground,
-        borderWidth: 0,
-    },
-    searchBarContainer: {
-        width: '100%',
-        backgroundColor: lightThemeColors.background,
-        borderWidth: 0,
-    },
-    searchBarLabel: {
-        backgroundColor: lightThemeColors.background,
-        borderWidth: 0,
-    },
-    searchBarInput: {
-        backgroundColor: lightThemeColors.background,
-        color: lightThemeColors.textLight,
-        borderWidth: 0,
-    },
-    searchBarInputContainer: {
-        borderWidth: 0,
-        backgroundColor: lightThemeColors.foreground,
-    },
-    itemList: {
-        width: '100%',
-        flexGrow: 1,
-        margin: 10,
-        backgroundColor: lightThemeColors.foreground,
-    },
-    itemListItem: {
-        flex: 1,
-        maxWidth: '33%',
-        marginLeft: 10,
-        paddingTop: 10,
-        paddingBottom: 10,
-    },
-    itemListItemView: {
-        margin: 4,
-    },
-    itemImage: {
-        width: '100%',
-        maxWidth: 120,
-        maxHeight: 120,
-        aspectRatio: 1,
-    },
-    itemTitle: {
-        color: lightThemeColors.textLight,
-        fontWeight: 'bold',
-        fontSize: 16,
-    },
-    itemSubtitle: {
-        color: lightThemeColors.textLight,
-        fontSize: 12,
-    },
-    itemContent: {
-        color: lightThemeColors.textLight,
-        fontSize: 14,
-    },
-    addItemTitle: {
-        fontSize: 14,
-    },
+    
 });
 
 export default SearchItemsScreen;

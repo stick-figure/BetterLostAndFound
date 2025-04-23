@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Alert, StyleSheet, Text, useColorScheme, View } from 'react-native';
 import { auth, db } from '../../ModularFirebase';
 import { deleteUser, signOut } from 'firebase/auth';
 import { TouchableOpacity } from 'react-native-gesture-handler';
@@ -7,7 +7,7 @@ import { collection, deleteDoc, doc, getDocs, Query, query, where, writeBatch } 
 import { CommonActions } from '@react-navigation/native';
 import { deleteObject } from 'firebase/storage';
 import SafeAreaView from 'react-native-safe-area-view';
-import { lightThemeColors } from '../assets/Colors';
+import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 
 export function SettingsScreen({ navigation }: { navigation: any }) {
 
@@ -83,7 +83,7 @@ export function SettingsScreen({ navigation }: { navigation: any }) {
     }
 
     const [isLoggedIn, setIsLoggedIn] = useState(false);
-     
+    
     useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged((user) => {
             if (user) {
@@ -96,6 +96,12 @@ export function SettingsScreen({ navigation }: { navigation: any }) {
         return unsubscribe;
     }, []);
 
+    const isDarkMode = useColorScheme() === 'dark';
+    const colors = isDarkMode ? DarkThemeColors : LightThemeColors;
+    const styles = useMemo(() => StyleSheet.create({
+
+    }), [isDarkMode]);
+
     return (
         <SafeAreaView>
             <TouchableOpacity
@@ -104,7 +110,7 @@ export function SettingsScreen({ navigation }: { navigation: any }) {
             </TouchableOpacity>
             <TouchableOpacity
                 onPress={promptDeleteAccount}>
-                <Text style={{color: lightThemeColors.redder}}>delete account</Text>
+                <Text style={{color: "red"}}>delete account</Text>
             </TouchableOpacity>
         </SafeAreaView>
     );

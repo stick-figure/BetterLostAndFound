@@ -1,13 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Text, TextInput, Pressable } from 'react-native'
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, StyleSheet, Text, TextInput, Pressable, useColorScheme } from 'react-native'
 import { auth } from '../../ModularFirebase';
 import { AuthErrorCodes, signInWithEmailAndPassword } from 'firebase/auth';
-import { lightThemeColors } from '../assets/Colors';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { CommonActions } from '@react-navigation/native';
 import PressableOpacity from '../assets/MyElements';
 import { Input } from 'react-native-elements';
 import SafeAreaView from 'react-native-safe-area-view';
+import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 
 export function LoginScreen({ navigation }: { navigation: any }) {
     const [email, setEmail] = useState('');
@@ -42,6 +42,72 @@ export function LoginScreen({ navigation }: { navigation: any }) {
             }
         });
     };
+
+    const isDarkMode = useColorScheme() === 'dark';
+    const colors = isDarkMode ? DarkThemeColors : LightThemeColors;
+    const styles = useMemo(() => StyleSheet.create({
+        container: {
+            flex: 1,
+            alignItems: 'center',
+            padding: 10,
+            paddingTop: 100,
+            backgroundColor: colors.background,
+        },
+        horizontal: {
+            flexDirection: 'row',
+        },
+        title: {
+            fontSize: 24,
+            textAlign: 'center',
+            fontWeight: 'bold',
+            color: colors.text,
+            marginVertical: 15,
+        },
+        errorText: {
+            color: "red",
+        },
+        textInput: {
+            textDecorationStyle: 'dotted',
+            fontWeight: 600,
+            fontSize: 20,
+            width: '80%', 
+            overflow: 'hidden',
+            borderBottomWidth: 2,
+            borderColor: colors.border,
+            borderRadius: 1,
+            padding: 6,
+            margin: 10,
+        },
+        buttonDisabled: {
+            opacity: 0.1,
+        },
+        loginButton: {
+            width: 370,
+            marginTop: 10,
+            padding: 10,
+            backgroundColor: colors.secondary,
+            borderRadius: 7,
+        },
+        loginButtonText: {
+            textAlign: 'center',
+            color: colors.primaryContrastText,
+            fontSize: 16,
+            fontWeight: 'bold',
+        },
+        signupButton: {
+            width: 370,
+            marginTop: 10,
+            padding: 10,
+            backgroundColor: colors.primary,
+            borderRadius: 7,
+        },
+        signupButtonText: {
+            textAlign: 'center',
+            color: colors.contrastText,
+            fontSize: 16,
+            fontWeight: 'bold',
+        }
+    }), [isDarkMode]);
 
     return (
         <SafeAreaView style={styles.container}>
@@ -80,69 +146,5 @@ export function LoginScreen({ navigation }: { navigation: any }) {
         </SafeAreaView>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        alignItems: 'center',
-        padding: 10,
-        paddingTop: 100,
-        backgroundColor: lightThemeColors.background,
-    },
-    horizontal: {
-        flexDirection: 'row',
-    },
-    title: {
-        fontSize: 24,
-        textAlign: 'center',
-        fontWeight: 'bold',
-        color: lightThemeColors.textLight,
-        marginVertical: 15,
-    },
-    errorText: {
-        color: lightThemeColors.redder,
-    },
-    textInput: {
-        textDecorationStyle: 'dotted',
-        fontWeight: 600,
-        fontSize: 20,
-        width: '80%', 
-        overflow: 'hidden',
-        borderBottomWidth: 2,
-        borderColor: lightThemeColors.dullGrey,
-        borderRadius: 1,
-        padding: 6,
-        margin: 10,
-    },
-    buttonDisabled: {
-        opacity: 0.1,
-    },
-    loginButton: {
-        width: 370,
-        marginTop: 10,
-        padding: 10,
-        backgroundColor: lightThemeColors.secondary,
-        borderRadius: 7,
-    },
-    loginButtonText: {
-        textAlign: 'center',
-        color: lightThemeColors.textLight,
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    signupButton: {
-        width: 370,
-        marginTop: 10,
-        padding: 10,
-        backgroundColor: lightThemeColors.primary,
-        borderRadius: 7,
-    },
-    signupButtonText: {
-        textAlign: 'center',
-        color: lightThemeColors.textDark,
-        fontSize: 16,
-        fontWeight: 'bold',
-    }
-});
 
 export default LoginScreen;

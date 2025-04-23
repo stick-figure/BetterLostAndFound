@@ -1,19 +1,21 @@
-import React, { ErrorInfo, useCallback, useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, Image, Text, StatusBar, TextInput } from 'react-native';
+import React, { ErrorInfo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { View, StyleSheet, Image, Text, StatusBar, TextInput, useColorScheme } from 'react-native';
 import { auth, db } from '../../ModularFirebase';
 import { AuthError, AuthErrorCodes, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { addDoc, collection, doc, runTransaction, serverTimestamp, setDoc } from 'firebase/firestore';
 import { getDownloadURL, getStorage, ref, uploadBytes } from '@firebase/storage';
 import { launchCamera, launchImageLibrary, MediaType } from 'react-native-image-picker';
-import { NavigationProp } from '@react-navigation/native';
+import { NavigationProp, useNavigation, useRoute } from '@react-navigation/native';
 import { ScrollView, TouchableOpacity } from 'react-native-gesture-handler';
-import { lightThemeColors } from '../assets/Colors';
+import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import PressableOpacity from '../assets/MyElements';
-import { Icon, Input } from 'react-native-elements';
+import { colors, Icon, Input } from 'react-native-elements';
 import SafeAreaView from 'react-native-safe-area-view';
 import PhoneInput from 'react-native-phone-number-input';
 
-export function RegisterScreen({ navigation, route }: { navigation: any, route: any }) {
+export function RegisterScreen() {
+    const navigation = useNavigation();
+    const route = useRoute();
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [phoneNumber, setPhoneNumber] = useState('');
@@ -161,6 +163,89 @@ export function RegisterScreen({ navigation, route }: { navigation: any, route: 
 
     }
 
+    const isDarkMode = useColorScheme() === 'dark';
+    const colors = isDarkMode ? DarkThemeColors : LightThemeColors;
+    const styles = useMemo(() => StyleSheet.create({
+        container: {
+            flex: 1,
+            alignItems: 'center',
+            paddingTop: 100,
+            backgroundColor: colors.background,
+        },
+        subTitle: {
+            fontSize: 23,
+            textAlign: 'center',
+            fontWeight: '600',
+            color: colors.text,
+            marginVertical: 20,
+        },
+        text: {
+            fontSize: 16,
+            color: colors.text,
+        },
+        textInput: {/*
+            textDecorationStyle: 'dotted',
+            fontWeight: 600,
+            fontSize: 20,
+            width: '80%', 
+            overflow: 'hidden',
+            borderBottomWidth: 2,
+            borderColor: colors.border,
+            borderRadius: 1,
+            padding: 6,
+            margin: 10,*/
+        },
+        errorText: {
+            color: "red",
+        },
+        pfpContainer: {
+            alignSelf: 'flex-start',
+        },
+        horizontalContainer: {
+            justifyContent: 'flex-start',
+            alignItems: 'center',
+            flexDirection: 'row',
+            padding: 10,
+        },
+        registerButton: {
+            width: 370,
+            marginBottom: 200, 
+            padding: 10,
+            backgroundColor: colors.primary,
+            borderRadius: 7,
+            alignItems: 'center',
+        },
+        registerButtonText: {
+            textAlign: 'center',
+            color: colors.primaryContrastText,
+            fontSize: 16,
+            fontWeight: 'bold',
+        },
+        uploadButton: {
+            borderRadius: 5,
+            width: 25,
+            height: 25,
+            marginRight: 4,
+            alignItems: 'center',
+            justifyContent: 'center', 
+            backgroundColor: colors.secondary,
+        },
+        cameraButton: {
+            borderRadius: 5,
+            width: 25,
+            height: 25,
+            marginRight: 4,
+            alignItems: 'center',
+            justifyContent: 'center', 
+            backgroundColor: colors.secondary,
+        },
+        pfpImage: {
+            width: 128,
+            height: 128,
+            alignSelf: 'center',
+        }
+    }), [isDarkMode]);
+
     return (
         <SafeAreaView style={{flex: 1, padding: 3}}>
             <ScrollView contentContainerStyle={styles.container}>
@@ -174,10 +259,10 @@ export function RegisterScreen({ navigation, route }: { navigation: any, route: 
 
                         <View style={styles.horizontalContainer}>
                             <TouchableOpacity onPress={handleCameraLaunch} style={styles.cameraButton}>
-                                <Icon name='camera-alt' type='material-icons' size={20} />
+                                <Icon name='camera-alt' type='material-icons' size={20} color={colors.text} />
                             </TouchableOpacity>
                             <TouchableOpacity onPress={openImagePicker} style={styles.uploadButton}>
-                                <Icon name='photo-library' type='material-icons' size={20} />
+                                <Icon name='photo-library' type='material-icons' size={20} color={colors.text} />
                             </TouchableOpacity>
                             <Text style={{fontSize: 16}}>Set photo*</Text>
                         </View>
@@ -189,7 +274,7 @@ export function RegisterScreen({ navigation, route }: { navigation: any, route: 
                             placeholder='Enter your name'
                             value={name}
                             editable={!registering}
-                            labelStyle={{color: lightThemeColors.textLight,}}
+                            labelStyle={{color: colors.text,}}
                             onChangeText={text => setName(text)} />
                     </View>
                 </View>
@@ -224,7 +309,7 @@ export function RegisterScreen({ navigation, route }: { navigation: any, route: 
                     placeholder='Enter your email'
                     value={email}
                     editable={!registering}
-                    labelStyle={{color: lightThemeColors.textLight,}}
+                    labelStyle={{color: colors.text,}}
                     onChangeText={text => setEmail(text)} />
                 <Input
                     label='Password*'
@@ -234,11 +319,11 @@ export function RegisterScreen({ navigation, route }: { navigation: any, route: 
                     }}
                     style={styles.textInput} 
                     placeholder='Enter your password'
-                    labelStyle={{color: lightThemeColors.textLight,}}
+                    labelStyle={{color: colors.text,}}
                     value={password} onChangeText={text => setPassword(text)}
                     editable={!registering}
                     secureTextEntry />
-                <Text style={[styles.text, {alignSelf: 'flex-end', fontSize: 12, color: lightThemeColors.red}]}>*Required</Text>
+                <Text style={[styles.text, {alignSelf: 'flex-end', fontSize: 12, color: colors.red}]}>*Required</Text>
                 <Text style={styles.errorText}>{errorText}</Text>
                 <PressableOpacity style={styles.registerButton} disabled={name == '' || email == '' || password.length < 5 || (phoneNumber != '' && !phoneInput.current?.isValidNumber(phoneNumber)) || registering} onPress={register} >
                     <Text style={styles.registerButtonText}>Register</Text>
@@ -247,85 +332,5 @@ export function RegisterScreen({ navigation, route }: { navigation: any, route: 
         </SafeAreaView>
     )
 }
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        alignItems: 'center',
-        paddingTop: 100,
-        backgroundColor: lightThemeColors.background,
-    },
-    subTitle: {
-        fontSize: 23,
-        textAlign: 'center',
-        fontWeight: '600',
-        color: lightThemeColors.textLight,
-        marginVertical: 20,
-    },
-    text: {
-        fontSize: 16,
-        color: lightThemeColors.textLight,
-    },
-    textInput: {/*
-        textDecorationStyle: 'dotted',
-        fontWeight: 600,
-        fontSize: 20,
-        width: '80%', 
-        overflow: 'hidden',
-        borderBottomWidth: 2,
-        borderColor: lightThemeColors.dullGrey,
-        borderRadius: 1,
-        padding: 6,
-        margin: 10,*/
-    },
-    errorText: {
-        color: lightThemeColors.redder,
-    },
-    pfpContainer: {
-        alignSelf: 'flex-start',
-    },
-    horizontalContainer: {
-        justifyContent: 'flex-start',
-        alignItems: 'center',
-        flexDirection: 'row',
-        padding: 10,
-    },
-    registerButton: {
-        width: 370,
-        marginBottom: 200, 
-        padding: 10,
-        backgroundColor: lightThemeColors.primary,
-        borderRadius: 7,
-        alignItems: 'center',
-    },
-    registerButtonText: {
-        textAlign: 'center',
-        color: lightThemeColors.textDark,
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    uploadButton: {
-        borderRadius: 5,
-        width: 25,
-        height: 25,
-        marginRight: 4,
-        alignItems: 'center',
-        justifyContent: 'center', 
-        backgroundColor: lightThemeColors.secondary,
-    },
-    cameraButton: {
-        borderRadius: 5,
-        width: 25,
-        height: 25,
-        marginRight: 4,
-        alignItems: 'center',
-        justifyContent: 'center', 
-        backgroundColor: lightThemeColors.secondary,
-    },
-    pfpImage: {
-        width: 128,
-        height: 128,
-        alignSelf: 'center',
-    }
-});
 
 export default RegisterScreen;

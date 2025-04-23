@@ -1,5 +1,5 @@
-import React, { useCallback, useState, useLayoutEffect, useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useCallback, useState, useLayoutEffect, useEffect, useMemo } from 'react';
+import { View, Text, StyleSheet, useColorScheme } from 'react-native';
 import { auth, db } from '../../ModularFirebase';
 import { signOut } from 'firebase/auth';
 import { collection, addDoc, getDocs, query, orderBy, onSnapshot, doc, serverTimestamp, CollectionReference, documentId, where } from 'firebase/firestore';
@@ -9,8 +9,8 @@ import {
     ImageProps as DefaultImageProps,
     ImageURISource,
 } from 'react-native';
-import { lightThemeColors } from '../assets/Colors';
-import { CommonActions, useNavigation, useRoute } from '@react-navigation/native';
+import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
+import { CommonActions, useNavigation, useRoute, useTheme } from '@react-navigation/native';
 import SafeAreaView from 'react-native-safe-area-view';
 import PressableOpacity from '../assets/MyElements';
 
@@ -69,10 +69,10 @@ export function ChatRoomScreen() {
             (snapshot) => {
                 setMessages(
                     snapshot.docs.map(doc => ({
-                        _id: doc.data().messageId,
+                        _id: doc.get('messageId'),
                         createdAt: new Date((doc.data()?.createdAt?.seconds ?? 0) * 1000),
-                        text: doc.data().text,
-                        user: doc.data().user,
+                        text: doc.get('text'),
+                        user: doc.get('user'),
                     }))
                 )
             }
@@ -129,7 +129,7 @@ export function ChatRoomScreen() {
     }
 
     const renderAccessory = (props: InputToolbarProps<IMessage>) => {
-        if (room.type == 'found') {
+        if (room.type == 'Found') {
 
         }
         return (
@@ -143,6 +143,32 @@ export function ChatRoomScreen() {
             </View>
         );
     };
+
+    const isDarkMode = useColorScheme() === 'dark';
+    const colors = isDarkMode ? DarkThemeColors : LightThemeColors;
+    const styles = useMemo(() => StyleSheet.create({
+        container: {
+            flex: 1,
+            alignItems: 'center',
+            padding: 10,
+            marginTop: 100,
+            backgroundColor: colors.background,
+        },
+        text: {
+            fontSize: 14,
+            color: colors.text,
+        },
+        headerRightText: {
+            color: colors.text,
+        },
+        button: {
+            width: 370,
+            marginTop: 10
+        },
+        messageContainer: {
+            paddingBottom: 12,
+        },
+    }), [isDarkMode]);
 
     return (
 //        <SafeAreaView>
@@ -167,25 +193,5 @@ export function ChatRoomScreen() {
         
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        alignItems: 'center',
-        padding: 10,
-        marginTop: 100,
-        backgroundColor: lightThemeColors.background,
-    },
-    headerRightText: {
-        color: lightThemeColors.textLight,
-    },
-    button: {
-        width: 370,
-        marginTop: 10
-    },
-    messageContainer: {
-        paddingBottom: 12,
-    },
-});
 
 export default ChatRoomScreen;

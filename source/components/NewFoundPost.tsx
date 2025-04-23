@@ -1,15 +1,17 @@
 import { serverTimestamp, addDoc, collection, updateDoc, doc, getDoc } from 'firebase/firestore';
-import { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, TextInput } from 'react-native';
+import { useState, useEffect, useMemo } from 'react';
+import { View, Text, TouchableOpacity, Image, StyleSheet, TextInput, useColorScheme } from 'react-native';
 import { auth, db } from '../../ModularFirebase';
-import { lightThemeColors } from '../assets/Colors';
-import { CommonActions } from '@react-navigation/native';
+import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
+import { CommonActions, useNavigation, useRoute } from '@react-navigation/native';
 import { MediaType, launchImageLibrary } from 'react-native-image-picker';
 import SafeAreaView from 'react-native-safe-area-view';
 import PressableOpacity from '../assets/MyElements';
 import { Input } from 'react-native-elements';
 
-export function NewFoundPostScreen({ navigation, route }: { navigation: any, route: any }) {
+export function NewFoundPostScreen() {
+    const navigation = useNavigation();
+    const route = useRoute();
     const [item, setItem] = useState({
         _id: '',
         name: '',
@@ -56,7 +58,7 @@ export function NewFoundPostScreen({ navigation, route }: { navigation: any, rou
         setUploading(true);
 
         const postData = {
-            type: 'found',
+            type: 'Found',
             itemId: item._id,
             itemOwnerId: item.ownerId,
             title: title,
@@ -112,10 +114,100 @@ export function NewFoundPostScreen({ navigation, route }: { navigation: any, rou
         if (route.params?.owner) setOwner(route.params!.owner);
     }, [isLoggedIn]);
 
+    const isDarkMode = useColorScheme() === 'dark';
+    const colors = isDarkMode ? DarkThemeColors : LightThemeColors;
+    const styles = useMemo(() => StyleSheet.create({
+        container: {
+            flex: 1,
+            alignItems: 'center',
+            backgroundColor: colors.background,
+        },
+        text: {
+            fontSize: 14,
+            color: colors.text,
+        },
+        itemContainer: {
+            width: '100%',
+            alignSelf: 'flex-start',
+            margin: 8,
+        },
+        horizontal: {
+            flexDirection: 'row',
+        },
+        multilineTextInput: {
+            width: '90%',
+            height: 300,
+            overflow: 'scroll',
+        },
+        addItemTitle: {
+            margin: 20,
+            color: colors.text,
+        },
+        imagePressableContainer: {
+            width: '100%',
+            alignItems: 'center',
+        },
+        imageContainer: {
+            flexDirection: 'row',
+            alignItems: 'center',
+        },
+        itemImage: {
+            width: '30%',
+            aspectRatio: 1/1,
+            borderRadius: 7,
+        },
+        itemList: {
+            width: '100%',
+            height: '40%',
+            margin: 10,
+            backgroundColor: colors.card,
+        },
+        itemListItem: {
+            width: 120,
+            marginLeft: 10,
+            paddingTop: 10,
+            paddingBottom: 10,
+        },
+        itemListItemView: {
+            margin: 4,
+        },
+        itemTitle: {
+            color: colors.text,
+            fontWeight: 'bold',
+            fontSize: 18,
+        },
+        itemSubtitle: {
+            color: colors.text,
+            fontSize: 12,
+        },
+        itemContent: {
+            color: colors.text,
+            fontSize: 16,
+        },
+        imageLabel: {
+            fontSize: 16,
+            textAlign: 'center',
+            color: colors.text,
+            fontWeight: 'bold',
+        },
+        saveButton: {
+            width: 280,
+            backgroundColor: colors.primary,
+            borderRadius: 7,
+            padding: 10,
+        },
+        saveButtonText: {
+            fontSize: 16,
+            textAlign: 'center',
+            color: colors.primaryContrastText,
+            fontWeight: 'bold',
+        }
+    }), [isDarkMode]);
+
     if (uploading) {
         return (
             <View style={styles.container}>
-                <Text>Uploading...</Text>
+                <Text style={styles.text}>Uploading...</Text>
             </View>);
     }
 
@@ -157,90 +249,5 @@ export function NewFoundPostScreen({ navigation, route }: { navigation: any, rou
         </SafeAreaView>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        alignItems: 'center',
-        backgroundColor: lightThemeColors.background,
-    },
-    itemContainer: {
-        width: '100%',
-        alignSelf: 'flex-start',
-        margin: 8,
-    },
-    horizontal: {
-        flexDirection: 'row',
-    },
-    multilineTextInput: {
-        width: '90%',
-        height: 300,
-        overflow: 'scroll',
-    },
-    addItemTitle: {
-        margin: 20,
-        color: lightThemeColors.textLight,
-    },
-    imagePressableContainer: {
-        width: '100%',
-        alignItems: 'center',
-    },
-    imageContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    itemImage: {
-        width: '30%',
-        aspectRatio: 1/1,
-        borderRadius: 7,
-    },
-    itemList: {
-        width: '100%',
-        height: '40%',
-        margin: 10,
-        backgroundColor: lightThemeColors.foreground,
-    },
-    itemListItem: {
-        width: 120,
-        marginLeft: 10,
-        paddingTop: 10,
-        paddingBottom: 10,
-    },
-    itemListItemView: {
-        margin: 4,
-    },
-    itemTitle: {
-        color: lightThemeColors.textLight,
-        fontWeight: 'bold',
-        fontSize: 18,
-    },
-    itemSubtitle: {
-        color: lightThemeColors.textLight,
-        fontSize: 12,
-    },
-    itemContent: {
-        color: lightThemeColors.textLight,
-        fontSize: 16,
-    },
-    imageLabel: {
-        fontSize: 16,
-        textAlign: 'center',
-        color: lightThemeColors.textLight,
-        fontWeight: 'bold',
-    },
-    saveButton: {
-        width: 280,
-        backgroundColor: lightThemeColors.primary,
-        borderRadius: 7,
-        padding: 10,
-    },
-    saveButtonText: {
-        fontSize: 16,
-        textAlign: 'center',
-        color: lightThemeColors.textDark,
-        fontWeight: 'bold',
-    }
-});    
-
 
 export default NewFoundPostScreen;

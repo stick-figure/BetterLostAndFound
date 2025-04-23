@@ -1,14 +1,14 @@
 import { CommonActions, NavigationProp, NavigationState, ParamListBase, Route, useIsFocused } from '@react-navigation/native';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Button, FlatList, Image, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Button, FlatList, Image, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, useColorScheme, View } from 'react-native';
 import { auth, db } from '../../ModularFirebase';
 import PressableOpacity from '../assets/MyElements';
 import { Icon, SearchBar } from 'react-native-elements';
-import { lightThemeColors } from '../assets/Colors';
 import { getDoc, doc, onSnapshot, query, collection, where, limit } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import SafeAreaView from 'react-native-safe-area-view';
 import { timestampToString } from './SomeFunctions';
+import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 
 
 export function ReturnItemScreen({ navigation }: { navigation: any }) {
@@ -36,31 +36,31 @@ export function ReturnItemScreen({ navigation }: { navigation: any }) {
     useEffect(() => {
         if (!isLoggedIn) return;
 
-        const unsubscribe = onSnapshot(query(collection(db, 'posts'), limit(20), where('resolved', '==', false), where('type', '==', 'lost'), where('authorId', '!=', auth.currentUser?.uid)), (snapshot: { docs: any[]; }) => {
+        const unsubscribe = onSnapshot(query(collection(db, 'posts'), limit(20), where('resolved', '==', false), where('type', '==', 'Lost'), where('authorId', '!=', auth.currentUser?.uid)), (snapshot: { docs: any[]; }) => {
             setIsLoading(true);
             const promises = snapshot.docs.map(async (postDoc) => {
                 let item;
                 try {
-                    item = await getDoc(doc(db, 'items', postDoc.data().itemId));
+                    item = await getDoc(doc(db, 'items', postDoc.get('itemId')));
                 } catch (err) {
                     console.warn(err);
                 }
 
                 let owner;
                 try {
-                    owner = await getDoc(doc(db, 'users', postDoc.data().authorId));
+                    owner = await getDoc(doc(db, 'users', postDoc.get('authorId')));
                 } catch (err) {
                     console.warn(err);
                 }
                 
                 return {
                     _id: postDoc.id,
-                    title: postDoc.data().title,
-                    message: postDoc.data().message,
-                    authorName: (owner?.data() ? owner.data()!.name : postDoc.data().ownerId) || 'Unknown User',
-                    pfpSrc: owner?.data()?.pfpUrl,
-                    imageSrc: item?.data()?.imageSrc,
-                    createdAt: postDoc.data().createdAt,
+                    title: postDoc.get('title'),
+                    message: postDoc.get('message'),
+                    authorName: owner?.get('name') || postDoc.get('authorId') || 'Unknown User',
+                    pfpSrc: owner?.get('pfpUrl'),
+                    imageSrc: item?.get('imageSrc'),
+                    createdAt: postDoc.get('createdAt'),
                 };
             });
 
@@ -106,13 +106,119 @@ export function ReturnItemScreen({ navigation }: { navigation: any }) {
         setLostPostQuery(myPostQuery);
     };
     
+    const isDarkMode = useColorScheme() === 'dark';
+    const colors = isDarkMode ? DarkThemeColors : LightThemeColors;
+    const styles = useMemo(() => StyleSheet.create({
+        container: {
+            flex: 1,
+            alignItems: 'center',
+            padding: 10,
+            backgroundColor: colors.background,
+        },
+        horizontal: {
+            flexDirection: 'row',
+        },
+        text: {
+            textAlign: 'center',
+            color: colors.contrastText,
+            fontSize: 18,
+        },
+        subtitle: {
+            color: colors.text,
+            fontSize: 20,
+            fontWeight: '700',
+        },
+        searchBar: {
+            backgroundColor: colors.card,
+            borderWidth: 0,
+        },
+        searchBarContainer: {
+            width: '100%',
+            backgroundColor: colors.background,
+            borderWidth: 0,
+        },
+        searchBarLabel: {
+            backgroundColor: colors.background,
+            borderWidth: 0,
+        },
+        searchBarInput: {
+            backgroundColor: colors.background,
+            color: colors.text,
+            borderWidth: 0,
+        },
+        searchBarInputContainer: {
+            borderWidth: 0,
+            backgroundColor: colors.card,
+        },
+        returnItemButton: {
+            width: 370,
+            margin: 6,
+            padding: 6,
+            backgroundColor: colors.primary,
+            borderRadius: 7,
+            alignItems: 'center',
+        },
+        buttonText: {
+            textAlign: 'center',
+            color: colors.primaryContrastText,
+            fontSize: 16,
+        },
+        itemList: {
+            flex: 1,
+            width: '100%',
+            margin: 10,
+            backgroundColor: colors.card,
+        },
+        itemListItem: {
+            flex: 1, 
+            margin: 4,
+            alignSelf: 'stretch',
+        },
+        itemImage: {
+            alignSelf: 'stretch',
+            aspectRatio: 1,
+            verticalAlign: 'bottom',
+        },
+        itemTitle: {
+            color: colors.text,
+            fontWeight: 'bold',
+            fontSize: 18,
+        },
+        itemSubtitle: {
+            color: colors.text,
+            fontSize: 12,
+        },
+        itemContent: {
+            color: colors.text,
+            fontSize: 14,
+            overflow: 'hidden',
+        },
+        pfp: {
+            borderRadius: 99999,
+            width: 42, 
+            aspectRatio: 1/1,
+            marginRight: 12,
+            color: colors.text,
+        },
+        userName: {
+            fontSize: 15,
+            fontWeight: '600',
+            color: colors.text,
+        },
+        timestamp: {
+            fontSize: 12,
+            margin: 2,
+            color: colors.text,
+        },
+    }), [isDarkMode]);
+
     return (
         <SafeAreaView style={styles.container}>
             <PressableOpacity
                 onPress={() => navigation.navigate('My Stack', { screen: 'Search Items' })}
                 style={styles.returnItemButton}>
                     <View style={[styles.horizontal, {width: '100%', justifyContent: 'center'}]}>
-                        <Icon name='search' type='material-icons' color={lightThemeColors.textDark} />
+                        <Icon name='search' type='material-icons' color={colors.primaryContrastText} />
                         <Text style={styles.buttonText}>Search all items</Text>
                     </View>
             </PressableOpacity>
@@ -141,14 +247,14 @@ export function ReturnItemScreen({ navigation }: { navigation: any }) {
                     keyExtractor={lostPost => lostPost._id.toString()}
                     ListEmptyComponent={
                         <View style={{flex: 1, alignContent: 'center', alignSelf: 'stretch', justifyContent: 'center'}}>
-                            {isLoading ? <ActivityIndicator size='large' /> : <Icon name='cactus' type='material-community' />}
+                            {isLoading ? <ActivityIndicator size='large' /> : <Icon name='cactus' type='material-community' color={colors.text} />}
                         </View>
                     }
                     data={lostPostQuery}
                     numColumns={2}
                     renderItem={({ item }) => (
-                        <View style={styles.itemListItemView}>
-                            <PressableOpacity onPress={() => navigateToPost(item._id)} key={item._id.toString()} children={undefined}>
+                        <View style={styles.itemListItem}>
+                            <PressableOpacity onPress={() => navigateToPost(item._id)} key={item._id.toString()}>
                                 <View style={[styles.horizontal, {width: '100%', justifyContent: 'flex-start', alignItems: 'center'}]}>
                                     <Image
                                         style={styles.pfp}
@@ -177,114 +283,7 @@ export function ReturnItemScreen({ navigation }: { navigation: any }) {
 
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        alignItems: 'center',
-        padding: 10,
-        backgroundColor: lightThemeColors.background,
-    },
-    horizontal: {
-        flexDirection: 'row',
-    },
-    text: {
-        textAlign: 'center',
-        color: lightThemeColors.textDark,
-        fontSize: 18,
-    },
-    subtitle: {
-        color: lightThemeColors.textLight,
-        fontSize: 20,
-        fontWeight: '700',
-    },
-    searchBar: {
-        backgroundColor: lightThemeColors.foreground,
-        borderWidth: 0,
-    },
-    searchBarContainer: {
-        width: '100%',
-        backgroundColor: lightThemeColors.background,
-        borderWidth: 0,
-    },
-    searchBarLabel: {
-        backgroundColor: lightThemeColors.background,
-        borderWidth: 0,
-    },
-    searchBarInput: {
-        backgroundColor: lightThemeColors.background,
-        color: lightThemeColors.textLight,
-        borderWidth: 0,
-    },
-    searchBarInputContainer: {
-        borderWidth: 0,
-        backgroundColor: lightThemeColors.foreground,
-    },
-    returnItemButton: {
-        width: 370,
-        margin: 6,
-        padding: 6,
-        backgroundColor: lightThemeColors.primary,
-        borderRadius: 7,
-        alignItems: 'center',
-    },
-    buttonText: {
-        textAlign: 'center',
-        color: lightThemeColors.textDark,
-        fontSize: 18,
-    },
-    itemList: {
-        flex: 1,
-        width: '100%',
-        margin: 10,
-        backgroundColor: lightThemeColors.foreground,
-    },
-    itemListItemView: {
-        flex: 1, 
-        margin: 4,
-        alignSelf: 'stretch',
-    },
-    itemImage: {
-        alignSelf: 'stretch',
-        aspectRatio: 1,
-        verticalAlign: 'bottom',
-    },
-    itemTitle: {
-        color: lightThemeColors.textLight,
-        fontWeight: 'bold',
-        fontSize: 18,
-    },
-    itemSubtitle: {
-        color: lightThemeColors.textLight,
-        fontSize: 12,
-    },
-    itemContent: {
-        color: lightThemeColors.textLight,
-        fontSize: 14,
-        overflow: 'hidden',
-    },
-    returnItemButton: {
-        width: 370,
-        marginBottom: 10,
-        padding: 10,
-        backgroundColor: lightThemeColors.primary,
-        borderRadius: 7,
-    },
-    pfp: {
-        borderRadius: 99999,
-        width: 42, 
-        aspectRatio: 1/1,
-        marginRight: 12,
-        color: lightThemeColors.textLight,
-    },
-    userName: {
-        fontSize: 15,
-        fontWeight: '600',
-        color: lightThemeColors.textLight,
-    },
-    timestamp: {
-        fontSize: 12,
-        margin: 2,
-        color: lightThemeColors.textLight,
-    },
+    
 });
 
 export default ReturnItemScreen;
