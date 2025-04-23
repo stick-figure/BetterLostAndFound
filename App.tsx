@@ -58,6 +58,9 @@ function HomeTab() {
                 headerStyle: {
                     backgroundColor: colors.card,
                 },
+                tabBarStyle: {
+                    backgroundColor: colors.card,
+                }
             }}>
             <Tab.Screen 
                 name='Home' 
@@ -134,19 +137,14 @@ function MyDrawer() {
                             onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
                             activeOpacity={pressOpacity}
                             style={{
-                                flexGrow: 1,
-//                                height: "100%",
-                                alignItems: 'center',
-                                flexDirection: 'column',
+                                height: '100%', 
+                                alignItems: 'stretch', 
+                                justifyContent: 'center',
                                 aspectRatio: 1}}>
-                            <Icon name='menu' type='ionicon' size={22} color={tintColor} style={{
-                                flexGrow: 1,
-                                alignSelf:'center',
-                                flexDirection: 'column',
-                            }}/>
+                            <Icon name='menu' type='material-icons' size={24} color={tintColor} />
                         </PressableOpacity>
                     );
-                }
+                },
             }}>
             <Drawer.Screen 
                 name='Home Tabs' 

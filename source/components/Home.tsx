@@ -185,10 +185,11 @@ export function HomeScreen({ navigation }: { navigation: any }) {
             
             <View style={styles.itemList}>
                 <FlatList
+                    contentContainerStyle={{minHeight: '100%'}}
                     keyExtractor={lostPost => lostPost._id.toString()}
                     ListEmptyComponent={
                         <View style={{width: '100%', height: '100%', alignContent: 'center', alignSelf: 'stretch', justifyContent: 'center'}}>
-                            {isLoading ? <ActivityIndicator size='large' /> : <Icon name='cactus' type='material-community' />}
+                            {isLoading ? <ActivityIndicator size='large' /> : <Icon name='cactus' type='material-community' size={40} />}
                         </View>
                     }
                     data={posts}

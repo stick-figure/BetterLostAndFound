@@ -2,9 +2,9 @@ import { DarkTheme, DefaultTheme } from "@react-navigation/native";
 import { Platform } from "react-native";
 
 export const LightThemeColors = {
-    primary: 'rgb(56, 153, 209)',
+    primary: 'rgb(72, 163, 214)',
     primaryContrastText: 'rgb(244, 244, 247)',
-    secondary: 'rgb(195, 226, 240)',
+    secondary: 'rgb(209, 233, 244)',
     secondaryContrastText: 'rgb(28, 28, 30)',
     background: 'rgb(236, 236, 236)',
     card: 'rgb(255, 255, 255)',
@@ -16,9 +16,9 @@ export const LightThemeColors = {
 };
 
 export const DarkThemeColors = {
-    primary: 'rgb(72, 163, 214)',
+    primary: 'rgb(56, 153, 209)',
     primaryContrastText: 'rgb(229, 229, 231)',
-    secondary: 'rgb(209, 233, 244)',
+    secondary: 'rgb(195, 226, 240)',
     secondaryContrastText: 'rgb(28, 28, 30)',
     background: 'rgb(5, 5, 5)',
     card: 'rgb(18, 18, 19)',

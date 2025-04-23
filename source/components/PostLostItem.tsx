@@ -188,15 +188,15 @@ export function PostLostItemScreen({ navigation }: { navigation: any }) {
                 rightIconContainerStyle={{borderWidth: 0}}
                 disabledInputStyle={{opacity: 0.8}}
                 round
-                lightTheme
+                
                 />
             <View style={styles.itemList}>
                 <FlatList
-                    horizontal={false}
+                    contentContainerStyle={{minHeight: '100%'}}
                     keyExtractor={item => item._id.toString()}
                     ListEmptyComponent={
                         <View style={{flex: 1, alignContent: 'center', alignSelf: 'stretch', justifyContent: 'center'}}>
-                            {isLoading ? <ActivityIndicator size='large' /> : <Icon name='cactus' type='material-community' color={colors.text} />}
+                            {isLoading ? <ActivityIndicator size='large' /> : <Icon name='cactus' type='material-community' color={colors.text} size={40} />}
                         </View>
                     }
                     data={itemQuery}

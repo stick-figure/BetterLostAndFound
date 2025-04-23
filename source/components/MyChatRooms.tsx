@@ -144,7 +144,6 @@ export function MyChatRoomsScreen({ navigation }: { navigation: any }) {
         container: {
             flex: 1,
             alignItems: 'center',
-            padding: 10,
             backgroundColor: colors.background,
         },
         horizontal: {
@@ -247,6 +246,7 @@ export function MyChatRoomsScreen({ navigation }: { navigation: any }) {
     return (
         <SafeAreaView style={styles.container}>
             <FlatList
+                contentContainerStyle={{minHeight: '100%'}}
                 keyExtractor={(item) => item._id}
                 scrollEnabled={false}
                 data={roomsData}
@@ -274,7 +274,7 @@ export function MyChatRoomsScreen({ navigation }: { navigation: any }) {
                     );
                 }}
                 ListEmptyComponent={
-                    <View style={{height: 100}}>
+                    <View style={{height: "100%"}}>
                         <View style={{width: '100%', height: '100%', alignItems: 'stretch', justifyContent: 'center'}}>
                             <Icon name='cactus' type='material-community' size={42} color={colors.text} />
                             <Text style={[styles.text, {alignSelf: 'center'}]}>No one has set up a chat with you yet</Text>

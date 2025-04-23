@@ -130,15 +130,18 @@ export function MyItemsScreen({ navigation }: { navigation: any }) {
             alignItems: 'center',
             alignSelf: 'stretch',
             justifyContent: 'space-between',
+            color: colors.text,
         },
         userStatLabel: {
             fontSize: 12,
             width: 80,
             textAlign: 'center',
+            color: colors.text,
         },
         userStatValue: {
             fontSize: 24,
             textAlign: 'center',
+            color: colors.text,
         },
         pfp: {
             width: 128,
@@ -227,18 +230,18 @@ export function MyItemsScreen({ navigation }: { navigation: any }) {
             <View style={[styles.horizontal, {width:'100%', alignItems: 'flex-end', justifyContent: 'space-between'}]}>
                 <Text style={{fontSize: 16, color: colors.text, margin: 4}}>My Items</Text>
                 <PressableOpacity onPress={() => navigation.navigate('My Stack', {screen: 'Add Item'})} style={styles.smallButton}>
-                    <Text style={styles.addItemTitle}>Add Item</Text>
+                    <Text style={styles.smallButtonText}>Add Item</Text>
                 </PressableOpacity>
             </View>
             <View style={styles.itemList}>
                 <FlatList
                     keyExtractor={item => item._id.toString()}
                     ListEmptyComponent={
-                        <View style={{flex: 1, alignContent: 'center', alignSelf: 'stretch', justifyContent: 'center'}}>
-                            {isLoading ? <ActivityIndicator size='large' /> : <Icon name='cactus' type='material-community' color={colors.text} />}
+                        <View style={{height: '100%', alignContent: 'center', alignSelf: 'stretch', justifyContent: 'center'}}>
+                            {isLoading ? <ActivityIndicator size='large' /> : <Icon name='cactus' type='material-community' color={colors.text} size={40} />}
                         </View>
                     }
-                    data={sortedItems}
+                    data={items}
                     renderItem={({ item }) => (
                         <View style={[styles.itemListItem, item.isLost ? {backgroundColor: 'red',} : {}]}>
                             <PressableOpacity

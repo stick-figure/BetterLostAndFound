@@ -241,13 +241,14 @@ export function ReturnItemScreen({ navigation }: { navigation: any }) {
                 rightIconContainerStyle={{borderWidth: 0}}
                 disabledInputStyle={{opacity: 0.8}}
                 round
-                lightTheme />
+                lightTheme={!isDarkMode} />
             <View style={styles.itemList}>
                 <FlatList
+                    contentContainerStyle={{minHeight: '100%'}}
                     keyExtractor={lostPost => lostPost._id.toString()}
                     ListEmptyComponent={
-                        <View style={{flex: 1, alignContent: 'center', alignSelf: 'stretch', justifyContent: 'center'}}>
-                            {isLoading ? <ActivityIndicator size='large' /> : <Icon name='cactus' type='material-community' color={colors.text} />}
+                        <View style={{height: '100%', alignContent: 'center', alignSelf: 'stretch', justifyContent: 'center'}}>
+                            {isLoading ? <ActivityIndicator size='large' /> : <Icon name='cactus' type='material-community' color={colors.text} size={40} />}
                         </View>
                     }
                     data={lostPostQuery}
