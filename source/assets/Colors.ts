@@ -12,7 +12,7 @@ export const LightThemeColors = {
     contrastText: 'rgb(240, 240, 244)',
     border: 'rgb(199, 199, 204)',
     notification: 'rgb(255, 59, 48)',
-    red: 'rgb(237, 71, 56)',
+    red: 'rgb(238, 106, 104)',
 };
 
 export const DarkThemeColors = {
@@ -24,7 +24,7 @@ export const DarkThemeColors = {
     card: 'rgb(18, 18, 19)',
     text: 'rgb(229, 229, 231)',
     contrastText: 'rgb(28, 28, 30)',
-    border: 'rgb(42, 42, 44)',
+    border: 'rgb(56, 56, 58)',
     notification: 'rgb(255, 69, 58)',
-    red: 'rgb(238, 106, 104)',
+    red: 'rgb(237, 91, 88)',
 };

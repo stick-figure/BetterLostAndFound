@@ -6,7 +6,7 @@ import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { CommonActions, useNavigation, useRoute } from '@react-navigation/native';
 import { MediaType, launchImageLibrary } from 'react-native-image-picker';
 import SafeAreaView from 'react-native-safe-area-view';
-import PressableOpacity from '../assets/MyElements';
+import { CoolTextInput, PressableOpacity } from '../hooks/MyElements';
 import { Input } from 'react-native-elements';
 
 export function NewFoundPostScreen() {
@@ -33,7 +33,7 @@ export function NewFoundPostScreen() {
     const [imageUris, setImageUris] = useState<string[]>([]);
 
     const [uploading, setUploading] = useState(false);
-
+    
     const openImagePicker = () => {
         const options = {
             mediaType: 'photo' as MediaType,
@@ -230,14 +230,14 @@ export function NewFoundPostScreen() {
                         </View>
                 </PressableOpacity>
             </View>
-            <Input
-                label='Message*'
+            <CoolTextInput
+                label='Message'
                 multiline={true}
                 placeholder=''
                 onChangeText={text => setMessage(text)}
                 value={message}
                 editable={!uploading}
-                style={styles.multilineTextInput}
+                required
             />
             <PressableOpacity
                 style={styles.saveButton}

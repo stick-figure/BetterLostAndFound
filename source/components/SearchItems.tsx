@@ -7,7 +7,7 @@ import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { CommonActions, useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
 import { colors, Icon, SearchBar } from 'react-native-elements';
-import PressableOpacity from '../assets/MyElements';
+import { PressableOpacity } from '../hooks/MyElements';
 
 interface ItemTile {
     _id: string,
@@ -186,7 +186,7 @@ export function SearchItemsScreen() {
                 />
             <View style={styles.itemList}>
                 <FlatList
-                    contentContainerStyle={{minHeight: '100%'}}
+                    contentContainerStyle={{}}
                     keyExtractor={item => item._id.toString()}
                     ListEmptyComponent={
                         <View style={{flex: 1, alignContent: 'center', alignSelf: 'stretch', justifyContent: 'center'}}>

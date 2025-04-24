@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { SafeAreaView, View, FlatList, ActivityIndicator, Image, Text, StyleSheet, useColorScheme } from 'react-native';
 import { SearchBar, Icon } from 'react-native-elements';
 import { auth, db } from '../../ModularFirebase';
-import PressableOpacity from '../assets/MyElements';
+import { PressableOpacity } from '../hooks/MyElements';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 
 
@@ -188,7 +188,7 @@ export function PostLostItemScreen({ navigation }: { navigation: any }) {
                 rightIconContainerStyle={{borderWidth: 0}}
                 disabledInputStyle={{opacity: 0.8}}
                 round
-                
+                lightTheme={!isDarkMode}
                 />
             <View style={styles.itemList}>
                 <FlatList

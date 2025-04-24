@@ -12,7 +12,7 @@ import {
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { CommonActions, useNavigation, useRoute, useTheme } from '@react-navigation/native';
 import SafeAreaView from 'react-native-safe-area-view';
-import PressableOpacity from '../assets/MyElements';
+import { PressableOpacity } from '../hooks/MyElements';
 
 type ImageProps = DefaultImageProps & {
     source: ImageURISource;
@@ -28,6 +28,7 @@ export function ChatRoomScreen() {
     const [messages, setMessages] = useState<IMessage[]>([]);
 
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+    
     useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged((user) => {
             if (user) {

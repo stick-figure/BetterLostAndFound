@@ -2,7 +2,7 @@ import { CommonActions, NavigationProp, NavigationState, ParamListBase, Route, u
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Button, FlatList, Image, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, useColorScheme, View } from 'react-native';
 import { auth, db } from '../../ModularFirebase';
-import PressableOpacity from '../assets/MyElements';
+import { PressableOpacity } from '../hooks/MyElements';
 import { Icon, SearchBar } from 'react-native-elements';
 import { getDoc, doc, onSnapshot, query, collection, where, limit } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
@@ -160,6 +160,7 @@ export function ReturnItemScreen({ navigation }: { navigation: any }) {
         },
         buttonText: {
             textAlign: 'center',
+            justifyContent: 'center',
             color: colors.primaryContrastText,
             fontSize: 16,
         },
@@ -217,7 +218,7 @@ export function ReturnItemScreen({ navigation }: { navigation: any }) {
             <PressableOpacity
                 onPress={() => navigation.navigate('My Stack', { screen: 'Search Items' })}
                 style={styles.returnItemButton}>
-                    <View style={[styles.horizontal, {width: '100%', justifyContent: 'center'}]}>
+                    <View style={[styles.horizontal, {justifyContent: 'center'}]}>
                         <Icon name='search' type='material-icons' color={colors.primaryContrastText} />
                         <Text style={styles.buttonText}>Search all items</Text>
                     </View>
@@ -244,7 +245,7 @@ export function ReturnItemScreen({ navigation }: { navigation: any }) {
                 lightTheme={!isDarkMode} />
             <View style={styles.itemList}>
                 <FlatList
-                    contentContainerStyle={{minHeight: '100%'}}
+                    contentContainerStyle={{flexGrow: 1, minHeight: '100%'}}
                     keyExtractor={lostPost => lostPost._id.toString()}
                     ListEmptyComponent={
                         <View style={{height: '100%', alignContent: 'center', alignSelf: 'stretch', justifyContent: 'center'}}>

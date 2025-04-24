@@ -1,17 +1,18 @@
 import { collection, deleteDoc, deleteField, doc, DocumentReference, getDoc, onSnapshot, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { useState, useEffect, useCallback, ReactNode, useMemo } from 'react';
-import { View, Text, Button, StyleSheet, Pressable, Alert, TextInput, Image, ScrollView, StatusBar, useColorScheme } from 'react-native';
+import { View, Text, Button, StyleSheet, Pressable, Alert, TextInput, Image, ScrollView, StatusBar, useColorScheme, Platform } from 'react-native';
 import { auth, db } from '../../ModularFirebase';
 import { deleteObject, getDownloadURL, getStorage, ref, StorageReference, uploadBytesResumable, UploadTask } from 'firebase/storage';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { CommonActions, RouteProp, useFocusEffect, useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
-import PressableOpacity from '../assets/MyElements';
+import { PressableOpacity } from '../hooks/MyElements';
 import { Icon } from 'react-native-elements';
 import SafeAreaView from 'react-native-safe-area-view';
 import { MediaType, launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import firebase from 'firebase/compat/app';
 import { timestampToString } from './SomeFunctions';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
+import { check, PERMISSIONS, PermissionStatus, request, RESULTS } from 'react-native-permissions';
 
 export type ItemViewRouteParams = {
     itemId: string,
@@ -135,79 +136,116 @@ export function ItemViewScreen() {
         });
     }, []);
 
+    const [hasGalleryPermission, setHasGalleryPermission] = useState<PermissionStatus>(RESULTS.UNAVAILABLE);
+    const [hasCameraPermission, setHasCameraPermission] = useState<PermissionStatus>(RESULTS.UNAVAILABLE);
     
-        const openImagePicker = () => {
-            const options = {
-                mediaType: 'photo' as MediaType,
-                includeBase64: false,
-                maxHeight: 2000,
-                maxWidth: 2000,
-                selectionLimit: 1,
-            };
-    
-            launchImageLibrary(options, (response) => {
-                if (response.didCancel) {
-                    console.log('User cancelled image picker');
-                } else if (response.errorCode) {
-                    console.log('ImagePicker Error: ', response.errorMessage);
-                } else if (response.assets) {
-                    setImageUri(response.assets[0].uri!);
-                    setHasUnsavedChanges(true);
-                }
-            }).catch(() => { console.log('whoop de doo') });
+    useEffect(() => {
+        check(Platform.OS === 'ios' ? PERMISSIONS.IOS.CAMERA : PERMISSIONS.ANDROID.CAMERA).then((result) => {
+            setHasCameraPermission(result);
+            console.log('camera permission status:', result);
+        });
+        check(Platform.OS === 'ios' ? PERMISSIONS.IOS.PHOTO_LIBRARY : PERMISSIONS.ANDROID.READ_MEDIA_IMAGES).then((result) => {
+            setHasGalleryPermission(result);
+            console.log('image library permission status:', result);
+        });
+    },[]);
+
+    const openImagePicker = () => {
+        if (hasCameraPermission != RESULTS.GRANTED) {
+            request(Platform.OS === 'ios' ? PERMISSIONS.IOS.PHOTO_LIBRARY : PERMISSIONS.ANDROID.READ_MEDIA_IMAGES).then((result) => {
+                setHasCameraPermission(result);
+                console.log(result);
+                if (result == RESULTS.GRANTED) pickImage();
+            });
+            return;
+        }
+        pickImage();
+    }
+
+    const pickImage = () => {
+        
+        const options = {
+            mediaType: 'photo' as MediaType,
+            includeBase64: false,
+            maxHeight: 2000,
+            maxWidth: 2000,
+            selectionLimit: 1,
         };
-    
-        const handleCameraLaunch = () => {
-            const options = {
-                mediaType: 'photo' as MediaType,
-                includeBase64: false,
-                maxHeight: 2000,
-                maxWidth: 2000,
-            };
-    
-            launchCamera(options, (response) => {
-                if (response.didCancel) {
-                    console.warn('User cancelled camera');
-                } else if (response.errorCode == 'camera_unavailable') {
-                    
-                } else if (response.errorCode) {
-                    console.warn('Camera Error', response.errorCode, ': ', response.errorMessage);
-                } else {
-                    setImageUri(response.assets![0].uri!);
-                    setHasUnsavedChanges(true);
-                }
+
+        launchImageLibrary(options, (response) => {
+            if (response.didCancel) {
+                console.log('User cancelled image picker');
+            } else if (response.errorCode) {
+                console.log('ImagePicker Error: ', response.errorMessage);
+            } else if (response.assets) {
+                setImageUri(response.assets[0].uri!);
+                setHasUnsavedChanges(true);
+            }
+        }).catch(() => { console.log('whoop de doo') });
+    };
+    const handleCameraLaunch = () => {
+        if (hasCameraPermission != RESULTS.GRANTED) {
+            request(Platform.OS === 'ios' ? PERMISSIONS.IOS.PHOTO_LIBRARY : PERMISSIONS.ANDROID.READ_MEDIA_IMAGES).then((result) => {
+                setHasCameraPermission(result);
+                console.log(result);
+                if (result == RESULTS.GRANTED) myCameraLaunch();
             });
+            return;    
         }
+    }
+
+    const myCameraLaunch = () => {
+        const options = {
+            mediaType: 'photo' as MediaType,
+            includeBase64: false,
+            maxHeight: 2000,
+            maxWidth: 2000,
+        };
+
+        launchCamera(options, (response) => {
+            if (response.didCancel) {
+                console.warn('User cancelled camera');
+            } else if (response.errorCode == 'camera_unavailable') {
+                
+            } else if (response.errorCode) {
+                console.warn('Camera Error', response.errorCode, ': ', response.errorMessage);
+            } else {
+                setImageUri(response.assets![0].uri!);
+                setHasUnsavedChanges(true);
+            }
+        });
+    }
     
-        const uploadImage = () => {
-            return new Promise(async (resolve, reject) => {
-                try {
-                    
-                    const response = await fetch(imageUri);
-                    const blob = await response.blob();
-                    if (imageRef === undefined) {
-                        reject(new Error('Invalid image reference.'))
-                    }
-                    const uploadTask: UploadTask = uploadBytesResumable(imageRef!, blob);
-                    setUploadProgress(0);
 
-                    uploadTask.on('state_changed', (snapshot) => {
-                        setUploadProgress(snapshot.bytesTransferred / snapshot.totalBytes);
-                        // Stop after receiving one update.
-                    }, () => {}, () => setUploadProgress(-1));
-
-                    await uploadTask.then();
-                        
-                    const url = await getDownloadURL(imageRef!);
-
-                    resolve(url);
-                    return;                    
-                } catch (error) {
-                    reject(error);
-                    return;
+    const uploadImage = () => {
+        return new Promise(async (resolve, reject) => {
+            try {
+                
+                const response = await fetch(imageUri);
+                const blob = await response.blob();
+                if (imageRef === undefined) {
+                    reject(new Error('Invalid image reference.'))
                 }
-            });
-        }
+                const uploadTask: UploadTask = uploadBytesResumable(imageRef!, blob);
+                setUploadProgress(0);
+
+                uploadTask.on('state_changed', (snapshot) => {
+                    setUploadProgress(snapshot.bytesTransferred / snapshot.totalBytes);
+                    // Stop after receiving one update.
+                }, () => {}, () => setUploadProgress(-1));
+
+                await uploadTask.then();
+                    
+                const url = await getDownloadURL(imageRef!);
+
+                resolve(url);
+                return;                    
+            } catch (error) {
+                reject(error);
+                return;
+            }
+        });
+    }
 
     useEffect(() => {
         setIsOwner(item?.ownerId == auth.currentUser!.uid);
@@ -374,7 +412,6 @@ export function ItemViewScreen() {
             aspectRatio: 1 / 1,
         },
         textInput: {
-            textDecorationStyle: 'dotted',
             fontWeight: 600,
             fontSize: 18,
             width: '80%', 
@@ -385,6 +422,7 @@ export function ItemViewScreen() {
             borderRadius: 1,
             padding: 6,
             margin: 5,
+            color: colors.text,
         },
         itemName: {
             fontSize: 20,
@@ -424,7 +462,7 @@ export function ItemViewScreen() {
             justifyContent: 'center',
         },
         finishEditButton: {
-            backgroundColor: isDarkMode ? 'green' : 'lime',
+            backgroundColor: colors.primary,
             width: '100%',
             height: '100%',
             paddingHorizontal: 10,
@@ -455,7 +493,7 @@ export function ItemViewScreen() {
                     source={imageUri ? {uri: imageUri} : {uri: item.imageSrc}} 
                     defaultSource={require('../assets/defaultimg.jpg')} />
                 {isEditable ? (
-                    <View style={styles.horizontal}>
+                    <View style={{...styles.horizontal, alignSelf: 'center'}}>
                         <PressableOpacity 
                             onPress={handleCameraLaunch} 
                             style={styles.cameraButton} 
@@ -468,7 +506,7 @@ export function ItemViewScreen() {
                             disabled={!isEditable || isUploading}>
                             <Icon name='photo-library' type='material-icons' size={20} color={colors.text} />
                         </PressableOpacity>
-                        <Text style={{fontSize: 16, color: colors.text,}}>Set photo*</Text>
+                        <Text style={{fontSize: 14, fontWeight: '500', color: colors.text,}}>Set photo</Text>
                     </View>
                 ) : (
                     <View></View>
@@ -478,9 +516,7 @@ export function ItemViewScreen() {
                     <View style={{width: `100%`, height: 7, backgroundColor: 'grey', borderRadius: 10,}}>
                         <View style={{width: `${uploadProgress*100}%`, height: 7, backgroundColor: 'lime', borderRadius: 10,}}></View>
                     </View>
-                ) : (
-                    <View></View>
-                )}
+                ) : null}
 
                 <TextInput 
                     style={isEditable ? styles.textInput : styles.itemName}
@@ -513,7 +549,7 @@ export function ItemViewScreen() {
                             source={owner.pfpUrl ? {uri: owner.pfpUrl} : undefined}
                             defaultSource={require('../assets/defaultpfp.jpg')} />
                     </View>
-                ) : <View></View>}
+                ) : null}
                 
                 {!isEditable ? actionButtons() : <View></View>}
 
@@ -532,7 +568,7 @@ export function ItemViewScreen() {
                                     onPress={() => {saveEdits(); setIsEditable(false)}}
                                     style={styles.finishEditButton}
                                     disabled={!isEditable || isUploading}>
-                                    <Icon name='check' type='material-community' color={colors.contrastText} />
+                                    <Icon name='save' type='fontisto' color={colors.contrastText} />
                                 </PressableOpacity>
                             )}
                            

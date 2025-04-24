@@ -7,7 +7,7 @@ import { db, auth } from '../../ModularFirebase';
 import { CommonActions, DrawerActions, useIsFocused } from '@react-navigation/native';
 import { Icon } from 'react-native-elements';
 import SafeAreaView from 'react-native-safe-area-view';
-import PressableOpacity from '../assets/MyElements';
+import { PressableOpacity } from '../hooks/MyElements';
 import { timestampToString } from './SomeFunctions';
 
 interface PostListItem {

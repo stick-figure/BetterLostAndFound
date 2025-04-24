@@ -7,7 +7,7 @@ import { launchImageLibrary, MediaType } from 'react-native-image-picker';
 import { auth, db } from '../../ModularFirebase';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { CommonActions, useNavigation, useRoute } from '@react-navigation/native';
-import PressableOpacity from '../assets/MyElements';
+import { CoolTextInput, PressableOpacity } from '../hooks/MyElements';
 import { Input } from 'react-native-elements';
 import SafeAreaView from 'react-native-safe-area-view';
 
@@ -90,6 +90,8 @@ export function NewLostPostScreen() {
     const styles = useMemo(() => StyleSheet.create({
         container: {
             flex: 1,
+            width: '100%',
+            padding: 8,
             alignItems: 'center',
             backgroundColor: colors.background,
         },
@@ -202,15 +204,19 @@ export function NewLostPostScreen() {
                         </View>
                 </PressableOpacity>
             </View>
-            <Input
-                label='Message*'
+            <CoolTextInput
+                label='Message'
                 multiline={true}
+                numberOfLines={4}
                 placeholder=''
+                style={{width: '100%', height: 200}}
                 onChangeText={text => setMessage(text)}
                 value={message}
                 editable={!uploading}
-                style={styles.multilineTextInput}
+                required
             />
+            {/*TODO EXPIRE BY FIELD*/}
+
             <PressableOpacity
                 style={styles.saveButton}
                 disabled={message.trim().length <= 0}

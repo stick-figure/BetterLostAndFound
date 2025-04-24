@@ -5,7 +5,7 @@ import SafeAreaView, { SafeAreaProvider } from 'react-native-safe-area-view';
 import { auth, db } from '../../ModularFirebase';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { CommonActions, useIsFocused } from '@react-navigation/native';
-import PressableOpacity from '../assets/MyElements';
+import { PressableOpacity } from '../hooks/MyElements';
 import { Icon } from 'react-native-elements';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 
@@ -155,7 +155,7 @@ export function MyChatRoomsScreen({ navigation }: { navigation: any }) {
             fontSize: 14,
         },
         chatListContainer: {
-            width: '90%',
+            width: '100%',
             height: 'auto',
             backgroundColor: colors.card,
             alignSelf: 'center',
@@ -246,9 +246,9 @@ export function MyChatRoomsScreen({ navigation }: { navigation: any }) {
     return (
         <SafeAreaView style={styles.container}>
             <FlatList
-                contentContainerStyle={{minHeight: '100%'}}
+                contentContainerStyle={{width: '100%', flexGrow: 1, minHeight: '100%'}}
                 keyExtractor={(item) => item._id}
-                scrollEnabled={false}
+                scrollEnabled={true}
                 data={roomsData}
                 style={styles.chatListContainer}
                 renderItem={({ item }) => {

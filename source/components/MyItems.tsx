@@ -6,7 +6,7 @@ import { auth, db } from '../../ModularFirebase';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { CommonActions } from '@react-navigation/native';
-import PressableOpacity from '../assets/MyElements';
+import { PressableOpacity } from '../hooks/MyElements';
 import { Icon } from 'react-native-elements';
 
 interface ItemTile {

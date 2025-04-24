@@ -3,7 +3,7 @@ import { FlatList, Image, Modal, Pressable, StatusBar, StyleSheet, Text, TextInp
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { auth, db } from '../../ModularFirebase';
 import { addDoc, collection, disableNetwork, doc, documentId, DocumentSnapshot, getDoc, getDocs, onSnapshot, query, QuerySnapshot, runTransaction, serverTimestamp, updateDoc, where } from 'firebase/firestore';
-import PressableOpacity from '../assets/MyElements';
+import { PressableOpacity } from '../hooks/MyElements';
 import SafeAreaView from 'react-native-safe-area-view';
 import { CommonActions, useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
 import { CheckBox, Icon } from 'react-native-elements';
@@ -165,24 +165,59 @@ export function LostPostViewScreen() {
                 onRequestClose={() => {
                     setModalVisible(false);
                 }}>
-                <View style={styles.modalBackground}>
-                    <View style={styles.modalContent}>
-                        <Pressable>
-                            <Icon name='cross' type='material-community' />
-                        </Pressable>
-                        <Text style={styles.text}>Resolve Post</Text>
-                        <CheckBox
-                            checked={reasonIndex === 0}
-                            onPress={() => setReasonIndex(0)}
-                            checkedIcon="dot-circle-o"
-                            uncheckedIcon="circle-o"
-                        />
-                        <CheckBox
-                            checked={reasonIndex === 1}
-                            onPress={() => setReasonIndex(1)}
-                            checkedIcon="dot-circle-o"
-                            uncheckedIcon="circle-o"
-                        />
+                    <View style={styles.modalContainer}>
+                        <View style={styles.modalBackground}>
+                        <TouchableOpacity
+                            style={{alignSelf: 'flex-end'}}
+                            onPress={() => setModalVisible(false)}>
+                            <Icon name='close' type='material-community' />
+                        </TouchableOpacity>
+                        <View style={styles.modalContent}>
+                            
+                            <Text style={styles.modalTitle}>Resolve Post</Text>
+                            <Text style={styles.text}>Why are you closing this post?</Text>
+
+                            <CheckBox
+                                checked={reasonIndex === 2}
+                                onPress={() => setReasonIndex(2)}
+                                checkedIcon='dot-circle-o'
+                                uncheckedIcon='circle-o'
+                                title="Someone found my item for me"
+                            />
+                            <CheckBox
+                                checked={reasonIndex === 3}
+                                onPress={() => setReasonIndex(2)}
+                                checkedIcon='dot-circle-o'
+                                uncheckedIcon='circle-o'
+                                title='Found it myself'
+                            />
+                            <CheckBox
+                                checked={reasonIndex === 4}
+                                onPress={() => setReasonIndex(1)}
+                                checkedIcon='dot-circle-o'
+                                uncheckedIcon='circle-o'
+                                title='Gave up search'
+                            />
+                            <CheckBox
+                                checked={reasonIndex === 5}
+                                onPress={() => setReasonIndex(2)}
+                                checkedIcon='dot-circle-o'
+                                uncheckedIcon='circle-o'
+                                title={`Didn\'t mean to make this post`}
+                            />
+                            <CheckBox
+                                checked={reasonIndex === 0}
+                                onPress={() => setReasonIndex(0)}
+                                checkedIcon='dot-circle-o'
+                                uncheckedIcon='circle-o'
+                                title='Other'
+                            />
+                            <TouchableOpacity
+                                style={{}}
+                                onPress={() => setModalVisible(false)}>
+                                <Text style={}></Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
             </Modal>
@@ -230,7 +265,7 @@ export function LostPostViewScreen() {
         });
         return unsubscribe;
     }, []);
-
+    
     const actionButtons = () => {
         if (isAuthor) {
             return (
@@ -292,7 +327,7 @@ export function LostPostViewScreen() {
                             style={styles.chatItem}
                             onPress={() => {
                                 navigateToChatRoom(rooms.findIndex(room => item._id))
-                            }} 
+                            }}
                             disabled={isNavigating}>
                             <Image 
                                 style={styles.chatThumbnail}
@@ -333,15 +368,20 @@ export function LostPostViewScreen() {
         horizontal: {
             flexDirection: 'row',
         },
+        modalContainer: { 
+            flex: 1, 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+        },
         modalBackground: {
             alignSelf: 'center',
             justifyContent: 'center',
-            margin: 20,
-            backgroundColor: 'white',
+            backgroundColor: colors.card,
+            margin: 10,
+            padding: 10,
             borderRadius: 20,
-            padding: 35,
             alignItems: 'center',
-            shadowColor: '#000',
+            shadowColor: colors.border,
             shadowOffset: {
                 width: 0,
                 height: 2,
@@ -353,9 +393,13 @@ export function LostPostViewScreen() {
         modalContent: {
             width: 300,
             padding: 20,
-            backgroundColor: 'white',
+            backgroundColor: colors.card,
             borderRadius: 10,
             alignItems: 'center',
+        },
+        modalTitle: {
+            fontSize: 20,
+            fontWeight: 'bold',
         },
         userHeader: {
             flexDirection: 'row',

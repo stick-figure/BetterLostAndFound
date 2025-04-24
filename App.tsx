@@ -15,7 +15,7 @@ import { auth } from './ModularFirebase';
 
 import { SafeAreaProvider } from 'react-native-safe-area-view';
 
-import PressableOpacity from './source/assets/MyElements';
+import { PressableOpacity } from './source/hooks/MyElements';
 
 import { HomeScreen } from './source/components/Home';
 import { LoginScreen } from './source/components/Login';
