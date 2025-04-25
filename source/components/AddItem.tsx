@@ -1,7 +1,7 @@
-import { addDoc, collection, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, doc, getDoc, runTransaction, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { getDownloadURL, getStorage, ref, uploadBytesResumable } from 'firebase/storage';
 import { useEffect, useMemo, useState } from 'react';
-import { View, Text, Button, StyleSheet, Image, Pressable, ImageSourcePropType, TextInput, useColorScheme } from 'react-native';
+import { View, Text, Button, StyleSheet, Image, Pressable, ImageSourcePropType, TextInput, useColorScheme, Platform } from 'react-native';
 import { launchCamera, launchImageLibrary, MediaType } from 'react-native-image-picker';
 
 import { auth, db } from '../../ModularFirebase';
@@ -9,8 +9,11 @@ import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { ScrollView, TouchableOpacity } from 'react-native-gesture-handler';
 import { CommonActions, useTheme, useNavigation, useRoute } from '@react-navigation/native';
 import { Icon, Input } from 'react-native-elements';
-import PressableOpacity from '../assets/MyElements';
+import { CoolTextInput, MyInput, PressableOpacity, RequiredLabel } from '../hooks/MyElements';
 import SafeAreaView from 'react-native-safe-area-view';
+import { request, PERMISSIONS, RESULTS, check, PermissionStatus } from 'react-native-permissions';
+import { useCameraDevices, Camera } from 'react-native-vision-camera';
+import { navigateToErrorScreen } from './Error';
 
 export function AddItemScreen() {
     const navigation = useNavigation();
@@ -37,7 +40,28 @@ export function AddItemScreen() {
         return unsubscribe;
     }, []);
 
+    const [hasGalleryPermission, setHasGalleryPermission] = useState<PermissionStatus>(RESULTS.UNAVAILABLE);
+    const [hasCameraPermission, setHasCameraPermission] = useState<PermissionStatus>(RESULTS.UNAVAILABLE);
+    
+    useEffect(() => {
+        check(Platform.OS === 'ios' ? PERMISSIONS.IOS.CAMERA : PERMISSIONS.ANDROID.CAMERA).then((result) => {
+            setHasCameraPermission(result);
+        });
+        check(Platform.OS === 'ios' ? PERMISSIONS.IOS.PHOTO_LIBRARY : PERMISSIONS.ANDROID.READ_MEDIA_IMAGES).then((result) => {
+            setHasGalleryPermission(result);
+        });
+    },[]);
+
     const openImagePicker = () => {
+        if (hasGalleryPermission != RESULTS.GRANTED) {
+            request(Platform.OS === 'ios' ? PERMISSIONS.IOS.CAMERA : PERMISSIONS.ANDROID.CAMERA).then((result) => {
+                setHasGalleryPermission(result);
+                
+                if (result == RESULTS.GRANTED) openImagePicker();
+            });
+            return;    
+        }
+
         const options = {
             mediaType: 'photo' as MediaType,
             includeBase64: false,
@@ -45,7 +69,7 @@ export function AddItemScreen() {
             maxWidth: 2000,
             selectionLimit: 1,
         };
-
+        
         launchImageLibrary(options, (response) => {
             if (response.didCancel) {
                 console.log('User cancelled image picker');
@@ -59,6 +83,14 @@ export function AddItemScreen() {
     };
 
     const handleCameraLaunch = () => {
+        if (hasCameraPermission != RESULTS.GRANTED) {
+            check(Platform.OS === 'ios' ? PERMISSIONS.IOS.PHOTO_LIBRARY : PERMISSIONS.ANDROID.READ_MEDIA_IMAGES).then((result) => {
+                setHasGalleryPermission(result);
+                if (result == RESULTS.GRANTED) handleCameraLaunch();
+            });
+            return;    
+        }
+
         const options = {
             mediaType: 'photo' as MediaType,
             includeBase64: false,
@@ -113,36 +145,60 @@ export function AddItemScreen() {
         });
     }
 
-    const uploadItem = () => {
-        const itemData = {
-            name: name,
-            description: description,
-            ownerId: auth.currentUser?.uid,
-            isLost: false,
-            secretPhrase: secretPhrase,
-            createdAt: serverTimestamp(),
-            imageSrc: '',
-            timesLost: 0,
-        };
-        
-        navigation.navigate('Loading');
-        
-        const docRef = addDoc(collection(db, 'items'), itemData);
-        docRef.then((dRef) => {
-            return Promise.all([dRef, uploadImage(dRef.id)]);
-        }).then(([dRef, url]) => {
-            console.log(dRef, url)
-            return updateDoc(dRef, {imageSrc: url});
-        }).then(() => {
-            navigation.navigate('My Items');
-//            navigation.navigate('Bottom Tabs', {screen: 'My Items'});
+    const uploadItem = async () => {
+        try {
+            const itemData = {
+                name: name,
+                description: description,
+                ownerId: auth.currentUser?.uid,
+                isLost: false,
+                secretPhrase: secretPhrase,
+                createdAt: serverTimestamp(),
+                imageSrc: '',
+                timesLost: 0,
+            };
+            
+            navigation.navigate('Loading');
+            
+            let transactionSuccessful = await runTransaction(db, async (transaction) => {
+                try {
 
-        }).catch((error) => {
-            // An error happened.
-            const errorCode = error.code;
-            const errorMessage = error.message;
-            navigation.navigate('Error', { code: errorCode, message: errorMessage });
-        });
+                } catch (error) {
+                    
+                }
+                const ownerData = await transaction.get(doc(db, 'users', auth.currentUser!.uid));
+                const docRef = doc(db, 'items');
+                transaction.set(docRef, itemData);
+
+                if (route.params!.nextScreen == 'New Lost Post') {
+                    navigation.dispatch(
+                        CommonActions.reset({
+                            index: 0,
+                            routes: [
+                                { name: 'New Lost Post', params: {
+                                    item: itemData, owner: owner,
+                                } 
+                            }],
+                        })
+                    );
+                    return;
+                }
+                navigation.dispatch(
+                    CommonActions.reset({
+                        index: 0,
+                        routes: [
+                            { name: 'View Item', params: {
+                                itemId: docRef.id, itemName: itemData.name 
+                            } 
+                        }],
+                    })
+                );
+            });
+            const url = await uploadImage(docRef.id);
+            await updateDoc(docRef, {imageSrc: url})
+        } catch (error) {        // An error happened.
+            navigateToErrorScreen(navigation, error);
+        }
     }
 
     const isDarkMode = useColorScheme() === 'dark';
@@ -180,10 +236,10 @@ export function AddItemScreen() {
             aspectRatio: 1 / 1,
         },
         imageLabel: {
-            fontSize: 16,
+            fontSize: 14,
             textAlign: 'center',
             color: colors.text,
-            fontWeight: 'bold',
+            fontWeight: '500',
         },
         iconButton: {
             borderRadius: 5,
@@ -194,11 +250,33 @@ export function AddItemScreen() {
             justifyContent: 'center', 
             backgroundColor: colors.secondary,
         },
+        inputLabel: {
+            fontSize: 14,
+            color: colors.text,
+            alignSelf: 'flex-start',
+            marginHorizontal: 24,
+            marginTop: 8,
+        },
+        textInput: {
+            textDecorationStyle: 'dotted',
+            fontWeight: 600,
+            fontSize: 20,
+            width: '90%', 
+            overflow: 'hidden',
+            borderBottomWidth: 2,
+            borderColor: colors.border,
+            color: colors.text,
+            borderRadius: 1,
+            marginTop: 0,
+            padding: 8,
+            margin: 12,
+        },
         saveButton: {
             width: 280,
             backgroundColor: colors.primary,
             borderRadius: 7,
             padding: 10,
+            marginVertical: 10,
         },
         saveButtonText: {
             fontSize: 16,
@@ -230,47 +308,54 @@ export function AddItemScreen() {
 
                 <View style={styles.horizontalContainer}>
                     <TouchableOpacity onPress={handleCameraLaunch} style={styles.iconButton}>
-                        <Icon name='camera-alt' type='material-icons' size={20} color={colors.text} />
+                        <Icon name='camera-alt' type='material-icons' size={20} color={colors.secondaryContrastText} />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={openImagePicker} style={styles.iconButton}>
-                        <Icon name='photo-library' type='material-icons' size={20} color={colors.text} />
+                        <Icon name='photo-library' type='material-icons' size={20} color={colors.secondaryContrastText} />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => {}} style={styles.iconButton}>
-                        <Icon name='web-plus' type='material-community' size={20} color={colors.text} />
+                        <Icon name='web-plus' type='material-community' size={20} color={colors.secondaryContrastText} />
                     </TouchableOpacity>
-                    <Text style={{fontSize: 16, color: colors.text,}}>Set photo*</Text>
+                    <RequiredLabel style={styles.imageLabel}>Select image</RequiredLabel>
                 </View>
-                
-                <Text style={styles.imageLabel}>Select image</Text>
-                
-                <Input
-                    label='Name*'
-                    placeholder='What is this item called?'
-                    onChangeText={text => setName(text)}
-                    value={name}
-                    editable={!uploading}
-                />
-                <Input
-                    label='Description*'
-                    placeholder='Describe some identifying features'
-                    onChangeText={text => setDescription(text)}
-                    value={description}
-                    editable={!uploading}
-                />
-                <Input
-                    label='Secret Phrase (optional)'
-                    placeholder='Phrase to verify you are the owner'
-                    onChangeText={text => setSecretPhrase(text)}
-                    value={secretPhrase}
-                    editable={!uploading}
-                />
-                <PressableOpacity
-                    style={styles.saveButton}
-                    disabled={name.trim().length < 1 || description.trim().length < 1 || imgSrc.uri == '' || uploading}
-                    onPress={uploadItem}
-                >
-                    <Text style={styles.saveButtonText}>Add Item</Text>
-                </PressableOpacity>
+                <View style={{width: '100%', alignItems: 'center'}}>
+                    <CoolTextInput
+                        label='Name'
+                        placeholder='What is this item called?'
+                        onChangeText={text => setName(text)}
+                        containerStyle={{width: '80%'}}
+                        value={name}
+                        editable={!uploading}
+                        required
+                    />
+                    <CoolTextInput
+                        label='Description'
+                        placeholder='Describe some identifying features'
+                        onChangeText={text => setDescription(text)}
+                        containerStyle={{width: '80%'}}
+                        style={{height: 80}}
+                        value={description}
+                        editable={!uploading}
+                        multiline
+                        numberOfLines={4}
+                        required
+                    />
+                    <CoolTextInput
+                        label='Secret Phrase (optional)'
+                        placeholder='Phrase to verify you are the owner'
+                        onChangeText={text => setSecretPhrase(text)}
+                        containerStyle={{width: '80%'}}
+                        value={secretPhrase}
+                        editable={!uploading}
+                    />
+                    <PressableOpacity
+                        style={styles.saveButton}
+                        disabled={name.trim().length < 1 || description.trim().length < 1 || imgSrc.uri == '' || uploading}
+                        onPress={uploadItem}
+                    >
+                        <Text style={styles.saveButtonText}>Add Item</Text>
+                    </PressableOpacity>
+                </View>
             </ScrollView>
         </SafeAreaView>
     );

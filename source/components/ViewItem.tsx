@@ -1,24 +1,25 @@
 import { collection, deleteDoc, deleteField, doc, DocumentReference, getDoc, onSnapshot, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { useState, useEffect, useCallback, ReactNode, useMemo } from 'react';
-import { View, Text, Button, StyleSheet, Pressable, Alert, TextInput, Image, ScrollView, StatusBar, useColorScheme } from 'react-native';
+import { View, Text, Button, StyleSheet, Pressable, Alert, TextInput, Image, ScrollView, StatusBar, useColorScheme, Platform } from 'react-native';
 import { auth, db } from '../../ModularFirebase';
 import { deleteObject, getDownloadURL, getStorage, ref, StorageReference, uploadBytesResumable, UploadTask } from 'firebase/storage';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { CommonActions, RouteProp, useFocusEffect, useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
-import PressableOpacity from '../assets/MyElements';
+import { CoolTextInput, PressableOpacity } from '../hooks/MyElements';
 import { Icon } from 'react-native-elements';
 import SafeAreaView from 'react-native-safe-area-view';
 import { MediaType, launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import firebase from 'firebase/compat/app';
 import { timestampToString } from './SomeFunctions';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
+import { check, PERMISSIONS, PermissionStatus, request, RESULTS } from 'react-native-permissions';
 
-export type ItemViewRouteParams = {
+export type ViewItemRouteParams = {
     itemId: string,
     itemName: string,
 }
 
-export function ItemViewScreen() {
+export function ViewItemScreen() {
     const navigation = useNavigation();
     const route = useRoute();
     
@@ -79,7 +80,7 @@ export function ItemViewScreen() {
         try {
             const postData = (await getDoc(doc(collection(db, 'posts'), item.lostPostId))).data()!;
             postData._id = item.lostPostId;
-            navigation.navigate('Lost Post View', { item: item, author: owner, post: postData });
+            navigation.navigate('View Lost Post', { item: item, author: owner, post: postData });
         } catch (error) {
             console.warn(error);
         }
@@ -96,7 +97,11 @@ export function ItemViewScreen() {
                 onPress: () => console.log('Cancel Pressed'),
                 style: 'cancel',
             },
-            { text: 'OK', onPress: deleteItem },
+            { 
+                text: 'OK', 
+                onPress: deleteItem,
+                style: 'destructive',
+            },
         ]);
     }
 
@@ -135,79 +140,116 @@ export function ItemViewScreen() {
         });
     }, []);
 
+    const [hasGalleryPermission, setHasGalleryPermission] = useState<PermissionStatus>(RESULTS.UNAVAILABLE);
+    const [hasCameraPermission, setHasCameraPermission] = useState<PermissionStatus>(RESULTS.UNAVAILABLE);
     
-        const openImagePicker = () => {
-            const options = {
-                mediaType: 'photo' as MediaType,
-                includeBase64: false,
-                maxHeight: 2000,
-                maxWidth: 2000,
-                selectionLimit: 1,
-            };
-    
-            launchImageLibrary(options, (response) => {
-                if (response.didCancel) {
-                    console.log('User cancelled image picker');
-                } else if (response.errorCode) {
-                    console.log('ImagePicker Error: ', response.errorMessage);
-                } else if (response.assets) {
-                    setImageUri(response.assets[0].uri!);
-                    setHasUnsavedChanges(true);
-                }
-            }).catch(() => { console.log('whoop de doo') });
+    useEffect(() => {
+        check(Platform.OS === 'ios' ? PERMISSIONS.IOS.CAMERA : PERMISSIONS.ANDROID.CAMERA).then((result) => {
+            setHasCameraPermission(result);
+            console.log('camera permission status:', result);
+        });
+        check(Platform.OS === 'ios' ? PERMISSIONS.IOS.PHOTO_LIBRARY : PERMISSIONS.ANDROID.READ_MEDIA_IMAGES).then((result) => {
+            setHasGalleryPermission(result);
+            console.log('image library permission status:', result);
+        });
+    },[]);
+
+    const openImagePicker = () => {
+        if (hasCameraPermission != RESULTS.GRANTED) {
+            request(Platform.OS === 'ios' ? PERMISSIONS.IOS.PHOTO_LIBRARY : PERMISSIONS.ANDROID.READ_MEDIA_IMAGES).then((result) => {
+                setHasCameraPermission(result);
+                console.log(result);
+                if (result == RESULTS.GRANTED) pickImage();
+            });
+            return;
+        }
+        pickImage();
+    }
+
+    const pickImage = () => {
+        
+        const options = {
+            mediaType: 'photo' as MediaType,
+            includeBase64: false,
+            maxHeight: 2000,
+            maxWidth: 2000,
+            selectionLimit: 1,
         };
-    
-        const handleCameraLaunch = () => {
-            const options = {
-                mediaType: 'photo' as MediaType,
-                includeBase64: false,
-                maxHeight: 2000,
-                maxWidth: 2000,
-            };
-    
-            launchCamera(options, (response) => {
-                if (response.didCancel) {
-                    console.warn('User cancelled camera');
-                } else if (response.errorCode == 'camera_unavailable') {
-                    
-                } else if (response.errorCode) {
-                    console.warn('Camera Error', response.errorCode, ': ', response.errorMessage);
-                } else {
-                    setImageUri(response.assets![0].uri!);
-                    setHasUnsavedChanges(true);
-                }
+
+        launchImageLibrary(options, (response) => {
+            if (response.didCancel) {
+                console.log('User cancelled image picker');
+            } else if (response.errorCode) {
+                console.log('ImagePicker Error: ', response.errorMessage);
+            } else if (response.assets) {
+                setImageUri(response.assets[0].uri!);
+                setHasUnsavedChanges(true);
+            }
+        }).catch(() => { console.log('whoop de doo') });
+    };
+    const handleCameraLaunch = () => {
+        if (hasCameraPermission != RESULTS.GRANTED) {
+            request(Platform.OS === 'ios' ? PERMISSIONS.IOS.PHOTO_LIBRARY : PERMISSIONS.ANDROID.READ_MEDIA_IMAGES).then((result) => {
+                setHasCameraPermission(result);
+                console.log(result);
+                if (result == RESULTS.GRANTED) myCameraLaunch();
             });
+            return;    
         }
+    }
+
+    const myCameraLaunch = () => {
+        const options = {
+            mediaType: 'photo' as MediaType,
+            includeBase64: false,
+            maxHeight: 2000,
+            maxWidth: 2000,
+        };
+
+        launchCamera(options, (response) => {
+            if (response.didCancel) {
+                console.warn('User cancelled camera');
+            } else if (response.errorCode == 'camera_unavailable') {
+                
+            } else if (response.errorCode) {
+                console.warn('Camera Error', response.errorCode, ': ', response.errorMessage);
+            } else {
+                setImageUri(response.assets![0].uri!);
+                setHasUnsavedChanges(true);
+            }
+        });
+    }
     
-        const uploadImage = () => {
-            return new Promise(async (resolve, reject) => {
-                try {
-                    
-                    const response = await fetch(imageUri);
-                    const blob = await response.blob();
-                    if (imageRef === undefined) {
-                        reject(new Error('Invalid image reference.'))
-                    }
-                    const uploadTask: UploadTask = uploadBytesResumable(imageRef!, blob);
-                    setUploadProgress(0);
 
-                    uploadTask.on('state_changed', (snapshot) => {
-                        setUploadProgress(snapshot.bytesTransferred / snapshot.totalBytes);
-                        // Stop after receiving one update.
-                    }, () => {}, () => setUploadProgress(-1));
-
-                    await uploadTask.then();
-                        
-                    const url = await getDownloadURL(imageRef!);
-
-                    resolve(url);
-                    return;                    
-                } catch (error) {
-                    reject(error);
-                    return;
+    const uploadImage = () => {
+        return new Promise(async (resolve, reject) => {
+            try {
+                
+                const response = await fetch(imageUri);
+                const blob = await response.blob();
+                if (imageRef === undefined) {
+                    reject(new Error('Invalid image reference.'))
                 }
-            });
-        }
+                const uploadTask: UploadTask = uploadBytesResumable(imageRef!, blob);
+                setUploadProgress(0);
+
+                uploadTask.on('state_changed', (snapshot) => {
+                    setUploadProgress(snapshot.bytesTransferred / snapshot.totalBytes);
+                    // Stop after receiving one update.
+                }, () => {}, () => setUploadProgress(-1));
+
+                await uploadTask.then();
+                    
+                const url = await getDownloadURL(imageRef!);
+
+                resolve(url);
+                return;                    
+            } catch (error) {
+                reject(error);
+                return;
+            }
+        });
+    }
 
     useEffect(() => {
         setIsOwner(item?.ownerId == auth.currentUser!.uid);
@@ -369,12 +411,12 @@ export function ItemViewScreen() {
             color: colors.text,
         },
         itemImage: {
-            width: '100%',
+            flex: 1,
+            resizeMode: 'cover',
             marginBottom: 12,
-            aspectRatio: 1 / 1,
+            aspectRatio: 1,
         },
         textInput: {
-            textDecorationStyle: 'dotted',
             fontWeight: 600,
             fontSize: 18,
             width: '80%', 
@@ -385,16 +427,22 @@ export function ItemViewScreen() {
             borderRadius: 1,
             padding: 6,
             margin: 5,
+            color: colors.text,
         },
         itemName: {
             fontSize: 20,
-            marginVertical: 10,
+            marginTop: 7,
             color: colors.text,
         },
         description: {
             fontSize: 16,
-            marginVertical: 10,
+            marginTop: 8,
             color: colors.text,
+        },
+        infoContainer: {
+            flex: 1,
+            width: '100%',
+            padding: 6,
         },
         actionButton: {
             backgroundColor: colors.primary,
@@ -424,7 +472,7 @@ export function ItemViewScreen() {
             justifyContent: 'center',
         },
         finishEditButton: {
-            backgroundColor: isDarkMode ? 'green' : 'lime',
+            backgroundColor: colors.primary,
             width: '100%',
             height: '100%',
             paddingHorizontal: 10,
@@ -449,106 +497,116 @@ export function ItemViewScreen() {
 
     if (isOwner) return (
         <SafeAreaView style={styles.container}>
-            <ScrollView style={{padding: 5}}>
-                <Image
-                    style={styles.itemImage}
-                    source={imageUri ? {uri: imageUri} : {uri: item.imageSrc}} 
-                    defaultSource={require('../assets/defaultimg.jpg')} />
-                {isEditable ? (
-                    <View style={styles.horizontal}>
-                        <PressableOpacity 
-                            onPress={handleCameraLaunch} 
-                            style={styles.cameraButton} 
-                            disabled={!isEditable || isUploading}>
-                            <Icon name='camera-alt' type='material-icons' size={20} color={colors.text}/>
-                        </PressableOpacity>
-                        <PressableOpacity 
-                            onPress={openImagePicker} 
-                            style={styles.uploadButton}
-                            disabled={!isEditable || isUploading}>
-                            <Icon name='photo-library' type='material-icons' size={20} color={colors.text} />
-                        </PressableOpacity>
-                        <Text style={{fontSize: 16, color: colors.text,}}>Set photo*</Text>
+            <ScrollView>
+                <View style={styles.userHeader}>
+                    <Image
+                        style={[styles.pfp, {width: null, height: 50, aspectRatio: 1}]}
+                        source={owner.pfpUrl ? {uri: owner.pfpUrl} : undefined}
+                        defaultSource={require('../assets/defaultpfp.jpg')} />
+                    <View>
+                        <Text>You own this item</Text>
+                        <Text style={styles.userName}>{owner.name}</Text>
                     </View>
-                ) : (
-                    <View></View>
-                )}
+                </View>
+                <View style={[styles.horizontal, {alignItems: 'flex-start', justifyContent: 'space-between'}]}>
+                    <View style={{flex: 1, padding: 5}}>
+                        <Image
+                            style={styles.itemImage}
+                            source={imageUri ? {uri: imageUri} : {uri: item.imageSrc}} 
+                            defaultSource={require('../assets/defaultimg.jpg')} />
+                            {isEditable ? (
+                                <View style={{...styles.horizontal, alignSelf: 'center'}}>
+                                    <PressableOpacity 
+                                        onPress={handleCameraLaunch} 
+                                        style={styles.cameraButton} 
+                                        disabled={!isEditable || isUploading}>
+                                        <Icon name='camera-alt' type='material-icons' size={20} color={colors.text}/>
+                                    </PressableOpacity>
+                                    <PressableOpacity 
+                                        onPress={openImagePicker} 
+                                        style={styles.uploadButton}
+                                        disabled={!isEditable || isUploading}>
+                                        <Icon name='photo-library' type='material-icons' size={20} color={colors.text} />
+                                    </PressableOpacity>
+                                    <Text style={{fontSize: 14, fontWeight: '500', color: colors.text,}}>Set photo</Text>
+                                </View>
+                            ) : null}
+                    </View>
+                    <View style={{flex: 1, margin: 5}}>
+                        <Text style={[styles.text, {fontSize: 18, fontWeight: 'bold'}]}>Item Info</Text>
+                        <Text style={styles.text}>Added on {item.createdAt ? timestampToString(item.createdAt, undefined, true, false) : 'some day in history'}</Text>
+                        <Text style={styles.text}>Status: {item.isLost ? 'Missing' : 'AOK'}</Text>
+                        <Text style={styles.text}>Lost {item.timesLost} {item.timesLost == 1 ? 'time' : 'times'}</Text>
+                    </View>
+                </View>
                 
                 {uploadProgress != -1 ? (
                     <View style={{width: `100%`, height: 7, backgroundColor: 'grey', borderRadius: 10,}}>
                         <View style={{width: `${uploadProgress*100}%`, height: 7, backgroundColor: 'lime', borderRadius: 10,}}></View>
                     </View>
+                ) : null}
+
+                {isEditable ? (
+                    <View style={styles.infoContainer}>
+                        <CoolTextInput 
+                            style={{}}
+                            onChangeText={(text) => {
+                                if (!hasUnsavedChanges) setHasUnsavedChanges(true); 
+                                setName(text)
+                            }}
+                            value={name} 
+                            editable={isEditable && !isUploading} />
+                        <CoolTextInput 
+                            style={{height: 100}}
+                            onChangeText={(text) => {
+                                if (!hasUnsavedChanges) setHasUnsavedChanges(true); 
+                                setDescription(text)
+                            }}
+                            value={description} 
+                            multiline
+                            editable={isEditable && !isUploading} />
+                        <View style={[styles.horizontal, {width: '100%', padding: 8, alignSelf: 'center'}]}>
+                            <View style={{flexDirection: 'row', flex: 1, height: 40}}>
+                                <View style={{ flex: 1 }}>
+                                    <PressableOpacity
+                                        onPress={() => {saveEdits(); setIsEditable(false)}}
+                                        style={styles.finishEditButton}
+                                        disabled={!isEditable || isUploading}>
+                                        <Icon name='save' type='material-icons' color={colors.contrastText} />
+                                    </PressableOpacity>
+                                </View>
+                                <View>
+                                    <PressableOpacity
+                                        onPress={deleteItemAlert}
+                                        style={styles.deleteItemButton}
+                                        disabled={!isEditable || isUploading}>
+                                        <Icon name='delete' type='material-community' />
+                                    </PressableOpacity>
+                                </View>
+                            </View>
+                        </View>
+                    </View>
                 ) : (
-                    <View></View>
+                    <View style={styles.infoContainer}>
+                        <Text style={styles.itemName}>{name}</Text>
+                        <Text style={styles.description}>{description}</Text>
+                        {actionButtons()}
+                        <View style={[styles.horizontal, {width: '100%', padding: 8, alignSelf: 'center'}]}>
+                            <View style={{flexDirection: 'row', flex: 1, height: 40}}>
+                                <View style={{ flex: 1 }} key={'editinfo'}>
+                                    <PressableOpacity
+                                        onPress={() => setIsEditable(true)}
+                                        style={styles.startEditButton}
+                                        disabled={isUploading}>
+                                        <Icon name='pencil' type='material-community' color={colors.secondaryContrastText} />
+                                    </PressableOpacity>
+                                </View>
+                            </View>
+                        </View>
+
+                        <Text style={styles.text}>Posts mentioning this item</Text>
+                    </View>
                 )}
-
-                <TextInput 
-                    style={isEditable ? styles.textInput : styles.itemName}
-                    onChangeText={(text) => {
-                        if (!hasUnsavedChanges) setHasUnsavedChanges(true); 
-                        setName(text)
-                    }}
-                    value={name} 
-                    editable={isEditable && !isUploading} />
-                <TextInput 
-                    style={isEditable ? [styles.textInput,{height: 100}] : styles.description}
-                    onChangeText={(text) => {
-                        if (!hasUnsavedChanges) setHasUnsavedChanges(true); 
-                        setDescription(text)
-                    }}
-                    value={description} 
-                    multiline
-                    editable={isEditable && !isUploading} />
-
-                {!isEditable ? (
-                    <View style={[styles.horizontal, {alignItems: 'center', justifyContent: 'space-between'}]}>
-                        <View>
-                            <Text style={styles.text}>Owner: {owner.name}</Text>
-                            <Text style={styles.text}>Added on {item.createdAt ? timestampToString(item.createdAt, undefined, true, false) : 'some day in history'}</Text>
-                            <Text style={styles.text}>Lost {item.timesLost} {item.timesLost == 1 ? 'time' : 'times'}</Text>
-                        </View>
-                        
-                        <Image
-                            style={[styles.pfp, {width: null, height: 50, aspectRatio: 1}]}
-                            source={owner.pfpUrl ? {uri: owner.pfpUrl} : undefined}
-                            defaultSource={require('../assets/defaultpfp.jpg')} />
-                    </View>
-                ) : <View></View>}
-                
-                {!isEditable ? actionButtons() : <View></View>}
-
-                <View style={[styles.horizontal, {width: '100%', padding: 8, alignSelf: 'center'}]}>
-                    <View style={{flexDirection: 'row', flex: 1, height: 40}}>
-                        <View style={{ flex: 1 }} key={'editinfo'}>
-                            {!isEditable ? (
-                                <PressableOpacity
-                                    onPress={() => setIsEditable(true)}
-                                    style={styles.startEditButton}
-                                    disabled={isUploading}>
-                                    <Icon name='pencil' type='material-community' color={colors.secondaryContrastText} />
-                                </PressableOpacity>
-                            ) : (
-                                <PressableOpacity
-                                    onPress={() => {saveEdits(); setIsEditable(false)}}
-                                    style={styles.finishEditButton}
-                                    disabled={!isEditable || isUploading}>
-                                    <Icon name='check' type='material-community' color={colors.contrastText} />
-                                </PressableOpacity>
-                            )}
-                           
-                        </View>
-                        <View key={'delete'}>
-                            <PressableOpacity
-                                onPress={deleteItemAlert}
-                                style={styles.deleteItemButton}
-                                disabled={!isEditable || isUploading}>
-                                <Icon name='delete' type='material-community' />
-                            </PressableOpacity>
-                        </View>
-                    </View>
-                </View>
-                
-                <Text style={styles.text}>Posts mentioning this item</Text>
             </ScrollView>
         </SafeAreaView>
     );
@@ -556,26 +614,34 @@ export function ItemViewScreen() {
     return (
         <SafeAreaView style={styles.container}>
             <ScrollView>
-                <Image
-                    style={styles.itemImage}
-                    source={item.imageSrc ? {uri: item.imageSrc} : undefined}
-                    defaultSource={require('../assets/defaultimg.jpg')}/>
-                <View style={{margin: 10}}>
+            <View style={styles.userHeader}>
+                    <Image
+                        style={[styles.pfp, {width: null, height: 50, aspectRatio: 1}]}
+                        source={owner.pfpUrl ? {uri: owner.pfpUrl} : undefined}
+                        defaultSource={require('../assets/defaultpfp.jpg')} />
+                    <View>
+                        <Text>Owned by</Text>
+                        <Text style={styles.userName}>{owner.name}</Text>
+                    </View>
+                </View>
+                <View style={[styles.horizontal, {alignItems: 'flex-start', justifyContent: 'space-between'}]}>
+                    <View style={{flex: 1, margin: 5}}>
+                        <Image
+                            style={styles.itemImage}
+                            source={imageUri ? {uri: imageUri} : {uri: item.imageSrc}} 
+                            defaultSource={require('../assets/defaultimg.jpg')} />
+                    </View>
+                    <View style={{flex: 1, marginVertical: 5}}>
+                        <Text style={[styles.text, {fontSize: 18, fontWeight: 'bold'}]}>Item Info</Text>
+                        <Text style={styles.text}>Added on {item.createdAt ? timestampToString(item.createdAt, undefined, true, false) : 'some day in history'}</Text>
+                        <Text style={styles.text}>Status: {item.isLost ? 'Missing' : 'AOK'}</Text>
+                        <Text style={styles.text}>Lost {item.timesLost} {item.timesLost == 1 ? 'time' : 'times'}</Text>
+                    </View>
+                </View>
+
+                <View style={styles.infoContainer}>
                     <Text style={styles.itemName}>{name}</Text>
                     <Text style={styles.description}>{description}</Text>
-                    
-                    <View style={[styles.horizontal, {alignItems: 'center', justifyContent: 'space-between'}]}>
-                        <View>
-                            <Text style={styles.text}>Owner: {owner.name}</Text>
-                            <Text style={styles.text}>Added on {item.createdAt ? timestampToString(item.createdAt, undefined, true, true) : 'some day in history'}</Text>
-                            <Text style={styles.text}>Lost {item.timesLost} {item.timesLost == 1 ? 'time' : 'times'}</Text>
-                        </View>
-                        
-                        <Image
-                            style={[styles.pfp, {width: null, height: 50, aspectRatio: 1}]}
-                            source={owner.pfpUrl ? {uri: owner.pfpUrl} : undefined}
-                            defaultSource={require('../assets/defaultpfp.jpg')} />
-                    </View>
                 </View>
                 {actionButtons()}
                 
@@ -585,4 +651,4 @@ export function ItemViewScreen() {
     );
 }
 
-export default ItemViewScreen;
+export default ViewItemScreen;

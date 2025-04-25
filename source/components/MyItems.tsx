@@ -6,8 +6,9 @@ import { auth, db } from '../../ModularFirebase';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { CommonActions } from '@react-navigation/native';
-import PressableOpacity from '../assets/MyElements';
+import { PressableOpacity } from '../hooks/MyElements';
 import { Icon } from 'react-native-elements';
+import { navigateToErrorScreen } from './Error';
 
 interface ItemTile {
     _id: string,
@@ -55,7 +56,7 @@ export function MyItemsScreen({ navigation }: { navigation: any }) {
                 return {
                     _id: itemDoc.id,
                     name: itemDoc.get('name'),
-                    description: itemDoc.get('descriptions'),
+                    description: itemDoc.get('description'),
                     ownerName: owner?.get('name') || itemDoc.get('ownerId') || 'Unknown User',
                     isLost: itemDoc.get('isLost'),
                     imageSrc: (itemDoc.get('imageSrc') ? { uri: itemDoc.get('imageSrc') } : undefined),
@@ -65,7 +66,9 @@ export function MyItemsScreen({ navigation }: { navigation: any }) {
             Promise.all(promises).then((res) => {
                 setItems(res);
                 setIsLoading(false);
-            }).catch((error) => {console.warn(error)});
+            }).catch((error) => {
+                navigateToErrorScreen(navigation, error);
+            });
         });
 
         return unsubscribe;
@@ -102,7 +105,7 @@ export function MyItemsScreen({ navigation }: { navigation: any }) {
         text: {
             textAlign: 'center',
             color: colors.text,
-            fontSize: 16,
+            fontSize: 14,
         },
         smallButton: {
             padding: 6,
@@ -113,7 +116,7 @@ export function MyItemsScreen({ navigation }: { navigation: any }) {
             color: colors.primaryContrastText,
         },
         userName: {
-            fontSize: 28,
+            fontSize: 25,
             fontWeight: 'bold',
             color: colors.text,
         },
@@ -133,8 +136,8 @@ export function MyItemsScreen({ navigation }: { navigation: any }) {
             color: colors.text,
         },
         userStatLabel: {
-            fontSize: 12,
-            width: 80,
+            fontSize: 10,
+            width: 60,
             textAlign: 'center',
             color: colors.text,
         },
@@ -159,7 +162,7 @@ export function MyItemsScreen({ navigation }: { navigation: any }) {
         },
         itemListItem: {
             flex: 1,
-            maxWidth: `${100/3}%`,
+            maxWidth: `33.33333%`,
             alignSelf: 'stretch',
             paddingBottom: 10,
             padding: 3,
@@ -241,12 +244,12 @@ export function MyItemsScreen({ navigation }: { navigation: any }) {
                             {isLoading ? <ActivityIndicator size='large' /> : <Icon name='cactus' type='material-community' color={colors.text} size={40} />}
                         </View>
                     }
-                    data={items}
+                    data={sortedItems}
                     renderItem={({ item }) => (
-                        <View style={[styles.itemListItem, item.isLost ? {backgroundColor: 'red',} : {}]}>
+                        <View style={[styles.itemListItem, item.isLost ? {backgroundColor: 'red',} : null]}>
                             <PressableOpacity
                                 key={item._id.toString()}
-                                onPress={() => { navigation.navigate('My Stack', {screen: 'Item View', params: { itemId: item._id, itemName: item.name } }) }}>
+                                onPress={() => { navigation.navigate('My Stack', {screen: 'View Item', params: { itemId: item._id, itemName: item.name } }) }}>
                                 <View style={styles.itemListItemView}>
                                     <Image source={item.imageSrc} style={styles.itemImage} defaultSource={require('../assets/defaultimg.jpg')}/>
                                     <Text style={styles.itemTitle}>{item.name}</Text>

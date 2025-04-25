@@ -3,8 +3,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { SafeAreaView, View, FlatList, ActivityIndicator, Image, Text, StyleSheet, useColorScheme } from 'react-native';
 import { SearchBar, Icon } from 'react-native-elements';
 import { auth, db } from '../../ModularFirebase';
-import PressableOpacity from '../assets/MyElements';
+import { PressableOpacity } from '../hooks/MyElements';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
+import { navigateToErrorScreen } from './Error';
 
 
 export function PostLostItemScreen({ navigation }: { navigation: any }) {
@@ -54,7 +55,9 @@ export function PostLostItemScreen({ navigation }: { navigation: any }) {
             Promise.all(promises).then((res) => {
                 setItems(res);
                 setIsLoading(false);
-            }).catch((error) => {console.warn(error)});
+            }).catch((error) => {
+                navigateToErrorScreen(navigation, error);
+            });
         });
 
         return unsubscribe;
@@ -169,7 +172,7 @@ export function PostLostItemScreen({ navigation }: { navigation: any }) {
             <View style={{margin: 4, padding: 4}}>
                 <Text style={styles.text}>Can't find your item in this list?</Text>
                 <PressableOpacity
-                    onPress={() => navigation.navigate('My Stack', {screen: 'Add Item'})}
+                    onPress={() => navigation.navigate('My Stack', {screen: 'Add Item', params: {nextScreen: 'New Lost Post'}})}
                     style={styles.bigButton}>
                     <Text style={styles.bigButtonText}>Add new item</Text>
                 </PressableOpacity>
@@ -188,7 +191,7 @@ export function PostLostItemScreen({ navigation }: { navigation: any }) {
                 rightIconContainerStyle={{borderWidth: 0}}
                 disabledInputStyle={{opacity: 0.8}}
                 round
-                
+                lightTheme={!isDarkMode}
                 />
             <View style={styles.itemList}>
                 <FlatList
@@ -204,7 +207,7 @@ export function PostLostItemScreen({ navigation }: { navigation: any }) {
                         <View style={styles.itemListItem}>
                             <PressableOpacity
                                 key={item._id.toString()}
-                                onPress={() => { navigation.navigate('Item View', { itemId: item._id, itemName: item.name }) }}>    
+                                onPress={() => { navigation.navigate('View Item', { itemId: item._id, itemName: item.name }) }}>    
                             
                                 <Image source={item.imageSrc} style={styles.itemImage} defaultSource={require('../assets/defaultimg.jpg')}/>
                                 <View style={styles.listItemInfo}>

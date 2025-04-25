@@ -1,17 +1,19 @@
 import React, { ErrorInfo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, StyleSheet, Image, Text, StatusBar, TextInput, useColorScheme } from 'react-native';
+import { View, StyleSheet, Image, Text, StatusBar, TextInput, useColorScheme, Platform } from 'react-native';
 import { auth, db } from '../../ModularFirebase';
-import { AuthError, AuthErrorCodes, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { AuthError, AuthErrorCodes, createUserWithEmailAndPassword, updatePhoneNumber, updateProfile } from 'firebase/auth';
 import { addDoc, collection, doc, runTransaction, serverTimestamp, setDoc } from 'firebase/firestore';
 import { getDownloadURL, getStorage, ref, uploadBytes } from '@firebase/storage';
 import { launchCamera, launchImageLibrary, MediaType } from 'react-native-image-picker';
-import { NavigationProp, useNavigation, useRoute } from '@react-navigation/native';
+import { CommonActions, NavigationProp, useNavigation, useRoute } from '@react-navigation/native';
 import { ScrollView, TouchableOpacity } from 'react-native-gesture-handler';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
-import PressableOpacity from '../assets/MyElements';
+import { CoolTextInput, MyInput, PressableOpacity } from '../hooks/MyElements';
 import { colors, Icon, Input } from 'react-native-elements';
 import SafeAreaView from 'react-native-safe-area-view';
 import PhoneInput from 'react-native-phone-number-input';
+import { check, PERMISSIONS, PermissionStatus, request, RESULTS } from 'react-native-permissions';
+import { navigateToErrorScreen } from './Error';
 
 export function RegisterScreen() {
     const navigation = useNavigation();
@@ -44,7 +46,7 @@ export function RegisterScreen() {
 
             await runTransaction(db, async (transaction) => {
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-
+                
                 let pfpUrl: string | undefined;
                 try {
                     if (pfpSrc.uri != '') pfpUrl = await uploadImage(userCredential.user.uid) as string;
@@ -72,10 +74,22 @@ export function RegisterScreen() {
                     photoURL: pfpUrl || null,
                 });
 
+//                await updatePhoneNumber()
+
                 transaction.set(doc(db, 'users', userCredential.user.uid), userData);
             });
             
-            navigation.navigate('My Drawer', { screen: 'Bottom Tabs' });
+            navigation.dispatch(
+                CommonActions.reset({
+                    index: 0,
+                    routes: [
+                        { name: 'My Drawer', params: {
+                            screen: 'Bottom Tabs',
+                        } 
+                    }],
+                })
+            );
+
         } catch (error) {
             if (error as AuthError) {
                 navigation.goBack();
@@ -97,7 +111,30 @@ export function RegisterScreen() {
         }
     }
 
+    
+    const [hasGalleryPermission, setHasGalleryPermission] = useState<PermissionStatus>(RESULTS.UNAVAILABLE);
+    const [hasCameraPermission, setHasCameraPermission] = useState<PermissionStatus>(RESULTS.UNAVAILABLE);
+    
+    useEffect(() => {
+        check(Platform.OS === 'ios' ? PERMISSIONS.IOS.CAMERA : PERMISSIONS.ANDROID.CAMERA).then((result) => {
+            setHasCameraPermission(result);
+            console.log(result)
+        });
+        check(Platform.OS === 'ios' ? PERMISSIONS.IOS.PHOTO_LIBRARY : PERMISSIONS.ANDROID.READ_MEDIA_IMAGES).then((result) => {
+            setHasGalleryPermission(result);
+            console.log(result)
+        });
+    },[]);
+
     const openImagePicker = () => {
+        if (!hasGalleryPermission) {
+            request(Platform.OS === 'ios' ? PERMISSIONS.IOS.CAMERA : PERMISSIONS.ANDROID.CAMERA).then((result) => {
+                setHasGalleryPermission(result);
+                console.log(result)
+            });
+            return;    
+        }
+
         const options = {
             mediaType: 'photo' as MediaType,
             includeBase64: false,
@@ -115,17 +152,27 @@ export function RegisterScreen() {
                 const source = { uri: response.assets[0].uri! };
                 setPfpSrc(source);
             }
-        }).catch(() => { console.log('whoop de doo') });
+        }).catch((error) => { 
+            navigateToErrorScreen(navigation, error);
+        });
     };
 
     const handleCameraLaunch = () => {
+        if (!hasCameraPermission) {
+            request(Platform.OS === 'ios' ? PERMISSIONS.IOS.PHOTO_LIBRARY : PERMISSIONS.ANDROID.READ_MEDIA_IMAGES).then((result) => {
+                setHasCameraPermission(result);
+                console.log(result)
+            });
+            return;    
+        }
+
         const options = {
             mediaType: 'photo' as MediaType,
             includeBase64: false,
             maxHeight: 2000,
             maxWidth: 2000,
         };
-
+        
         launchCamera(options, (response) => {
             if (response.didCancel) {
                 console.log('User cancelled camera');
@@ -137,7 +184,7 @@ export function RegisterScreen() {
             }
         });
     }
-
+    
     const uploadImage = (imageId: string) => {
         return new Promise(async (resolve, reject) => {
             try {
@@ -183,7 +230,7 @@ export function RegisterScreen() {
             fontSize: 16,
             color: colors.text,
         },
-        textInput: {/*
+        textInput: {
             textDecorationStyle: 'dotted',
             fontWeight: 600,
             fontSize: 20,
@@ -191,9 +238,10 @@ export function RegisterScreen() {
             overflow: 'hidden',
             borderBottomWidth: 2,
             borderColor: colors.border,
+            color: colors.text,
             borderRadius: 1,
             padding: 6,
-            margin: 10,*/
+            margin: 10,
         },
         errorText: {
             color: "red",
@@ -243,14 +291,15 @@ export function RegisterScreen() {
             width: 128,
             height: 128,
             alignSelf: 'center',
+            borderRadius: 32,
         }
     }), [isDarkMode]);
 
     return (
-        <SafeAreaView style={{flex: 1, padding: 3}}>
+        <SafeAreaView style={{backgroundColor: colors.background, flex: 1, padding: 3}}>
             <ScrollView contentContainerStyle={styles.container}>
                 <Text style={styles.subTitle}>Register</Text>
-                <View style={{flexDirection: 'row', width: '100%'}}>
+                <View style={{flexDirection: 'row', width: '80%', alignItems: 'center'}}>
                     <View style={styles.pfpContainer}>
                         <Image
                             style={styles.pfpImage}
@@ -259,29 +308,28 @@ export function RegisterScreen() {
 
                         <View style={styles.horizontalContainer}>
                             <TouchableOpacity onPress={handleCameraLaunch} style={styles.cameraButton}>
-                                <Icon name='camera-alt' type='material-icons' size={20} color={colors.text} />
+                                <Icon name='camera-alt' type='material-icons' size={20} color={colors.secondaryContrastText} />
                             </TouchableOpacity>
                             <TouchableOpacity onPress={openImagePicker} style={styles.uploadButton}>
-                                <Icon name='photo-library' type='material-icons' size={20} color={colors.text} />
+                                <Icon name='photo-library' type='material-icons' size={20} color={colors.secondaryContrastText} />
                             </TouchableOpacity>
-                            <Text style={{fontSize: 16}}>Set photo*</Text>
+                            <Text style={{fontSize: 14, fontWeight: '500'}}>Set photo</Text>
                         </View>
                     </View>
                     <View style={{flexGrow: 1}}>
-                        <Input
-                            label='Name*'
-                            style={styles.textInput} 
+                        <CoolTextInput
+                            label='Name'
                             placeholder='Enter your name'
                             value={name}
                             editable={!registering}
-                            labelStyle={{color: colors.text,}}
-                            onChangeText={text => setName(text)} />
+                            containerStyle={{width: '100%'}}
+                            onChangeText={text => setName(text)} 
+                            required />
                     </View>
                 </View>
                 
-                <View style={{alignSelf: 'flex-start', margin: 10}}>
-                    <Text style={[styles.text, {fontWeight: 'bold', fontSize: 16,}]}>Phone Number (optional)</Text>
-                </View>
+                <Text style={[styles.text, {fontWeight: '500', fontSize: 14, color: colors.border}]}>Phone Number (optional)</Text>
+                
                 <PhoneInput
                     ref={phoneInput}
                     placeholder='Enter your phone number'
@@ -299,30 +347,31 @@ export function RegisterScreen() {
                     containerStyle={{marginBottom: 20}}
                 />
                 
-                <Input
-                    label='Email*'
+                <CoolTextInput
+                    label='Email'
                     leftIcon={{
                         name: 'email',
                         type: 'material-community'
                     }}
-                    style={styles.textInput} 
+                    containerStyle={{width: '80%'}}
                     placeholder='Enter your email'
                     value={email}
                     editable={!registering}
-                    labelStyle={{color: colors.text,}}
-                    onChangeText={text => setEmail(text)} />
-                <Input
-                    label='Password*'
+                    onChangeText={text => setEmail(text)} 
+                    required
+                    />
+                <CoolTextInput
+                    label='Password'
                     leftIcon={{
                         name: 'lock',
                         type: 'material-community'
                     }}
-                    style={styles.textInput} 
                     placeholder='Enter your password'
-                    labelStyle={{color: colors.text,}}
+                    containerStyle={{width: '80%'}}
                     value={password} onChangeText={text => setPassword(text)}
                     editable={!registering}
-                    secureTextEntry />
+                    secureTextEntry 
+                    required/>
                 <Text style={[styles.text, {alignSelf: 'flex-end', fontSize: 12, color: colors.red}]}>*Required</Text>
                 <Text style={styles.errorText}>{errorText}</Text>
                 <PressableOpacity style={styles.registerButton} disabled={name == '' || email == '' || password.length < 5 || (phoneNumber != '' && !phoneInput.current?.isValidNumber(phoneNumber)) || registering} onPress={register} >

@@ -15,7 +15,7 @@ import { auth } from './ModularFirebase';
 
 import { SafeAreaProvider } from 'react-native-safe-area-view';
 
-import PressableOpacity from './source/assets/MyElements';
+import { PressableOpacity } from './source/hooks/MyElements';
 
 import { HomeScreen } from './source/components/Home';
 import { LoginScreen } from './source/components/Login';
@@ -28,10 +28,10 @@ import { AddItemScreen } from './source/components/AddItem';
 import NotificationsScreen from './source/components/Notifications';
 import { ScanCodeScreen } from './source/components/ScanCode';
 import { ReturnItemScreen } from './source/components/ReturnItem';
-import { ItemViewScreen, ItemViewRouteParams } from './source/components/ItemView';
+import { ViewItemScreen, ViewItemRouteParams } from './source/components/ViewItem';
 import { SettingsScreen } from './source/components/Settings';
 import NewLostPostScreen from './source/components/NewLostPost';
-import LostPostViewScreen, { PostViewRouteParams } from './source/components/LostPostView';
+import ViewLostPostScreen, { PostViewRouteParams } from './source/components/ViewLostPost';
 import SearchItemsScreen from './source/components/SearchItems';
 import NewFoundPostScreen from './source/components/NewFoundPost';
 import { Icon } from 'react-native-elements';
@@ -221,15 +221,15 @@ function MyStack() {
             <Stack.Group>
                 <Stack.Screen name='Post Lost Item' component={PostLostItemScreen} options={{ title: 'Post Lost Item' }} />
                 <Stack.Screen name='Add Item' component={AddItemScreen} options={{ title: 'Add Item' }} />
-                <Stack.Screen name='Item View' options={({ route }) => ({
-                    title: (route!.params as ItemViewRouteParams).itemName,
+                <Stack.Screen name='View Item' options={({ route }) => ({
+                    title: (route!.params as ViewItemRouteParams).itemName,
                     headerBackTitle: 'Back',
                     headerShown: false,
                 })}
-                    component={ItemViewScreen} />
+                    component={ViewItemScreen} />
                 <Stack.Screen name='Scan Code' component={ScanCodeScreen} options={{ title: 'Scan Code' }} />
                 <Stack.Screen name='New Lost Post' component={NewLostPostScreen} options={{ title: 'New Post' }} />
-                <Stack.Screen name='Lost Post View' component={LostPostViewScreen} options={{ headerShown: false }} />
+                <Stack.Screen name='View Lost Post' component={ViewLostPostScreen} options={{ headerShown: false }} />
                 <Stack.Screen name='Search Items' component={SearchItemsScreen} options={{ 
                     title: 'Search Items', 
                     headerShown: false}} />

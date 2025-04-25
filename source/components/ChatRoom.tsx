@@ -12,7 +12,8 @@ import {
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { CommonActions, useNavigation, useRoute, useTheme } from '@react-navigation/native';
 import SafeAreaView from 'react-native-safe-area-view';
-import PressableOpacity from '../assets/MyElements';
+import { PressableOpacity } from '../hooks/MyElements';
+import { navigateToErrorScreen } from './Error';
 
 type ImageProps = DefaultImageProps & {
     source: ImageURISource;
@@ -28,6 +29,7 @@ export function ChatRoomScreen() {
     const [messages, setMessages] = useState<IMessage[]>([]);
 
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+    
     useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged((user) => {
             if (user) {
@@ -51,7 +53,7 @@ export function ChatRoomScreen() {
                 getDocs(query(collection(db, 'users'), where(documentId(), 'in', snapshot.get('userIds')))).then((usersSnapshot) => {
                     setUsers(usersSnapshot.docs.map((doc) => ({_id: doc.id, ...doc.data()})));
                 }).catch((error) => {
-                    console.warn(error);
+                    navigateToErrorScreen(navigation, error);
                 });
             }
         });

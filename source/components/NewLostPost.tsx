@@ -7,7 +7,7 @@ import { launchImageLibrary, MediaType } from 'react-native-image-picker';
 import { auth, db } from '../../ModularFirebase';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { CommonActions, useNavigation, useRoute } from '@react-navigation/native';
-import PressableOpacity from '../assets/MyElements';
+import { CoolTextInput, PressableOpacity } from '../hooks/MyElements';
 import { Input } from 'react-native-elements';
 import SafeAreaView from 'react-native-safe-area-view';
 
@@ -50,7 +50,7 @@ export function NewLostPostScreen() {
         }).then(() => {
             return updateDoc(doc(db, 'users', owner._id), {timesOwnItemLost: owner.timesOwnItemLost as number + 1});
         }).then(() => {
-            navigation.navigate('Lost Post View', {item: item, owner: owner, author: owner, post: postData});
+            navigation.navigate('View Lost Post', {item: item, owner: owner, author: owner, post: postData});
             navigation.dispatch((state: {routes: any[]}) => {
                 const topScreen = state.routes[0];
                 const thisScreen = state.routes[state.routes.length - 1];
@@ -90,6 +90,8 @@ export function NewLostPostScreen() {
     const styles = useMemo(() => StyleSheet.create({
         container: {
             flex: 1,
+            width: '100%',
+            padding: 8,
             alignItems: 'center',
             backgroundColor: colors.background,
         },
@@ -187,7 +189,7 @@ export function NewLostPostScreen() {
         <SafeAreaView style={styles.container}>
             <View style={styles.itemContainer}>
                 <PressableOpacity
-                    onPress={() => { navigation.navigate('Item View', { itemId: item._id, itemName: item.name }) }}
+                    onPress={() => { navigation.navigate('View Item', { itemId: item._id, itemName: item.name }) }}
                     disabled={uploading}>
                         <View style={styles.horizontal}>
                         <Image 
@@ -202,15 +204,21 @@ export function NewLostPostScreen() {
                         </View>
                 </PressableOpacity>
             </View>
-            <Input
-                label='Message*'
+
+            <CoolTextInput
+                label='Message'
                 multiline={true}
+                numberOfLines={4}
                 placeholder=''
+                containerStyle={{width: '100%', height: 200}}
                 onChangeText={text => setMessage(text)}
                 value={message}
                 editable={!uploading}
-                style={styles.multilineTextInput}
+                required
             />
+
+            {/*TODO EXPIRE BY FIELD*/}
+
             <PressableOpacity
                 style={styles.saveButton}
                 disabled={message.trim().length <= 0}

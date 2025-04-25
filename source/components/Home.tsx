@@ -7,8 +7,9 @@ import { db, auth } from '../../ModularFirebase';
 import { CommonActions, DrawerActions, useIsFocused } from '@react-navigation/native';
 import { Icon } from 'react-native-elements';
 import SafeAreaView from 'react-native-safe-area-view';
-import PressableOpacity from '../assets/MyElements';
+import { PressableOpacity } from '../hooks/MyElements';
 import { timestampToString } from './SomeFunctions';
+import { navigateToErrorScreen } from './Error';
 
 interface PostListItem {
     _id: string,
@@ -47,37 +48,43 @@ export function HomeScreen({ navigation }: { navigation: any }) {
         if (!isLoggedIn) return;
 
         const unsubscribe = onSnapshot(query(collection(db, 'posts'), limit(20), where('resolved', '==', false), where('type', '==', 'Lost')), (snapshot: { docs: any[]; }) => {
-            setIsLoading(true);
-            const promises = snapshot.docs.map(async (postDoc) => {
-                let item;
-                try {
-                    item = await getDoc(doc(db, 'items', postDoc.get('itemId')));
-                } catch (err) {
-                    console.warn(err);
-                }
+            try {
+                setIsLoading(true);
+                const promises = snapshot.docs.map(async (postDoc) => {
+                    let item;
+                    try {
+                        item = await getDoc(doc(db, 'items', postDoc.get('itemId')));
+                    } catch (err) {
+                        console.warn(err);
+                    }
 
-                let owner;
-                try {
-                    owner = await getDoc(doc(db, 'users', postDoc.get('authorId')));
-                } catch (err) {
-                    console.warn(err);
-                }
-                
-                return {
-                    _id: postDoc.id,
-                    type: postDoc.get('type'),
-                    title: postDoc.get('title'),
-                    message: postDoc.get('message'),
-                    authorName: (owner?.get('name') ? owner.get('name') : postDoc.get('ownerId')) || 'Unknown User',
-                    pfpUrl: owner?.get('pfpUrl'),
-                    imageUrls: postDoc?.get('imageUrls'),
-                    createdAt: postDoc.get('createdAt'),
-                };
-            });
+                    let owner;
+                    try {
+                        owner = await getDoc(doc(db, 'users', postDoc.get('authorId')));
+                    } catch (err) {
+                        console.warn(err);
+                    }
+                    
+                    return {
+                        _id: postDoc.id,
+                        type: postDoc.get('type'),
+                        title: postDoc.get('title'),
+                        message: postDoc.get('message'),
+                        authorName: (owner?.get('name') ? owner.get('name') : postDoc.get('ownerId')) || 'Unknown User',
+                        pfpUrl: owner?.get('pfpUrl'),
+                        imageUrls: postDoc?.get('imageUrls'),
+                        createdAt: postDoc.get('createdAt'),
+                    };
+                });
 
-            Promise.all(promises).then((res) => {
-                setPosts(res.sort((a, b) => b.createdAt.seconds - a.createdAt.seconds)); setIsLoading(false);
-            }).catch((error) => {console.warn(error)});
+                Promise.all(promises).then((res) => {
+                    setPosts(res.sort((a, b) => b.createdAt.seconds - a.createdAt.seconds)); setIsLoading(false);
+                }).catch((error) => {
+                    navigateToErrorScreen(navigation, error);
+                });
+            } catch (error) {
+                navigateToErrorScreen(navigation, error);
+            }
         });
 
         return unsubscribe;
@@ -93,9 +100,9 @@ export function HomeScreen({ navigation }: { navigation: any }) {
             itemData._id = postData!.itemId;
             const authorData = (await getDoc(doc(db, 'users', postData!.authorId))).data()!;
             authorData._id = postData!.authorId;
-            navigation.navigate('My Stack', {screen: 'Lost Post View', params: {post: postData, item: itemData, author: authorData}});
-        } catch (err) {
-            console.warn(err);
+            navigation.navigate('My Stack', {screen: 'View Lost Post', params: {post: postData, item: itemData, author: authorData}});
+        } catch (error) {
+            navigateToErrorScreen(navigation, error);
         }
 
     }

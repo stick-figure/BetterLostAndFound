@@ -7,7 +7,8 @@ import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { CommonActions, useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
 import { colors, Icon, SearchBar } from 'react-native-elements';
-import PressableOpacity from '../assets/MyElements';
+import { PressableOpacity } from '../hooks/MyElements';
+import { navigateToErrorScreen } from './Error';
 
 interface ItemTile {
     _id: string,
@@ -70,7 +71,9 @@ export function SearchItemsScreen() {
             Promise.all(promises).then((res) => {
                 setItems(res);
                 setIsLoading(false);
-            }).catch((error) => {console.warn(error)});
+            }).catch((error) => {
+                navigateToErrorScreen(navigation, error);
+            });
         });
 
         return unsubscribe;
@@ -186,7 +189,7 @@ export function SearchItemsScreen() {
                 />
             <View style={styles.itemList}>
                 <FlatList
-                    contentContainerStyle={{minHeight: '100%'}}
+                    contentContainerStyle={{}}
                     keyExtractor={item => item._id.toString()}
                     ListEmptyComponent={
                         <View style={{flex: 1, alignContent: 'center', alignSelf: 'stretch', justifyContent: 'center'}}>
@@ -198,7 +201,7 @@ export function SearchItemsScreen() {
                         <View style={styles.itemListItem}>
                             <PressableOpacity
                                 key={item._id.toString()}
-                                onPress={() => { navigation.navigate('Item View', { itemId: item._id, itemName: item.name }) }}>    
+                                onPress={() => { navigation.navigate('View Item', { itemId: item._id, itemName: item.name }) }}>    
                             
                                 <Image source={item.imageSrc} style={styles.itemImage} defaultSource={require('../assets/defaultimg.jpg')}/>
                                 <View style={styles.itemListItemView}>

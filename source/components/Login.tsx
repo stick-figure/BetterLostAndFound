@@ -4,10 +4,11 @@ import { auth } from '../../ModularFirebase';
 import { AuthErrorCodes, signInWithEmailAndPassword } from 'firebase/auth';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { CommonActions } from '@react-navigation/native';
-import PressableOpacity from '../assets/MyElements';
+import { CoolTextInput, MyInput, PressableOpacity } from '../hooks/MyElements';
 import { Input } from 'react-native-elements';
 import SafeAreaView from 'react-native-safe-area-view';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
+import { navigateToErrorScreen } from './Error';
 
 export function LoginScreen({ navigation }: { navigation: any }) {
     const [email, setEmail] = useState('');
@@ -26,7 +27,6 @@ export function LoginScreen({ navigation }: { navigation: any }) {
             navigation.replace('My Drawer', { screen: 'Bottom Tabs' });
 
         }).catch((error) => {
-            console.warn(error);
             switch (error.code) {
                 case AuthErrorCodes.INVALID_PASSWORD:
                     setErrorText('Wrong password.');
@@ -66,18 +66,6 @@ export function LoginScreen({ navigation }: { navigation: any }) {
         errorText: {
             color: "red",
         },
-        textInput: {
-            textDecorationStyle: 'dotted',
-            fontWeight: 600,
-            fontSize: 20,
-            width: '80%', 
-            overflow: 'hidden',
-            borderBottomWidth: 2,
-            borderColor: colors.border,
-            borderRadius: 1,
-            padding: 6,
-            margin: 10,
-        },
         buttonDisabled: {
             opacity: 0.1,
         },
@@ -90,7 +78,7 @@ export function LoginScreen({ navigation }: { navigation: any }) {
         },
         loginButtonText: {
             textAlign: 'center',
-            color: colors.primaryContrastText,
+            color: colors.secondaryContrastText,
             fontSize: 16,
             fontWeight: 'bold',
         },
@@ -103,7 +91,7 @@ export function LoginScreen({ navigation }: { navigation: any }) {
         },
         signupButtonText: {
             textAlign: 'center',
-            color: colors.contrastText,
+            color: colors.primaryContrastText,
             fontSize: 16,
             fontWeight: 'bold',
         }
@@ -112,35 +100,39 @@ export function LoginScreen({ navigation }: { navigation: any }) {
     return (
         <SafeAreaView style={styles.container}>
             <Text style={styles.title}>Better Lost and Found</Text>
-            <Input
+            <CoolTextInput
                 label='Email'
                 leftIcon={{
                     name: 'email',
                     type: 'material-community'
                 }}
                 placeholder='Enter your email'
+                containerStyle={{width: '80%'}}
                 value={email}
                 editable={!signingIn}
                 onChangeText={text => setEmail(text)}
+                required
             />
             
-            <Input
+            <CoolTextInput
                 label='Password'
                 leftIcon={{
                     name: 'lock',
                     type: 'material-community'
                 }}
                 placeholder='Enter your password'
+                containerStyle={{width: '80%'}}
                 value={password}
                 editable={!signingIn}
                 onChangeText={text => setPassword(text)}
                 secureTextEntry
+                required
             />
             <Text style={styles.errorText}>{errorText}</Text>
             <PressableOpacity style={styles.signupButton} onPress={openRegisterScreen} disabled={signingIn}>
                 <Text style={styles.signupButtonText}>Sign Up</Text>
             </PressableOpacity>
-            <PressableOpacity style={styles.loginButton} onPress={signIn} disabled={password == ''}>
+            <PressableOpacity style={styles.loginButton} onPress={signIn} disabled={email ==  '' || password == ''}>
                 <Text style={styles.loginButtonText}>Log In</Text>
             </PressableOpacity>
         </SafeAreaView>

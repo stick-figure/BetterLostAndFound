@@ -12,7 +12,7 @@ import * as logger from 'firebase-functions/logger';
 
 import {onDocumentWritten} from 'firebase-functions/v2/firestore';
 import { initializeApp } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
+import { FirebaseAuthError, getAuth } from 'firebase-admin/auth';
 import { getDownloadURL, getStorage } from 'firebase-admin/storage'; 
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import firebaseConfig from '../../FirebaseConfig';
@@ -40,6 +40,14 @@ interface UserData {
     friendsList: string[],
     privateStats: boolean,
 }
+/*
+export const updatePfpRef = onDocumentWritten("users/{docId}", (event) => {
+    if (event.data?.before.get('pfpRef') != event.data?.after.get('pfpRef')) {
+        
+    }
+    
+});
+ 
 
 export const createUser = onCall(async (request, response) => {
     try {
@@ -47,60 +55,83 @@ export const createUser = onCall(async (request, response) => {
         const auth = getAuth();
         const storage = getStorage();
         const bucket = storage.bucket(firebaseConfig.storageBucket);
-
+        
         const userRef = db.collection('users').doc();
-        const result = await db.runTransaction((transaction) => {
-            return new Promise(async (resolve, reject) => {
-                try {
-                    if (request.data.phoneNumber !== undefined) {
-                        try {
-                            const existingUser = await auth.getUserByPhoneNumber(request.data.phoneNumber);
-                            reject(new Error(`Phone number ${phoneNumber} already in use by ${existingUser.uid}`));
-                            return;
-                        } catch (error) {
-                            if (error.code === 'auth/user-not-found') {
-                            // User not found.
-                            }
-                        }
-                    }
-                    const userData: UserData = {
-                        id: userRef.id,
-                        name: request.data.name,
-                        email: request.data.email,
-                        pfpUrl: null,
-                        phoneNumber: request.data.phoneNumber ?? null,
-                        emailVertified: false,
-                        createdAt: Timestamp.now(),
-                        timesOwnItemLost: 0,
-                        timesOwnItemFound: 0,
-                        timesOthersItemFound: 0,
-                        blockedList: [],
-                        friendsList: [],
-                        privateStats: false,
-                    };
-                    
-                    transaction.set(userRef, userData);
-                    
-                    resolve(userData);
-                } catch (error) {
-                    reject(error);
+        
+        try {
+            const emailUser = await auth.getUserByEmail(request.data.email);
+            throw new Error(`User ${emailUser} already exists.`);
+        } catch (error) {
+            if (!(error instanceof FirebaseAuthError) || error.code !== 'auth/user-not-found') {
+                throw error;
+            }
+        }
+        if (request.data.phoneNumber !== undefined) {
+            try {
+                const phoneNumberUser = await auth.getUserByPhoneNumber(request.data.phoneNumber);
+                throw new Error(`User ${phoneNumberUser} already exists.`);
+            } catch (error) {
+                if (!(error instanceof FirebaseAuthError) || error.code !== 'auth/user-not-found') {
+                    throw error;
                 }
                 
-            });
+            }
+        }
+
+        const result = await db.runTransaction(async (transaction) => {
+            const userData: UserData = {
+                id: userRef.id,
+                name: request.data.name,
+                email: request.data.email,
+                pfpUrl: null,
+                phoneNumber: request.data.phoneNumber ?? null,
+                emailVertified: false,
+                createdAt: Timestamp.now(),
+                timesOwnItemLost: 0,
+                timesOwnItemFound: 0,
+                timesOthersItemFound: 0,
+                blockedList: [],
+                friendsList: [],
+                privateStats: false,
+            };
+
+            if (request.data.pfpUri) {
+                const pfpFile = bucket.file('images/pfps/' + userRef.id);
+                await pfpFile.get({
+                    autoCreate: true,
+                });
+
+                await bucket.upload(request.data.pfpUri, {
+                    destination: pfpFile,
+                    onUploadProgress: (event) => {
+                        
+                    },
+                });
+
+                const pfpFileGet = await pfpFile.get();
+                pfpFileGet[0].publicUrl({
+                    
+                })
+            }
+            
+            transaction.set(userRef, userData);
+            
+            return userData;
         });
-        
-        await auth.createUser({
+
+        return await auth.createUser({
+            uid: userRef.id,
             displayName: (result as UserData).name,
             email: (result as UserData).email,
             password: request.data.password,
             photoURL: (result as UserData).pfpUrl ?? null,
             emailVerified: false,
             phoneNumber: (result as UserData).phoneNumber ?? null,
-            uid: userRef.id,
         });
 
     } catch (error) {
-        
+        console.warn(error);
+        return await error;
     }
 });
 /*

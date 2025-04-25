@@ -2,7 +2,6 @@ import { initializeApp, getApp } from 'firebase/app';
 import { connectFirestoreEmulator, initializeFirestore } from 'firebase/firestore';
 import { initializeAuth, getReactNativePersistence, connectAuthEmulator } from 'firebase/auth';
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
-import FirebaseFunctionsRateLimiter from 'firebase-functions-rate-limiter';
 import firebaseConfig from './FirebaseConfig';
 
 // Your web app's Firebase configuration

@@ -6,8 +6,9 @@ import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { CommonActions, useNavigation, useRoute } from '@react-navigation/native';
 import { MediaType, launchImageLibrary } from 'react-native-image-picker';
 import SafeAreaView from 'react-native-safe-area-view';
-import PressableOpacity from '../assets/MyElements';
+import { CoolTextInput, PressableOpacity } from '../hooks/MyElements';
 import { Input } from 'react-native-elements';
+import { navigateToErrorScreen } from './Error';
 
 export function NewFoundPostScreen() {
     const navigation = useNavigation();
@@ -33,7 +34,7 @@ export function NewFoundPostScreen() {
     const [imageUris, setImageUris] = useState<string[]>([]);
 
     const [uploading, setUploading] = useState(false);
-
+    
     const openImagePicker = () => {
         const options = {
             mediaType: 'photo' as MediaType,
@@ -51,7 +52,9 @@ export function NewFoundPostScreen() {
             } else if (response.assets) {
                 setImageUris(response.assets.filter((a) => a.uri != undefined).map((a) => a.uri!));
             }
-        }).catch((error) => { console.warn(error) });
+        }).catch((error) => {
+            navigateToErrorScreen(navigation, error);
+        });
     };
 
     const uploadPost = () => {
@@ -215,7 +218,7 @@ export function NewFoundPostScreen() {
         <SafeAreaView style={styles.container}>
             <View style={styles.itemContainer}>
                 <PressableOpacity
-                    onPress={() => { navigation.navigate('Item View', { itemId: item._id, itemName: item.name }) }}
+                    onPress={() => { navigation.navigate('View Item', { itemId: item._id, itemName: item.name }) }}
                     disabled={uploading}>
                         <View style={styles.horizontal}>
                         <Image 
@@ -230,14 +233,14 @@ export function NewFoundPostScreen() {
                         </View>
                 </PressableOpacity>
             </View>
-            <Input
-                label='Message*'
+            <CoolTextInput
+                label='Message'
                 multiline={true}
                 placeholder=''
                 onChangeText={text => setMessage(text)}
                 value={message}
                 editable={!uploading}
-                style={styles.multilineTextInput}
+                required
             />
             <PressableOpacity
                 style={styles.saveButton}

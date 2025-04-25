@@ -5,9 +5,10 @@ import SafeAreaView, { SafeAreaProvider } from 'react-native-safe-area-view';
 import { auth, db } from '../../ModularFirebase';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { CommonActions, useIsFocused } from '@react-navigation/native';
-import PressableOpacity from '../assets/MyElements';
+import { PressableOpacity } from '../hooks/MyElements';
 import { Icon } from 'react-native-elements';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
+import { navigateToErrorScreen } from './Error';
 
 export function MyChatRoomsScreen({ navigation }: { navigation: any }) {
     const [lostPostDatas, setLostPostDatas] = useState<any[]>([]);
@@ -58,8 +59,8 @@ export function MyChatRoomsScreen({ navigation }: { navigation: any }) {
             if (roomData === undefined) throw Error('room is undefined');
             
             navigation.navigate('My Stack', {'screen': 'Chat Room', 'params': {room: roomData}});
-        } catch (err) {
-            console.warn(err);
+        } catch (error) {
+            navigateToErrorScreen(navigation, error);
         } finally {
             setIsNavigating(false);
         }
@@ -131,7 +132,7 @@ export function MyChatRoomsScreen({ navigation }: { navigation: any }) {
                 
                 setRoomsData(newRoomsData.sort((a, b) => (b.lastMessage.createdAt?.seconds ?? 0) - (a.lastMessage.createdAt?.seconds ?? 0)));
             } catch (error) {
-                console.warn(error);
+                navigateToErrorScreen(navigation, error);
             }
         });
 
@@ -155,7 +156,7 @@ export function MyChatRoomsScreen({ navigation }: { navigation: any }) {
             fontSize: 14,
         },
         chatListContainer: {
-            width: '90%',
+            width: '100%',
             height: 'auto',
             backgroundColor: colors.card,
             alignSelf: 'center',
@@ -246,9 +247,9 @@ export function MyChatRoomsScreen({ navigation }: { navigation: any }) {
     return (
         <SafeAreaView style={styles.container}>
             <FlatList
-                contentContainerStyle={{minHeight: '100%'}}
+                contentContainerStyle={{width: '100%', flexGrow: 1, minHeight: '100%'}}
                 keyExtractor={(item) => item._id}
-                scrollEnabled={false}
+                scrollEnabled={true}
                 data={roomsData}
                 style={styles.chatListContainer}
                 renderItem={({ item }) => {

@@ -3,7 +3,7 @@ import { FlatList, Image, Modal, Pressable, StatusBar, StyleSheet, Text, TextInp
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { auth, db } from '../../ModularFirebase';
 import { addDoc, collection, disableNetwork, doc, documentId, DocumentSnapshot, getDoc, getDocs, onSnapshot, query, QuerySnapshot, runTransaction, serverTimestamp, updateDoc, where } from 'firebase/firestore';
-import PressableOpacity from '../assets/MyElements';
+import { PressableOpacity } from '../hooks/MyElements';
 import SafeAreaView from 'react-native-safe-area-view';
 import { CommonActions, useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
 import { CheckBox, Icon } from 'react-native-elements';
@@ -14,7 +14,26 @@ export type PostViewRouteParams = {
     item: {name: string},
 }
 
-export function LostPostViewScreen() {
+const resolveReasons = [
+    {
+        code: 'found-item',
+        description: 'Someone found my item for me', 
+    },
+    {
+        code: 'self-found-item',
+        description: 'Found it myself', 
+    },
+    {
+        code: 'self-removed-post-gave-up',
+        description: 'Gave up search', 
+    },
+    {
+        code: 'self-removed-post-other',
+        description: 'A different reason', 
+    },
+];
+
+export function ViewLostPostScreen() {
     const navigation = useNavigation();
     const route = useRoute();
     const [item, setItem] = useState({});
@@ -153,36 +172,57 @@ export function LostPostViewScreen() {
             console.warn(error);
         }
     }
-    const [reasonIndex, setReasonIndex] = useState(0);
+    const [reasonIndex, setReasonIndex] = useState(-1);
 
     const [modalVisible, setModalVisible] = useState(false);
     const resolvePostModal = () => {
+        const closeModal = () => {
+            setReasonIndex(-1);
+            setModalVisible(false);
+        }
         return (
             <Modal
                 animationType='slide'
                 transparent={true}
                 visible={modalVisible}
-                onRequestClose={() => {
-                    setModalVisible(false);
-                }}>
-                <View style={styles.modalBackground}>
-                    <View style={styles.modalContent}>
-                        <Pressable>
-                            <Icon name='cross' type='material-community' />
-                        </Pressable>
-                        <Text style={styles.text}>Resolve Post</Text>
-                        <CheckBox
-                            checked={reasonIndex === 0}
-                            onPress={() => setReasonIndex(0)}
-                            checkedIcon="dot-circle-o"
-                            uncheckedIcon="circle-o"
-                        />
-                        <CheckBox
-                            checked={reasonIndex === 1}
-                            onPress={() => setReasonIndex(1)}
-                            checkedIcon="dot-circle-o"
-                            uncheckedIcon="circle-o"
-                        />
+                onRequestClose={closeModal}>
+                    <View style={styles.modalContainer}>
+                        <View style={styles.modalBackground}>
+                        <TouchableOpacity
+                            style={{alignSelf: 'flex-end'}}
+                            onPress={closeModal}>
+                            <Icon name='close' type='material-community' />
+                        </TouchableOpacity>
+                        <View style={styles.modalContent}>
+                            
+                            <Text style={styles.modalTitle}>Resolve Post</Text>
+                            <Text style={styles.text}>Why are you closing this post?</Text>
+
+                            {resolveReasons.map((reason, index) => (
+                                <CheckBox
+                                    key={reason.code}
+                                    checked={reasonIndex === index}
+                                    onPress={() => setReasonIndex(index)}
+                                    checkedIcon='dot-circle-o'
+                                    uncheckedIcon='circle-o'
+                                    title={reason.description}
+                                    containerStyle={styles.checkBoxContainer}
+                                />
+                            ))}
+                            <View style={[styles.horizontal, {width: '100%', justifyContent: 'space-evenly'}]}>
+                                <TouchableOpacity
+                                    style={{...styles.mediumButton}}
+                                    onPress={() => setModalVisible(false)}>
+                                    <Text style={styles.mediumButtonText}>Archive</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={{...styles.mediumButton, backgroundColor: colors.red}}
+                                    onPress={() => setModalVisible(false)}>
+                                    <Text style={styles.mediumButtonText}>Delete</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
                     </View>
                 </View>
             </Modal>
@@ -230,7 +270,7 @@ export function LostPostViewScreen() {
         });
         return unsubscribe;
     }, []);
-
+    
     const actionButtons = () => {
         if (isAuthor) {
             return (
@@ -292,7 +332,7 @@ export function LostPostViewScreen() {
                             style={styles.chatItem}
                             onPress={() => {
                                 navigateToChatRoom(rooms.findIndex(room => item._id))
-                            }} 
+                            }}
                             disabled={isNavigating}>
                             <Image 
                                 style={styles.chatThumbnail}
@@ -333,15 +373,20 @@ export function LostPostViewScreen() {
         horizontal: {
             flexDirection: 'row',
         },
+        modalContainer: { 
+            flex: 1, 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+        },
         modalBackground: {
             alignSelf: 'center',
             justifyContent: 'center',
-            margin: 20,
-            backgroundColor: 'white',
+            backgroundColor: colors.card,
+            margin: 10,
+            padding: 5,
             borderRadius: 20,
-            padding: 35,
             alignItems: 'center',
-            shadowColor: '#000',
+            shadowColor: colors.border,
             shadowOffset: {
                 width: 0,
                 height: 2,
@@ -352,10 +397,29 @@ export function LostPostViewScreen() {
         },
         modalContent: {
             width: 300,
-            padding: 20,
-            backgroundColor: 'white',
+            padding: 5,
+            backgroundColor: colors.card,
             borderRadius: 10,
             alignItems: 'center',
+        },
+        modalTitle: {
+            fontSize: 20,
+            fontWeight: 'bold',
+        },
+        checkBoxContainer: {
+            width: '100%',
+            padding: 5,
+        },
+        mediumButton: {
+            padding: 8,
+            margin: 2,
+            backgroundColor: colors.primary,
+            borderRadius: 7,
+        },
+        mediumButtonText: {
+            fontSize: 14,
+            color: colors.primaryContrastText,
+            fontWeight: '500',
         },
         userHeader: {
             flexDirection: 'row',
@@ -402,12 +466,6 @@ export function LostPostViewScreen() {
             fontWeight: '500',
             color: colors.text,
             margin: 8,
-        },
-        itemList: {
-            width: '100%',
-            height: '40%',
-            margin: 10,
-            backgroundColor: colors.card,
         },
         itemListItem: {
             width: 120,
@@ -509,7 +567,7 @@ export function LostPostViewScreen() {
                     </View>
                     <Text style={styles.postTitle}>Lost <Text style={{fontWeight: '800'}}>{item.name}</Text></Text>
                     <PressableOpacity
-                        onPress={() => { navigation.navigate('Item View', { itemId: item._id, itemName: item.name }) }}
+                        onPress={() => { navigation.navigate('View Item', { itemId: item._id, itemName: item.name }) }}
                         disabled={isNavigating}>
                         <Image source={post?.imageUrls ? {uri: post.imageUrls[0]} : undefined} style={styles.itemImage} defaultSource={require('../assets/defaultimg.jpg')} />
                         <View style={styles.itemListItemView}>
@@ -537,4 +595,4 @@ export function LostPostViewScreen() {
 }
 
 
-export default LostPostViewScreen;
+export default ViewLostPostScreen;
