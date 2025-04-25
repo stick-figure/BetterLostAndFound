@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, Animated, StyleSheet, Text, TextInput, View, useColorScheme, TouchableOpacity, Platform } from 'react-native';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { Icon } from 'react-native-elements';
@@ -115,7 +115,6 @@ export const CoolTextInput = ({ ...props }) => {
         }
     }), [isDarkMode]);
 
-
     return (
         <View style={[styles.container, props.containerStyle]}>
             { 
@@ -129,6 +128,91 @@ export const CoolTextInput = ({ ...props }) => {
                 style={[styles.textInput, props.style]}>
             </TextInput>
         </View>
+    );
+}
+
+export const CoolButton = ({ ...props }) => {
+    const [pressedIn, setPressedIn] = useState(false);
+
+    const isDarkMode = useColorScheme() === 'dark';
+    const colors = isDarkMode ? DarkThemeColors : LightThemeColors;
+
+    const pressInHeight = 2;
+    const pressOutHeight = 5;
+    
+    const styles = useMemo(() => StyleSheet.create({
+        button: {
+            backgroundColor: colors.border,
+            overflow: 'hidden',
+            borderRadius: props.style?.borderRadius || 10,
+        },
+        pressedInCap: {
+            marginBottom: Math.abs(props.pressInHeight || pressInHeight),
+        },
+        pressedOutCap: {
+            marginBottom: Math.abs(props.pressOutHeight || pressOutHeight),
+        },
+        pressedInButton: {
+            marginTop: (props.pressOutHeight || pressOutHeight) - (props.pressInHeight || pressInHeight),
+        },
+        pressedOutButton: {
+            marginTop: 0,
+        },
+        title: {
+            textAlign: 'center',
+            color: props.useSecondaryColor ? colors.secondaryContrastText : colors.primaryContrastText,
+            fontSize: 16,
+            fontWeight: 'bold',
+            justifyContent: 'space-between',
+            alignSelf: 'center',
+        },
+        cap: {
+            backgroundColor: props.useSecondaryColor ? colors.secondary : colors.primary,
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: props.style?.borderRadius || 10,
+            padding: 10,
+        },
+        content: {
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexDirection: 'row',
+        },
+    }), [isDarkMode]);
+
+    return (
+        <Pressable
+            {...props}
+            style={[
+                styles.button, 
+                pressedIn ? styles.pressedInButton : styles.pressedOutButton, 
+                props.style,
+            ]}
+            onPressIn={() => setPressedIn(true)}
+            onPressOut={() => setPressedIn(false)}>
+            <View 
+                style={[
+                    styles.cap, 
+                    props.disabled ? {opacity: 0.4} : {opacity: 1},
+                    pressedIn ? styles.pressedInCap : styles.pressedOutCap, 
+                    props.capStyle,
+                ]}>
+                <View 
+                    style={[
+                        styles.content,
+                        props.contentStyle,
+                    ]}>
+                    {props.leftIcon ? 
+                        <Icon name={props.leftIcon.name} type={props.leftIcon.type || 'material-community'} size={props.leftIcon.size || styles.title.fontSize} color={props.leftIcon.color || styles.title.color} />
+                    : null}
+                    <Text style={[styles.title, props.titleStyle]}>{props.title}</Text>
+                    {props.rightIcon ? 
+                        <Icon name={props.rightIcon.name} type={props.rightIcon.type || 'material-community'} size={props.rightIcon.size || styles.title.fontSize} color={props.rightIcon.color || styles.title.color} />
+                    : null}
+                </View>
+                
+            </View>
+        </Pressable>
     );
 }
 

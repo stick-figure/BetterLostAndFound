@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { SafeAreaView, View, FlatList, ActivityIndicator, Image, Text, StyleSheet, useColorScheme } from 'react-native';
 import { SearchBar, Icon } from 'react-native-elements';
 import { auth, db } from '../../ModularFirebase';
-import { PressableOpacity } from '../hooks/MyElements';
+import { CoolButton, PressableOpacity } from '../hooks/MyElements';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { navigateToErrorScreen } from './Error';
 
@@ -48,7 +48,7 @@ export function PostLostItemScreen({ navigation }: { navigation: any }) {
                     description: itemDoc.get('description'),
                     ownerName: owner?.get('name') || itemDoc.get('ownerId') || 'Unknown User',
                     isLost: itemDoc.get('isLost'),
-                    imageSrc: itemDoc.get('imageSrc') ? { uri: itemDoc.get('imageSrc') } : undefined,
+                    imageSrc: itemDoc.get('imageSrc') || undefined,
                 };
             });
 
@@ -98,12 +98,8 @@ export function PostLostItemScreen({ navigation }: { navigation: any }) {
             fontWeight: "bold",
         },
         bigButton: {
-            width: '90%',
+            width: '100%',
             alignSelf: 'center',
-            backgroundColor: colors.primary,
-            borderRadius: 7,
-            padding: 10,
-            margin: 4,
         },
         bigButtonText: {
             fontSize: 16,
@@ -171,11 +167,10 @@ export function PostLostItemScreen({ navigation }: { navigation: any }) {
         <SafeAreaView style={styles.container}>
             <View style={{margin: 4, padding: 4}}>
                 <Text style={styles.text}>Can't find your item in this list?</Text>
-                <PressableOpacity
+                <CoolButton
+                    title='Add new item'
                     onPress={() => navigation.navigate('My Stack', {screen: 'Add Item', params: {nextScreen: 'New Lost Post'}})}
-                    style={styles.bigButton}>
-                    <Text style={styles.bigButtonText}>Add new item</Text>
-                </PressableOpacity>
+                    style={styles.bigButton} />
             </View>
             <Text style={styles.subtitle}>Choose an item</Text>
             <SearchBar
@@ -207,9 +202,14 @@ export function PostLostItemScreen({ navigation }: { navigation: any }) {
                         <View style={styles.itemListItem}>
                             <PressableOpacity
                                 key={item._id.toString()}
-                                onPress={() => { navigation.navigate('View Item', { itemId: item._id, itemName: item.name }) }}>    
+                                onPress={async () => {
+                                    const ownerRef = doc(db, 'users', auth.currentUser!.uid)
+                                    const ownerData = (await getDoc(ownerRef)).data();
+
+                                    navigation.navigate('New Lost Post', { item: item, owner: {...ownerData, _id: ownerRef.id} })
+                                }}>
                             
-                                <Image source={item.imageSrc} style={styles.itemImage} defaultSource={require('../assets/defaultimg.jpg')}/>
+                                <Image source={{uri: item.imageSrc || undefined}} style={styles.itemImage} defaultSource={require('../assets/defaultimg.jpg')}/>
                                 <View style={styles.listItemInfo}>
                                     <Text style={styles.itemTitle}>{item.name}</Text>
                                     <Text style={styles.itemSubtitle}>{item.ownerName}</Text>

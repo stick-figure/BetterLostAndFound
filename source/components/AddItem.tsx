@@ -9,7 +9,7 @@ import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { ScrollView, TouchableOpacity } from 'react-native-gesture-handler';
 import { CommonActions, useTheme, useNavigation, useRoute } from '@react-navigation/native';
 import { Icon, Input } from 'react-native-elements';
-import { CoolTextInput, MyInput, PressableOpacity, RequiredLabel } from '../hooks/MyElements';
+import { CoolButton, CoolTextInput, MyInput, RequiredLabel } from '../hooks/MyElements';
 import SafeAreaView from 'react-native-safe-area-view';
 import { request, PERMISSIONS, RESULTS, check, PermissionStatus } from 'react-native-permissions';
 import { useCameraDevices, Camera } from 'react-native-vision-camera';
@@ -59,7 +59,7 @@ export function AddItemScreen() {
                 
                 if (result == RESULTS.GRANTED) openImagePicker();
             });
-            return;    
+            return;
         }
 
         const options = {
@@ -160,42 +160,38 @@ export function AddItemScreen() {
             
             navigation.navigate('Loading');
             
-            let transactionSuccessful = await runTransaction(db, async (transaction) => {
-                try {
+            const ownerData = (await getDoc(doc(db, 'users', auth.currentUser!.uid))).data();
+            
+            const docRef = await addDoc(collection(db, "items"), itemData);
+            
+            const url = await uploadImage(docRef.id);
 
-                } catch (error) {
-                    
-                }
-                const ownerData = await transaction.get(doc(db, 'users', auth.currentUser!.uid));
-                const docRef = doc(db, 'items');
-                transaction.set(docRef, itemData);
+            await updateDoc(docRef, {imageSrc: url});
 
-                if (route.params!.nextScreen == 'New Lost Post') {
-                    navigation.dispatch(
-                        CommonActions.reset({
-                            index: 0,
-                            routes: [
-                                { name: 'New Lost Post', params: {
-                                    item: itemData, owner: owner,
-                                } 
-                            }],
-                        })
-                    );
-                    return;
-                }
+            if (route.params!.nextScreen == 'New Lost Post') {
                 navigation.dispatch(
                     CommonActions.reset({
                         index: 0,
                         routes: [
-                            { name: 'View Item', params: {
-                                itemId: docRef.id, itemName: itemData.name 
-                            } 
+                            { name: 'New Lost Post', params: {
+                                item: {_id: docRef.id, ...itemData, imageSrc: url}, 
+                                owner: {_id: auth.currentUser!.id, ...ownerData},
+                            }
                         }],
                     })
                 );
-            });
-            const url = await uploadImage(docRef.id);
-            await updateDoc(docRef, {imageSrc: url})
+                return;
+            }
+            navigation.dispatch(
+                CommonActions.reset({
+                    index: 0,
+                    routes: [
+                        { name: 'View Item', params: {
+                            itemId: docRef.id, itemName: itemData.name 
+                        } 
+                    }],
+                })
+            );
         } catch (error) {        // An error happened.
             navigateToErrorScreen(navigation, error);
         }
@@ -242,9 +238,9 @@ export function AddItemScreen() {
             fontWeight: '500',
         },
         iconButton: {
-            borderRadius: 5,
-            width: 25,
-            height: 25,
+            borderRadius: 10,
+            width: 50,
+            height: 50,
             marginRight: 4,
             alignItems: 'center',
             justifyContent: 'center', 
@@ -273,16 +269,6 @@ export function AddItemScreen() {
         },
         saveButton: {
             width: 280,
-            backgroundColor: colors.primary,
-            borderRadius: 7,
-            padding: 10,
-            marginVertical: 10,
-        },
-        saveButtonText: {
-            fontSize: 16,
-            textAlign: 'center',
-            color: colors.primaryContrastText,
-            fontWeight: 'bold',
         },
     }), [isDarkMode]);
 
@@ -308,13 +294,13 @@ export function AddItemScreen() {
 
                 <View style={styles.horizontalContainer}>
                     <TouchableOpacity onPress={handleCameraLaunch} style={styles.iconButton}>
-                        <Icon name='camera-alt' type='material-icons' size={20} color={colors.secondaryContrastText} />
+                        <Icon name='camera-alt' type='material-icons' size={40} color={colors.secondaryContrastText} />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={openImagePicker} style={styles.iconButton}>
-                        <Icon name='photo-library' type='material-icons' size={20} color={colors.secondaryContrastText} />
+                        <Icon name='photo-library' type='material-icons' size={40} color={colors.secondaryContrastText} />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => {}} style={styles.iconButton}>
-                        <Icon name='web-plus' type='material-community' size={20} color={colors.secondaryContrastText} />
+                        <Icon name='web-plus' type='material-community' size={40} color={colors.secondaryContrastText} />
                     </TouchableOpacity>
                     <RequiredLabel style={styles.imageLabel}>Select image</RequiredLabel>
                 </View>
@@ -348,13 +334,12 @@ export function AddItemScreen() {
                         value={secretPhrase}
                         editable={!uploading}
                     />
-                    <PressableOpacity
-                        style={styles.saveButton}
+                    <CoolButton 
+                        title={route.params?.nextScreen ? 'Continue' : 'Add item'}
                         disabled={name.trim().length < 1 || description.trim().length < 1 || imgSrc.uri == '' || uploading}
                         onPress={uploadItem}
-                    >
-                        <Text style={styles.saveButtonText}>Add Item</Text>
-                    </PressableOpacity>
+                        style={styles.saveButton}
+                        />
                 </View>
             </ScrollView>
         </SafeAreaView>

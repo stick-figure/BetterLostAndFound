@@ -1,12 +1,11 @@
 import { query, collection, where, doc, getDocs, setDoc, DocumentData, onSnapshot, DocumentSnapshot, getDoc } from 'firebase/firestore';
-import { SetStateAction, useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import React, { SetStateAction, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Button, FlatList, Image, StyleSheet, Text, useColorScheme, View } from 'react-native';
 import SafeAreaView, { SafeAreaProvider } from 'react-native-safe-area-view';
 import { auth, db } from '../../ModularFirebase';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
-import { TouchableOpacity } from 'react-native-gesture-handler';
 import { CommonActions } from '@react-navigation/native';
-import { PressableOpacity } from '../hooks/MyElements';
+import { CoolButton, PressableOpacity } from '../hooks/MyElements';
 import { Icon } from 'react-native-elements';
 import { navigateToErrorScreen } from './Error';
 
@@ -59,7 +58,7 @@ export function MyItemsScreen({ navigation }: { navigation: any }) {
                     description: itemDoc.get('description'),
                     ownerName: owner?.get('name') || itemDoc.get('ownerId') || 'Unknown User',
                     isLost: itemDoc.get('isLost'),
-                    imageSrc: (itemDoc.get('imageSrc') ? { uri: itemDoc.get('imageSrc') } : undefined),
+                    imageSrc: (itemDoc.get('imageSrc')?.length > 0 ? { uri: itemDoc.get('imageSrc') } : undefined),
                 };
             });
 
@@ -232,9 +231,15 @@ export function MyItemsScreen({ navigation }: { navigation: any }) {
             
             <View style={[styles.horizontal, {width:'100%', alignItems: 'flex-end', justifyContent: 'space-between'}]}>
                 <Text style={{fontSize: 16, color: colors.text, margin: 4}}>My Items</Text>
-                <PressableOpacity onPress={() => navigation.navigate('My Stack', {screen: 'Add Item'})} style={styles.smallButton}>
-                    <Text style={styles.smallButtonText}>Add Item</Text>
-                </PressableOpacity>
+                <CoolButton 
+                    leftIcon={{
+                        name: 'plus',
+                        type: 'material-community',
+                        size: 20,
+                    }}
+                    onPress={() => navigation.navigate('My Stack', {screen: 'Add Item'})} 
+                    style={{borderRadius: 999999}}
+                    capStyle={{padding: 5}}/>
             </View>
             <View style={styles.itemList}>
                 <FlatList

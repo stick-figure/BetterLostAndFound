@@ -13,6 +13,7 @@ import firebase from 'firebase/compat/app';
 import { timestampToString } from './SomeFunctions';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { check, PERMISSIONS, PermissionStatus, request, RESULTS } from 'react-native-permissions';
+import { navigateToErrorScreen } from './Error';
 
 export type ViewItemRouteParams = {
     itemId: string,
@@ -82,7 +83,7 @@ export function ViewItemScreen() {
             postData._id = item.lostPostId;
             navigation.navigate('View Lost Post', { item: item, author: owner, post: postData });
         } catch (error) {
-            console.warn(error);
+            navigateToErrorScreen(navigation, error);
         }
     }
 
@@ -112,7 +113,7 @@ export function ViewItemScreen() {
             // File deleted successfully
             navigation.navigate('My Items');
         }).catch((error) => {
-            console.warn(error);
+            navigateToErrorScreen(navigation, error);
             // Uh-oh, an error occurred!
         });
     }
@@ -277,7 +278,7 @@ export function ViewItemScreen() {
             setItem({_id: snapshot.id, ...snapshot.data()!});
             setHasUnsavedChanges(false);
         } catch (error) {
-            console.warn(error);
+            navigateToErrorScreen(navigation, error);
         } finally {
             setIsUploading(false);
         }
@@ -494,14 +495,13 @@ export function ViewItemScreen() {
         },
     }), [isDarkMode]);
 
-
     if (isOwner) return (
         <SafeAreaView style={styles.container}>
             <ScrollView>
                 <View style={styles.userHeader}>
                     <Image
                         style={[styles.pfp, {width: null, height: 50, aspectRatio: 1}]}
-                        source={owner.pfpUrl ? {uri: owner.pfpUrl} : undefined}
+                        source={{uri: owner.pfpUrl || undefined}}
                         defaultSource={require('../assets/defaultpfp.jpg')} />
                     <View>
                         <Text>You own this item</Text>
@@ -512,7 +512,7 @@ export function ViewItemScreen() {
                     <View style={{flex: 1, padding: 5}}>
                         <Image
                             style={styles.itemImage}
-                            source={imageUri ? {uri: imageUri} : {uri: item.imageSrc}} 
+                            source={{uri: imageUri || item.imageSrc || undefined}} 
                             defaultSource={require('../assets/defaultimg.jpg')} />
                             {isEditable ? (
                                 <View style={{...styles.horizontal, alignSelf: 'center'}}>
@@ -617,7 +617,7 @@ export function ViewItemScreen() {
             <View style={styles.userHeader}>
                     <Image
                         style={[styles.pfp, {width: null, height: 50, aspectRatio: 1}]}
-                        source={owner.pfpUrl ? {uri: owner.pfpUrl} : undefined}
+                        source={{uri: owner.pfpUrl || undefined}}
                         defaultSource={require('../assets/defaultpfp.jpg')} />
                     <View>
                         <Text>Owned by</Text>
@@ -628,7 +628,7 @@ export function ViewItemScreen() {
                     <View style={{flex: 1, margin: 5}}>
                         <Image
                             style={styles.itemImage}
-                            source={imageUri ? {uri: imageUri} : {uri: item.imageSrc}} 
+                            source={{uri: imageUri || item.imageSrc || undefined}} 
                             defaultSource={require('../assets/defaultimg.jpg')} />
                     </View>
                     <View style={{flex: 1, marginVertical: 5}}>

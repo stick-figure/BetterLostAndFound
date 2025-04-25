@@ -7,7 +7,7 @@ import { db, auth } from '../../ModularFirebase';
 import { CommonActions, DrawerActions, useIsFocused } from '@react-navigation/native';
 import { Icon } from 'react-native-elements';
 import SafeAreaView from 'react-native-safe-area-view';
-import { PressableOpacity } from '../hooks/MyElements';
+import { CoolButton } from '../hooks/MyElements';
 import { timestampToString } from './SomeFunctions';
 import { navigateToErrorScreen } from './Error';
 
@@ -181,49 +181,51 @@ export function HomeScreen({ navigation }: { navigation: any }) {
     }), [isDarkMode]);
 
     return (
-        <SafeAreaView style={styles.container}>
-            <View style={{width: '100%'}}>
-                <PressableOpacity
-                    style={{...styles.bigButton, width: "100%", padding: 12}}
-                    onPress={() => navigation.navigate('My Stack', {screen: 'Post Lost Item'})}>
-                    <Text style={{...styles.bigButtonText, fontSize: 20, fontWeight: "600"}}>HELP I LOST SOMETHING</Text>
-                </PressableOpacity>
-            </View>
-            
-            <View style={styles.itemList}>
-                <FlatList
-                    contentContainerStyle={{minHeight: '100%'}}
-                    keyExtractor={lostPost => lostPost._id.toString()}
-                    ListEmptyComponent={
-                        <View style={{width: '100%', height: '100%', alignContent: 'center', alignSelf: 'stretch', justifyContent: 'center'}}>
-                            {isLoading ? <ActivityIndicator size='large' /> : <Icon name='cactus' type='material-community' size={40} />}
-                        </View>
-                    }
-                    data={posts}
-                    renderItem={({ item }) => (
-                        <View style={styles.itemListItemView}>
-                            <TouchableOpacity key={item._id.toString()} onPress={() => navigateToPost(item._id)}>
-                                <View style={[styles.horizontal, {width: '100%', justifyContent: 'flex-start', alignItems: 'center'}]}>
-                                    <Image
-                                        style={styles.pfp}
-                                        source={{uri: item.pfpUrl}}
-                                        defaultSource={require('../assets/defaultpfp.jpg')} />
-                                    <View>
-                                        <Text style={styles.userName}>{item.authorName}</Text>
-                                        <Text style={styles.timestamp}>
-                                            {item.createdAt ? timestampToString(item.createdAt!, now) : 'unknown time'}
-                                        </Text>
+        <SafeAreaView style={{flex: 1}}>
+            <View style={styles.container}>
+                <View style={{width: '100%'}}>
+                    <CoolButton
+                        title='HELP I LOST SOMETHING'
+                        style={{width: '100%'}}
+                        titleStyle={{fontSize: 20}} 
+                        onPress={() => navigation.navigate('My Stack', {screen: 'Post Lost Item'})} />
+                </View>
+                
+                <View style={styles.itemList}>
+                    <FlatList
+                        contentContainerStyle={{minHeight: '100%'}}
+                        keyExtractor={lostPost => lostPost._id.toString()}
+                        ListEmptyComponent={
+                            <View style={{width: '100%', height: '100%', alignContent: 'center', alignSelf: 'stretch', justifyContent: 'center'}}>
+                                {isLoading ? <ActivityIndicator size='large' /> : <Icon name='cactus' type='material-community' size={40} />}
+                            </View>
+                        }
+                        data={posts}
+                        renderItem={({ item }) => (
+                            <View style={styles.itemListItemView}>
+                                <TouchableOpacity key={item._id.toString()} onPress={() => navigateToPost(item._id)}>
+                                    <View style={[styles.horizontal, {width: '100%', justifyContent: 'flex-start', alignItems: 'center'}]}>
+                                        <Image
+                                            style={styles.pfp}
+                                            source={{uri: item.pfpUrl}}
+                                            defaultSource={require('../assets/defaultpfp.jpg')} />
+                                        <View>
+                                            <Text style={styles.userName}>{item.authorName}</Text>
+                                            <Text style={styles.timestamp}>
+                                                {item.createdAt ? timestampToString(item.createdAt!, now) : 'unknown time'}
+                                            </Text>
+                                        </View>
                                     </View>
-                                </View>
-                                <View style={{margin: 4, maxHeight: 80, overflow: 'hidden'}}>
-                                    <Text style={{...styles.itemTitle, fontWeight: '500'}}>{item?.type && item.type + " "}<Text style={styles.itemTitle}>{item.title}</Text></Text>
-                                    <Text style={styles.itemContent}>{item.message}</Text>
-                                </View>
-                                <Image source={item?.imageUrls ? {uri: item?.imageUrls[0]} : undefined} style={styles.itemImage} defaultSource={require('../assets/defaultimg.jpg')} />
-                            </TouchableOpacity>
-                        </View>
-                        )}
-                />
+                                    <View style={{margin: 4, maxHeight: 80, overflow: 'hidden'}}>
+                                        <Text style={{...styles.itemTitle, fontWeight: '500'}}>{item?.type && item.type + " "}<Text style={styles.itemTitle}>{item.title}</Text></Text>
+                                        <Text style={styles.itemContent}>{item.message}</Text>
+                                    </View>
+                                    <Image source={item?.imageUrls ? {uri: item?.imageUrls[0]} : undefined} style={styles.itemImage} defaultSource={require('../assets/defaultimg.jpg')} />
+                                </TouchableOpacity>
+                            </View>
+                            )}
+                    />
+                </View>
             </View>
         </SafeAreaView>
     );

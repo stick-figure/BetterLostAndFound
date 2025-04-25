@@ -96,7 +96,7 @@ export function MyChatRoomsScreen({ navigation }: { navigation: any }) {
                 
                 setRoomsData(newRoomsData.sort((a, b) => (b.lastMessage.createdAt?.seconds ?? 0) - (a.lastMessage.createdAt?.seconds ?? 0)));
             } catch (error) {
-                console.warn(error);
+                navigateToErrorScreen(navigation, error);
             }
         });
 

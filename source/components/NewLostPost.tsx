@@ -7,7 +7,7 @@ import { launchImageLibrary, MediaType } from 'react-native-image-picker';
 import { auth, db } from '../../ModularFirebase';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { CommonActions, useNavigation, useRoute } from '@react-navigation/native';
-import { CoolTextInput, PressableOpacity } from '../hooks/MyElements';
+import { CoolButton, CoolTextInput, PressableOpacity } from '../hooks/MyElements';
 import { Input } from 'react-native-elements';
 import SafeAreaView from 'react-native-safe-area-view';
 
@@ -20,6 +20,9 @@ export function NewLostPostScreen() {
 
     const [title, setTitle] = useState('');
     const [message, setMessage] = useState('');
+
+    const [showPhoneNumber, setShowPhoneNumber] = useState(false);
+    const [showAddress, setShowAddress] = useState(false);
 
     const [useLocation, setUseLocation] = useState(false);
 
@@ -40,6 +43,8 @@ export function NewLostPostScreen() {
             resolveReason: '',
             views: 0,
             roomIds: [],
+            showPhoneNumber: false,
+            showAddress: false,
             imageUrls: [item.imageSrc],
         };
 
@@ -165,9 +170,6 @@ export function NewLostPostScreen() {
         },
         saveButton: {
             width: 280,
-            backgroundColor: colors.primary,
-            borderRadius: 7,
-            padding: 10,
         },
         saveButtonText: {
             fontSize: 16,
@@ -193,7 +195,7 @@ export function NewLostPostScreen() {
                     disabled={uploading}>
                         <View style={styles.horizontal}>
                         <Image 
-                            source={{uri: item.imageSrc}} 
+                            source={{uri: item.imageSrc || undefined}} 
                             defaultSource={require('../assets/defaultimg.jpg')} 
                             style={styles.itemImage} />
                             <View style={styles.itemListItemView}>
@@ -219,13 +221,12 @@ export function NewLostPostScreen() {
 
             {/*TODO EXPIRE BY FIELD*/}
 
-            <PressableOpacity
+            <CoolButton
+                title='Post'
                 style={styles.saveButton}
                 disabled={message.trim().length <= 0}
                 onPress={uploadPost}
-                editable={!uploading}>
-                <Text style={styles.saveButtonText}>Post</Text>
-            </PressableOpacity>
+                editable={!uploading} />
         </SafeAreaView>
     );
 }

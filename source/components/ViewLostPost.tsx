@@ -107,7 +107,7 @@ export function ViewLostPostScreen() {
                 });
             });
         } catch (err) {
-            console.warn(err);
+            navigateToErrorScreen(navigation, error);
         } finally {
             setIsNavigating(false);
         }
@@ -130,7 +130,7 @@ export function ViewLostPostScreen() {
             
             navigation.navigate('Chat Room', {room: roomData});
         } catch (err) {
-            console.warn(err);
+            navigateToErrorScreen(navigation, error);
         } finally {
             setIsNavigating(false);
         }
@@ -169,7 +169,7 @@ export function ViewLostPostScreen() {
             
             setRooms(roomsData);
         } catch (error) {
-            console.warn(error);
+            navigateToErrorScreen(navigation, error);
         }
     }
     const [reasonIndex, setReasonIndex] = useState(-1);
@@ -233,7 +233,7 @@ export function ViewLostPostScreen() {
         try {
             
         } catch (error) {
-            console.warn(error);
+            navigateToErrorScreen(navigation, error);
         }
     });
 

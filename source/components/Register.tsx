@@ -20,6 +20,7 @@ export function RegisterScreen() {
     const route = useRoute();
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
+    const [address, setAddress] = useState('');
     const [phoneNumber, setPhoneNumber] = useState('');
     const [formattedPhoneNumber, setFormattedPhoneNumber] = useState('');
     const [password, setPassword] = useState('');
@@ -104,7 +105,7 @@ export function RegisterScreen() {
                         setErrorText((error as AuthError).code + ' ' + (error as AuthError).message);
                 }
             } else {
-                console.warn(error);
+                navigateToErrorScreen(navigation, error);
             }
         } finally {
             setRegistering(false);
@@ -248,12 +249,14 @@ export function RegisterScreen() {
         },
         pfpContainer: {
             alignSelf: 'flex-start',
+            alignItems: 'center',
+            
         },
         horizontalContainer: {
-            justifyContent: 'flex-start',
+            justifyContent: 'space-evenly',
             alignItems: 'center',
             flexDirection: 'row',
-            padding: 10,
+            padding: 5,
         },
         registerButton: {
             width: 370,
@@ -270,18 +273,18 @@ export function RegisterScreen() {
             fontWeight: 'bold',
         },
         uploadButton: {
-            borderRadius: 5,
-            width: 25,
-            height: 25,
+            borderRadius: 10,
+            width: 50,
+            height: 50,
             marginRight: 4,
             alignItems: 'center',
             justifyContent: 'center', 
             backgroundColor: colors.secondary,
         },
         cameraButton: {
-            borderRadius: 5,
-            width: 25,
-            height: 25,
+            borderRadius: 10,
+            width: 50,
+            height: 50,
             marginRight: 4,
             alignItems: 'center',
             justifyContent: 'center', 
@@ -292,6 +295,7 @@ export function RegisterScreen() {
             height: 128,
             alignSelf: 'center',
             borderRadius: 32,
+            margin: 4,
         }
     }), [isDarkMode]);
 
@@ -305,15 +309,14 @@ export function RegisterScreen() {
                             style={styles.pfpImage}
                             source={pfpSrc.uri != '' ? pfpSrc : require('../assets/defaultpfp.jpg')}
                         />
-
+                        <Text style={{fontSize: 14, fontWeight: '500'}}>Set photo</Text>
                         <View style={styles.horizontalContainer}>
                             <TouchableOpacity onPress={handleCameraLaunch} style={styles.cameraButton}>
-                                <Icon name='camera-alt' type='material-icons' size={20} color={colors.secondaryContrastText} />
+                                <Icon name='camera-alt' type='material-icons' size={40} color={colors.secondaryContrastText} />
                             </TouchableOpacity>
                             <TouchableOpacity onPress={openImagePicker} style={styles.uploadButton}>
-                                <Icon name='photo-library' type='material-icons' size={20} color={colors.secondaryContrastText} />
+                                <Icon name='photo-library' type='material-icons' size={40} color={colors.secondaryContrastText} />
                             </TouchableOpacity>
-                            <Text style={{fontSize: 14, fontWeight: '500'}}>Set photo</Text>
                         </View>
                     </View>
                     <View style={{flexGrow: 1}}>
@@ -323,13 +326,33 @@ export function RegisterScreen() {
                             value={name}
                             editable={!registering}
                             containerStyle={{width: '100%'}}
-                            onChangeText={text => setName(text)} 
+                            onChangeText={(text: string) => setName(text)} 
                             required />
+                        <CoolTextInput
+                            label='Phone Number (optional)'
+                            leftIcon={{
+                                name: 'phone',
+                                type: 'material-community'
+                            }}
+                            containerStyle={{width: '100%'}}
+                            placeholder='Enter your phone number'
+                            value={phoneNumber}
+                            editable={!registering}
+                            onChangeText={(text: string) => setPhoneNumber(text)} 
+                            />
+                        <CoolTextInput
+                            label='Regular Address (optional)'
+                            containerStyle={{width: '100%'}}
+                            placeholder='Address you want your stuff returned to'
+                            value={address}
+                            editable={!registering}
+                            onChangeText={(text: string) => setAddress(text)} 
+                            />
                     </View>
                 </View>
                 
                 <Text style={[styles.text, {fontWeight: '500', fontSize: 14, color: colors.border}]}>Phone Number (optional)</Text>
-                
+                {/*
                 <PhoneInput
                     ref={phoneInput}
                     placeholder='Enter your phone number'
@@ -346,6 +369,7 @@ export function RegisterScreen() {
                     withShadow 
                     containerStyle={{marginBottom: 20}}
                 />
+                */}
                 
                 <CoolTextInput
                     label='Email'
@@ -357,7 +381,7 @@ export function RegisterScreen() {
                     placeholder='Enter your email'
                     value={email}
                     editable={!registering}
-                    onChangeText={text => setEmail(text)} 
+                    onChangeText={(text: string) => setEmail(text)} 
                     required
                     />
                 <CoolTextInput
@@ -368,7 +392,8 @@ export function RegisterScreen() {
                     }}
                     placeholder='Enter your password'
                     containerStyle={{width: '80%'}}
-                    value={password} onChangeText={text => setPassword(text)}
+                    value={password} 
+                    onChangeText={(text: string) => setPassword(text)}
                     editable={!registering}
                     secureTextEntry 
                     required/>

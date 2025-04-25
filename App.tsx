@@ -15,8 +15,6 @@ import { auth } from './ModularFirebase';
 
 import { SafeAreaProvider } from 'react-native-safe-area-view';
 
-import { PressableOpacity } from './source/hooks/MyElements';
-
 import { HomeScreen } from './source/components/Home';
 import { LoginScreen } from './source/components/Login';
 import { RegisterScreen } from './source/components/Register';
@@ -38,6 +36,7 @@ import { Icon } from 'react-native-elements';
 import { DarkThemeColors, LightThemeColors } from './source/assets/Colors';
 import { PostLostItemScreen } from './source/components/PostLostItem';
 import MyChatRoomsScreen from './source/components/MyChatRooms';
+import { PressableOpacity } from './source/hooks/MyElements';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();

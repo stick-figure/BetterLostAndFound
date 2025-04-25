@@ -7,9 +7,8 @@ const debugMode = true;
 
 export const navigateToErrorScreen = (navigation, error, func: any | undefined = undefined) => {
     if (![error.code, error.message].includes(undefined)) {
-        
     }
-    navigation.navigate('Error', {error: error, func: func});
+    navigation.navigate('Error', {error: {...error}, func: func});
 }
 
 export function popupOnError(navigation, func) {

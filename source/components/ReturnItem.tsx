@@ -2,7 +2,7 @@ import { CommonActions, NavigationProp, NavigationState, ParamListBase, Route, u
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Button, FlatList, Image, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, useColorScheme, View } from 'react-native';
 import { auth, db } from '../../ModularFirebase';
-import { PressableOpacity } from '../hooks/MyElements';
+import { CoolButton, PressableOpacity } from '../hooks/MyElements';
 import { Icon, SearchBar } from 'react-native-elements';
 import { getDoc, doc, onSnapshot, query, collection, where, limit } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
@@ -155,11 +155,6 @@ export function ReturnItemScreen({ navigation }: { navigation: any }) {
         },
         returnItemButton: {
             width: 370,
-            margin: 6,
-            padding: 6,
-            backgroundColor: colors.primary,
-            borderRadius: 7,
-            alignItems: 'center',
         },
         buttonText: {
             textAlign: 'center',
@@ -218,18 +213,29 @@ export function ReturnItemScreen({ navigation }: { navigation: any }) {
 
     return (
         <SafeAreaView style={styles.container}>
-            <PressableOpacity
+            <CoolButton
+                title='Search all items'
                 onPress={() => navigation.navigate('My Stack', { screen: 'Search Items' })}
-                style={styles.returnItemButton}>
-                    <View style={[styles.horizontal, {justifyContent: 'center'}]}>
-                        <Icon name='search' type='material-icons' color={colors.primaryContrastText} />
-                        <Text style={styles.buttonText}>Search all items</Text>
-                    </View>
-            </PressableOpacity>
+                style={styles.returnItemButton} 
+                leftIcon={{
+                    name: 'search', 
+                    type: 'material-icons',
+                    size: 20,
+                }} />
+                {/*
+                <View style={[styles.horizontal, {justifyContent: 'center'}]}>
+                    <Icon name='search' type='material-icons' color={colors.primaryContrastText} />
+                    <Text style={styles.buttonText}>Search all items</Text>
+                </View>
+                */}
+            <CoolButton
+                title='Report uncataloged item'
+                onPress={() => navigation.navigate('My Stack', { screen: 'Search Items' })}
+                style={styles.returnItemButton} />
             <PressableOpacity
                 onPress={() => {}}
                 style={styles.returnItemButton}>
-                <Text style={styles.buttonText}>Report uncataloged item</Text>
+                <Text style={styles.buttonText}></Text>
             </PressableOpacity>
             <Text style={styles.subtitle}>Wanted (Lost) items</Text>
             <SearchBar

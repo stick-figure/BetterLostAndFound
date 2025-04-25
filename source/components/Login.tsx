@@ -4,7 +4,7 @@ import { auth } from '../../ModularFirebase';
 import { AuthErrorCodes, signInWithEmailAndPassword } from 'firebase/auth';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { CommonActions } from '@react-navigation/native';
-import { CoolTextInput, MyInput, PressableOpacity } from '../hooks/MyElements';
+import { CoolButton, CoolTextInput, MyInput, PressableOpacity } from '../hooks/MyElements';
 import { Input } from 'react-native-elements';
 import SafeAreaView from 'react-native-safe-area-view';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
@@ -71,17 +71,13 @@ export function LoginScreen({ navigation }: { navigation: any }) {
         },
         loginButton: {
             width: 370,
-            marginTop: 10,
-            padding: 10,
-            backgroundColor: colors.secondary,
-            borderRadius: 7,
-        },
+        },/*
         loginButtonText: {
             textAlign: 'center',
             color: colors.secondaryContrastText,
             fontSize: 16,
             fontWeight: 'bold',
-        },
+        },*/
         signupButton: {
             width: 370,
             marginTop: 10,
@@ -129,12 +125,17 @@ export function LoginScreen({ navigation }: { navigation: any }) {
                 required
             />
             <Text style={styles.errorText}>{errorText}</Text>
-            <PressableOpacity style={styles.signupButton} onPress={openRegisterScreen} disabled={signingIn}>
-                <Text style={styles.signupButtonText}>Sign Up</Text>
-            </PressableOpacity>
-            <PressableOpacity style={styles.loginButton} onPress={signIn} disabled={email ==  '' || password == ''}>
-                <Text style={styles.loginButtonText}>Log In</Text>
-            </PressableOpacity>
+            <CoolButton 
+                title='Sign Up'
+                style={styles.signupButton} 
+                onPress={openRegisterScreen} 
+                disabled={signingIn} />
+            <CoolButton 
+                title='Log in'
+                style={styles.loginButton} 
+                onPress={signIn} 
+                disabled={email ==  '' || password == ''} 
+                useSecondaryColor />
         </SafeAreaView>
     );
 }
