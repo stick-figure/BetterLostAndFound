@@ -1,4 +1,4 @@
-import { addDoc, collection, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes } from 'firebase/storage';
 import { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Image, useColorScheme } from 'react-native';
@@ -6,17 +6,18 @@ import { launchImageLibrary, MediaType } from 'react-native-image-picker';
 
 import { auth, db } from '../../ModularFirebase';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
-import { CommonActions, useNavigation, useRoute } from '@react-navigation/native';
+import { CommonActions } from '@react-navigation/native';
 import { CoolButton, CoolTextInput, PressableOpacity } from '../hooks/MyElements';
 import { Input } from 'react-native-elements';
 import SafeAreaView from 'react-native-safe-area-view';
+import { MyStackScreenProps } from '../navigation/Types';
+import { ItemData, PostData, TypeType, UserData } from '../assets/Types';
+import { navigateToErrorScreen, popupOnError } from './Error';
 
 
-export function NewLostPostScreen() {
-    const navigation = useNavigation();
-    const route = useRoute();
-    const [item, setItem] = useState({});
-    const [owner, setOwner] = useState({});
+export function NewLostPostScreen({navigation, route}: MyStackScreenProps<'New Lost Post'>) {
+    const [item, setItem] = useState<ItemData>();
+    const [owner, setOwner] = useState<UserData>();
 
     const [title, setTitle] = useState('');
     const [message, setMessage] = useState('');
@@ -28,34 +29,42 @@ export function NewLostPostScreen() {
 
     const [uploading, setUploading] = useState(false);
 
-    const uploadPost = () => {
+    const uploadPost = popupOnError(navigation, () => {
         setUploading(true);
+        if (!isLoggedIn || !auth.currentUser) throw new Error('User is not authenticated');
+        if (!item) throw new Error('Item is not defined');
+        if (!owner) throw new Error('Owner is not defined');
 
-        const postData = {
-            type: 'Lost',
-            itemId: item._id,
+        const postRef = doc(collection(db, 'posts'));
+
+        const postDataToUpload = {
+            id: postRef.id,
+            type: TypeType.LOST,
+            itemId: item.id,
             title: title.trim().length > 0 ? title : item.name,
             message: message,
-            authorId: auth.currentUser?.uid,
+            authorId: auth.currentUser!.uid,
             createdAt: serverTimestamp(),
             resolved: false,
-            resolvedAt: -1,
+            resolvedAt: null,
             resolveReason: '',
             views: 0,
             roomIds: [],
             showPhoneNumber: false,
             showAddress: false,
-            imageUrls: [item.imageSrc],
+            imageUrls: [item.imageUrl],
         };
 
         navigation.navigate('Loading');
 
-        addDoc(collection(db, 'posts'), postData).then((postRef) => {
-            return updateDoc(doc(db, 'items', item._id), {isLost: true, lostPostId: postRef.id, timesLost: item.timesLost as number + 1});
+        setDoc(postRef, postDataToUpload).then(() => {
+            return updateDoc(doc(db, 'items', item.id), {isLost: true, lostPostId: postRef.id, timesLost: item.timesLost as number + 1});
         }).then(() => {
-            return updateDoc(doc(db, 'users', owner._id), {timesOwnItemLost: owner.timesOwnItemLost as number + 1});
+            return updateDoc(doc(db, 'users', owner.id), {timesOwnItemLost: owner.timesOwnItemLost as number + 1});
         }).then(() => {
-            navigation.navigate('View Lost Post', {item: item, owner: owner, author: owner, post: postData});
+            return getDoc(postRef);
+        }).then((snapshot) => {
+            navigation.navigate('View Lost Post', {item: item, owner: owner, author: owner, post: snapshot.data()! as PostData});
             navigation.dispatch((state: {routes: any[]}) => {
                 const topScreen = state.routes[0];
                 const thisScreen = state.routes[state.routes.length - 1];
@@ -68,7 +77,7 @@ export function NewLostPostScreen() {
             });
             setUploading(false);
         });
-    }
+    });
 
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     
@@ -87,7 +96,13 @@ export function NewLostPostScreen() {
     useEffect(() => {
         if (!isLoggedIn) return;
         if (route.params?.item) setItem(route.params!.item);
-        if (route.params?.owner) setOwner(route.params!.owner);
+        if (route.params?.owner) {
+            setOwner(route.params!.owner);
+        } else if (route.params.item?.ownerId) {
+            getDoc(doc(db, 'users', route.params.item?.ownerId)).then((snapshot) => {
+                setOwner(snapshot.data()! as UserData);
+            });
+        }
     }, [isLoggedIn]);
 
     const isDarkMode = useColorScheme() === 'dark';
@@ -190,21 +205,29 @@ export function NewLostPostScreen() {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.itemContainer}>
-                <PressableOpacity
-                    onPress={() => { navigation.navigate('View Item', { itemId: item._id, itemName: item.name }) }}
-                    disabled={uploading}>
-                        <View style={styles.horizontal}>
-                        <Image 
-                            source={{uri: item.imageSrc || undefined}} 
-                            defaultSource={require('../assets/defaultimg.jpg')} 
-                            style={styles.itemImage} />
-                            <View style={styles.itemListItemView}>
-                                <Text style={styles.itemTitle}>{item.name}</Text>
-                                <Text style={styles.itemSubtitle}>{owner.name}</Text>
-                                <Text style={styles.itemSubtitle}>{item.description !== undefined && item.description!.slice(0,140)}</Text>
+                {item && owner ? (
+                    <PressableOpacity
+                        onPress={() => { navigation.navigate('View Item', { itemId: item!.id, itemName: item!.name }) }}
+                        disabled={uploading}>
+                            <View style={styles.horizontal}>
+                            <Image 
+                                source={{uri: item!.imageUrl || undefined}} 
+                                defaultSource={require('../assets/defaultimg.jpg')} 
+                                style={styles.itemImage} />
+                                <View style={styles.itemListItemView}>
+                                    <Text style={styles.itemTitle}>{item!.name}</Text>
+                                    <Text style={styles.itemSubtitle}>{owner!.name}</Text>
+                                    <Text style={styles.itemSubtitle}>{item!.description !== undefined && item!.description!.slice(0,140)}</Text>
+                                </View>
                             </View>
-                        </View>
-                </PressableOpacity>
+                    </PressableOpacity>
+                ) : (
+                    <PressableOpacity
+                        disabled={uploading}>
+                            <View style={styles.horizontal}>
+                            </View>
+                    </PressableOpacity>
+                )}
             </View>
 
             <CoolTextInput
@@ -224,9 +247,8 @@ export function NewLostPostScreen() {
             <CoolButton
                 title='Post'
                 style={styles.saveButton}
-                disabled={message.trim().length <= 0}
-                onPress={uploadPost}
-                editable={!uploading} />
+                disabled={message.trim().length <= 0 || uploading}
+                onPress={uploadPost} />
         </SafeAreaView>
     );
 }

@@ -8,16 +8,15 @@ import { launchCamera, launchImageLibrary, MediaType } from 'react-native-image-
 import { CommonActions, NavigationProp, useNavigation, useRoute } from '@react-navigation/native';
 import { ScrollView, TouchableOpacity } from 'react-native-gesture-handler';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
-import { CoolTextInput, MyInput, PressableOpacity } from '../hooks/MyElements';
+import { CoolButton, CoolTextInput, MyInput } from '../hooks/MyElements';
 import { colors, Icon, Input } from 'react-native-elements';
 import SafeAreaView from 'react-native-safe-area-view';
 import PhoneInput from 'react-native-phone-number-input';
 import { check, PERMISSIONS, PermissionStatus, request, RESULTS } from 'react-native-permissions';
 import { navigateToErrorScreen } from './Error';
+import { MyStackScreenProps } from '../navigation/Types';
 
-export function RegisterScreen() {
-    const navigation = useNavigation();
-    const route = useRoute();
+export function RegisterScreen({navigation, route}: MyStackScreenProps<'Register'>) {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [address, setAddress] = useState('');
@@ -32,8 +31,8 @@ export function RegisterScreen() {
     const phoneInput = useRef<PhoneInput>(null);
     
     const transferFilledInfo = useCallback(() => {
-        setEmail(route.params!.email);
-        setPassword(route.params!.password);
+        if (route.params!.email) setEmail(route.params!.email);
+        if (route.params!.password) setPassword(route.params!.password);
     }, [])
 
     useEffect(() => {
@@ -55,10 +54,11 @@ export function RegisterScreen() {
                     pfpUrl = undefined;
                 }
                 
-                const userData = {
+                const userDataToUpload = {
+                    id: userCredential.user.uid,
                     name: name,
                     email: email,
-                    phoneNumber: phoneNumber,
+                    phoneNumber: phoneNumber || null,
                     pfpUrl: pfpUrl ?? await getDownloadURL(ref(getStorage(), 'images/pfps/default/defaultpfp.jpg')),
                     emailVertified: false,
                     createdAt: serverTimestamp(),
@@ -77,7 +77,7 @@ export function RegisterScreen() {
 
 //                await updatePhoneNumber()
 
-                transaction.set(doc(db, 'users', userCredential.user.uid), userData);
+                transaction.set(doc(db, 'users', userCredential.user.uid), userDataToUpload);
             });
             
             navigation.dispatch(
@@ -253,7 +253,8 @@ export function RegisterScreen() {
             
         },
         horizontalContainer: {
-            justifyContent: 'space-evenly',
+            justifyContent: 'space-between',
+            alignSelf: 'stretch',
             alignItems: 'center',
             flexDirection: 'row',
             padding: 5,
@@ -261,10 +262,6 @@ export function RegisterScreen() {
         registerButton: {
             width: 370,
             marginBottom: 200, 
-            padding: 10,
-            backgroundColor: colors.primary,
-            borderRadius: 7,
-            alignItems: 'center',
         },
         registerButtonText: {
             textAlign: 'center',
@@ -319,13 +316,13 @@ export function RegisterScreen() {
                             </TouchableOpacity>
                         </View>
                     </View>
-                    <View style={{flexGrow: 1}}>
+                    <View style={{alignSelf: 'stretch'}}>
                         <CoolTextInput
                             label='Name'
                             placeholder='Enter your name'
                             value={name}
                             editable={!registering}
-                            containerStyle={{width: '100%'}}
+                            containerStyle={{alignSelf: 'stretch'}}
                             onChangeText={(text: string) => setName(text)} 
                             required />
                         <CoolTextInput
@@ -334,7 +331,7 @@ export function RegisterScreen() {
                                 name: 'phone',
                                 type: 'material-community'
                             }}
-                            containerStyle={{width: '100%'}}
+                            containerStyle={{alignSelf: 'stretch'}}
                             placeholder='Enter your phone number'
                             value={phoneNumber}
                             editable={!registering}
@@ -342,7 +339,7 @@ export function RegisterScreen() {
                             />
                         <CoolTextInput
                             label='Regular Address (optional)'
-                            containerStyle={{width: '100%'}}
+                            containerStyle={{alignSelf: 'stretch'}}
                             placeholder='Address you want your stuff returned to'
                             value={address}
                             editable={!registering}
@@ -350,8 +347,6 @@ export function RegisterScreen() {
                             />
                     </View>
                 </View>
-                
-                <Text style={[styles.text, {fontWeight: '500', fontSize: 14, color: colors.border}]}>Phone Number (optional)</Text>
                 {/*
                 <PhoneInput
                     ref={phoneInput}
@@ -399,9 +394,11 @@ export function RegisterScreen() {
                     required/>
                 <Text style={[styles.text, {alignSelf: 'flex-end', fontSize: 12, color: colors.red}]}>*Required</Text>
                 <Text style={styles.errorText}>{errorText}</Text>
-                <PressableOpacity style={styles.registerButton} disabled={name == '' || email == '' || password.length < 5 || (phoneNumber != '' && !phoneInput.current?.isValidNumber(phoneNumber)) || registering} onPress={register} >
-                    <Text style={styles.registerButtonText}>Register</Text>
-                </PressableOpacity>
+                <CoolButton
+                    title='Register'
+                    style={styles.registerButton} 
+                    disabled={name == '' || email == '' || password.length < 5 || (phoneNumber != '' && !phoneInput.current?.isValidNumber(phoneNumber)) || registering} 
+                    onPress={register} />
             </ScrollView>
         </SafeAreaView>
     )

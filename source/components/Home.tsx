@@ -10,6 +10,8 @@ import SafeAreaView from 'react-native-safe-area-view';
 import { CoolButton } from '../hooks/MyElements';
 import { timestampToString } from './SomeFunctions';
 import { navigateToErrorScreen } from './Error';
+import { HomeTabScreenProps } from '../navigation/Types';
+import { ItemData, PostData, UserData } from '../assets/Types';
 
 interface PostListItem {
     _id: string,
@@ -22,7 +24,7 @@ interface PostListItem {
     createdAt: FieldValue,
 }
 
-export function HomeScreen({ navigation }: { navigation: any }) {
+export function HomeScreen({ navigation, route }: HomeTabScreenProps<'Home'>) {
     const [posts, setPosts] = useState<Array<PostListItem>>([]);
     const [isLoggedIn, setIsLoggedIn] = useState(true);
     const [isLoading, setIsLoading] = useState(false);
@@ -94,12 +96,9 @@ export function HomeScreen({ navigation }: { navigation: any }) {
     const navigateToPost = async (postId: string) => {
         try {
             const postSnapshot = await getDoc(doc(db, 'posts', postId));
-            const postData = postSnapshot.data()!;
-            postData._id = postSnapshot.id;
-            const itemData = (await getDoc(doc(db, 'items', postData!.itemId))).data()!;
-            itemData._id = postData!.itemId;
-            const authorData = (await getDoc(doc(db, 'users', postData!.authorId))).data()!;
-            authorData._id = postData!.authorId;
+            const postData = postSnapshot.data()! as PostData;
+            const itemData = (await getDoc(doc(db, 'items', postData!.itemId))).data()! as ItemData;
+            const authorData = (await getDoc(doc(db, 'users', postData!.authorId))).data()! as UserData;
             navigation.navigate('My Stack', {screen: 'View Lost Post', params: {post: postData, item: itemData, author: authorData}});
         } catch (error) {
             navigateToErrorScreen(navigation, error);

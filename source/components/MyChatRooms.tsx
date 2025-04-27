@@ -4,17 +4,22 @@ import { ActivityIndicator, Alert, Button, FlatList, Image, Platform, StyleSheet
 import SafeAreaView, { SafeAreaProvider } from 'react-native-safe-area-view';
 import { auth, db } from '../../ModularFirebase';
 import { TouchableOpacity } from 'react-native-gesture-handler';
-import { CommonActions, useIsFocused } from '@react-navigation/native';
+import { CommonActions, useIsFocused, useNavigation } from '@react-navigation/native';
 import { PressableOpacity } from '../hooks/MyElements';
 import { Icon } from 'react-native-elements';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
-import { navigateToErrorScreen } from './Error';
+import { navigateToErrorScreen, popupOnError } from './Error';
+import { ChatRoomTile, GiftedMessageData, PostData, RoomData, UserData } from '../assets/Types';
+import { HomeTabScreenProps } from '../navigation/Types';
 
-export function MyChatRoomsScreen({ navigation }: { navigation: any }) {
-    const [lostPostDatas, setLostPostDatas] = useState<any[]>([]);
-    const [foundPostDatas, setFoundPostDatas] = useState<any[]>([]);
+export function MyChatRoomsScreen({ navigation, route }: HomeTabScreenProps<'My Chat Rooms'> ) {
+//    const navigation = useNavigation<HomeTabScreenProps<'My Chat Rooms'>['navigation']>();
+//    const route = useNavigation<HomeTabScreenProps<'My Chat Rooms'>['route']>();
+
+    const [lostPostDatas, setLostPostDatas] = useState<PostData[]>([]);
+    const [foundPostDatas, setFoundPostDatas] = useState<PostData[]>([]);
     
-    const [roomsData, setRoomsData] = useState<any[]>([]);
+    const [roomTiles, setRoomTiles] = useState<ChatRoomTile[]>();
     
     const [isLoggedIn, setIsLoggedIn] = useState(false);
 
@@ -44,27 +49,22 @@ export function MyChatRoomsScreen({ navigation }: { navigation: any }) {
     }, []);
 
 
-    const navigateToChatRoom = async (roomId: string | number) => {
-        try {
-            setIsNavigating(true);
-            
-            let roomData;
-            if (typeof roomId === 'string') {
-                roomData = roomsData.find((r) => r._id == roomId);
-            }
-            if (typeof roomId === 'number') {
-                roomData = roomsData[roomId];
-            }
-            
-            if (roomData === undefined) throw Error('room is undefined');
-            
-            navigation.navigate('My Stack', {'screen': 'Chat Room', 'params': {room: roomData}});
-        } catch (error) {
-            navigateToErrorScreen(navigation, error);
-        } finally {
-            setIsNavigating(false);
+    const navigateToChatRoom = popupOnError(navigation, async (roomId: string | number) => {
+        setIsNavigating(true);
+        if (roomTiles === undefined) throw new Error('Rooms are undefined (roomsData)');
+        
+        let roomData: RoomData | undefined;
+        if (typeof roomId === 'string') {
+            roomData = roomTiles.find((r) => r.room.id == roomId)?.room;
         }
-    }
+        if (typeof roomId === 'number') {
+            roomData = roomTiles[roomId].room;
+        }
+        
+        if (roomData === undefined) throw Error('room is undefined');
+        
+        navigation.navigate('My Stack', {screen: 'Chat Room', params: {room: roomData}});
+    }, () => setIsNavigating(false));
     /*
     useEffect(() => {
         if (!isLoggedIn) return;
@@ -103,41 +103,39 @@ export function MyChatRoomsScreen({ navigation }: { navigation: any }) {
         return unsubscribe;
     }, [isLoggedIn]);*/
     
-    useEffect(() => {
+    useEffect(popupOnError(navigation, () => {
         if (!isLoggedIn) return;
         
         const unsubscribe = onSnapshot(query(collection(db, 'rooms'), where('userIds', 'array-contains', auth.currentUser!.uid)), async (roomSnapshot) => {
-            try {
-                if (roomSnapshot.empty) throw new Error('roomSnapshot is empty');
-                const newRoomsData = await Promise.all(roomSnapshot.docs.map((roomDoc) => new Promise(async (resolve, reject) => {
-                    try {
-                        if (roomDoc?.get('userIds') === undefined) throw new Error('userIds is undefined');
-                        const userSnapshots = await getDocs(query(collection(db, 'users'), where(documentId(), 'in', roomDoc.get('userIds'))));
-                        let lastMessage = (await getDocs(query(collection(db, roomDoc.ref.path, 'messages'), orderBy('createdAt', 'desc'), limit(1)))).docs[0];
-                        let postRef = doc(db, 'posts', roomDoc.get('postId'));
-                        let post = await getDoc(postRef);
-                        
-                        resolve({
-                            _id: roomDoc.id, 
-                            users: userSnapshots.docs.map((userSnapshot) => ({_id: userSnapshot.id, ...userSnapshot.data()!})), 
-                            post: {_id: postRef, ...post.data()!},
-                            lastMessage: {_id: lastMessage.id, ...lastMessage.data()},
-                            ...roomDoc.data()
-                        });
-                        return;
-                    } catch (error) {
-                        reject(error);
-                    }
-                })));
-                
-                setRoomsData(newRoomsData.sort((a, b) => (b.lastMessage.createdAt?.seconds ?? 0) - (a.lastMessage.createdAt?.seconds ?? 0)));
-            } catch (error) {
-                navigateToErrorScreen(navigation, error);
+            if (roomSnapshot.empty) throw new Error('roomSnapshot is empty');
+            const newRoomTiles = await Promise.all(roomSnapshot.docs.map((roomDoc) => new Promise(async (resolve, reject) => {
+                try {
+                    if (roomDoc?.get('userIds') === undefined) throw new Error('userIds is undefined');
+                    const userSnapshots = await getDocs(query(collection(db, 'users'), where(documentId(), 'in', roomDoc.get('userIds'))));
+                    let lastMessage = (await getDocs(query(collection(db, roomDoc.ref.path, 'messages'), orderBy('createdAt', 'desc'), limit(1)))).docs[0];
+                    let postRef = doc(db, 'posts', roomDoc.get('postId'));
+                    let post = await getDoc(postRef);
+                    
+                    resolve({
+                        _id: roomDoc.id, 
+                        users: userSnapshots.docs.map(userSnapshot => userSnapshot.data()! as UserData), 
+                        post: post.data()! as PostData,
+                        lastMessage: lastMessage ? lastMessage.data()! as GiftedMessageData : undefined,
+                        room: roomDoc.data()! as RoomData,
+                    });
+                    return;
+                } catch (error) {
+                    reject(error);
+                }
+            })));
+
+            if (newRoomTiles as RoomData[] !== null) {
+                setRoomTiles((newRoomTiles as ChatRoomTile[]).sort((a, b) => (b.lastMessage?.createdAt?.seconds ?? 0) - (a.lastMessage?.createdAt?.seconds ?? 0)));
             }
         });
 
         return unsubscribe;
-    }, [isLoggedIn]);
+    }), [isLoggedIn]);
 
     const isDarkMode = useColorScheme() === 'dark';
     const colors = isDarkMode ? DarkThemeColors : LightThemeColors;
@@ -248,9 +246,9 @@ export function MyChatRoomsScreen({ navigation }: { navigation: any }) {
         <SafeAreaView style={styles.container}>
             <FlatList
                 contentContainerStyle={{width: '100%', flexGrow: 1, minHeight: '100%'}}
-                keyExtractor={(item) => item._id}
+                keyExtractor={(item) => item.room.id}
                 scrollEnabled={true}
-                data={roomsData}
+                data={roomTiles}
                 style={styles.chatListContainer}
                 renderItem={({ item }) => {
                     const user = (item.users as any[]).find((user) => user._id != auth.currentUser?.uid);
@@ -259,7 +257,7 @@ export function MyChatRoomsScreen({ navigation }: { navigation: any }) {
                         <PressableOpacity 
                             style={styles.chatItem}
                             onPress={() => {
-                                navigateToChatRoom(roomsData.findIndex(room => room._id == item._id))
+                                if (roomTiles) navigateToChatRoom(roomTiles.findIndex(tile => tile.room.id == item.room.id))
                             }} 
                             disabled={isNavigating}>
                             <Image 

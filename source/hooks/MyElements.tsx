@@ -1,35 +1,37 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, Animated, StyleSheet, Text, TextInput, View, useColorScheme, TouchableOpacity, Platform } from 'react-native';
+import { FC, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Pressable, Animated, StyleSheet, Text, TextInput, View, useColorScheme, TouchableOpacity, Platform, PressableProps, ViewProps, StyleProp, ViewStyle, PressableStateCallbackType, TextStyle, TextInputProps, GestureResponderEvent, ViewComponent } from 'react-native';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { Icon } from 'react-native-elements';
 import { check, checkMultiple, Permission, PERMISSIONS, PermissionStatus, request, requestMultiple, RESULTS } from 'react-native-permissions';
-import { MediaType, launchImageLibrary, launchCamera } from 'react-native-image-picker';
+import { MediaType, launchImageLibrary, launchCamera, ImagePickerResponse, CameraOptions, ImageLibraryOptions } from 'react-native-image-picker';
+import { IconButtonProps } from 'react-native-vector-icons/Icon';
 
 export const PressableOpacity = ({ children, ...props }) => {
-  const animated = useRef(new Animated.Value(1)).current;
- 
-  const fadeIn = () => {
-    Animated.timing(animated, {
-      toValue: props.activeOpacity || 0.1,
-      duration: 100,
-      useNativeDriver: true,
-    }).start();
-  };
-  const fadeOut = () => {
-    Animated.timing(animated, {
-      toValue: 1,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
-  };
+    const animated = useRef(new Animated.Value(1)).current;
     
-  return (
-    <Animated.View style={[props.disabled ? (props.disabledStyle || {opacity: 0.6}) : { opacity: animated }]}>
-        <Pressable onPressIn={fadeIn} onPressOut={fadeOut} {...props}>
-            {children}
-        </Pressable>
-    </Animated.View>
-  );
+    const fadeIn = () => {
+        Animated.timing(animated, {
+            toValue: props.activeOpacity || 0.1,
+            duration: 100,
+            useNativeDriver: true,
+        }).start();
+    };
+    
+    const fadeOut = () => {
+        Animated.timing(animated, {
+            toValue: 1,
+            duration: 200,
+            useNativeDriver: true,
+        }).start();
+    };
+        
+    return (
+        <Animated.View style={[props.disabled ? (props.disabledStyle || {opacity: 0.6}) : { opacity: animated }]}>
+            <Pressable onPressIn={fadeIn} onPressOut={fadeOut} {...props}>
+                {children}
+            </Pressable>
+        </Animated.View>
+    );
 };
 
 export const RequiredLabel = ({ children, ...props }) => {
@@ -89,14 +91,23 @@ export const MyInput = ({ ...props }) => {
     );
 }
 
-export const CoolTextInput = ({ ...props }) => {
+interface CoolTextInputProps extends TextInputProps {
+    label?: string,
+    labelStyle?:  StyleProp<TextStyle>;
+    containerStyle?: StyleProp<ViewStyle>;
+    leftIcon?: IconButtonProps & {type: string};
+    rightIcon?: IconButtonProps & {type: string};
+    required?: boolean;
+}
+
+export const CoolTextInput: FC<CoolTextInputProps> = ({ ...props }) => {
     const isDarkMode = useColorScheme() === 'dark';
     const colors = isDarkMode ? DarkThemeColors : LightThemeColors;
     const styles = useMemo(() => StyleSheet.create({
         label: {
-            fontSize: 14,
+            fontSize: 16,
             fontWeight: '500',
-            color: colors.border,
+            color: colors.text,
             alignSelf: 'flex-start',
         },
         textInput: {
@@ -131,7 +142,21 @@ export const CoolTextInput = ({ ...props }) => {
     );
 }
 
-export const CoolButton = ({ ...props }) => {
+interface CoolButtonProps extends PressableProps {
+    title?: string;
+    pressInHeight?: number;
+    pressOutHeight?: number;
+    useSecondaryColor?: boolean;
+    style?: StyleProp<any>;
+    capStyle?: StyleProp<ViewStyle>;
+    contentStyle?: StyleProp<ViewStyle>;
+    titleStyle?: StyleProp<TextStyle>;
+    leftIcon?: IconButtonProps & {type?: string};
+    rightIcon?: IconButtonProps & {type?: string};
+    borderRadius?: number;
+}
+
+export const CoolButton: FC<CoolButtonProps> = ({ ...props }) => {
     const [pressedIn, setPressedIn] = useState(false);
 
     const isDarkMode = useColorScheme() === 'dark';
@@ -144,7 +169,7 @@ export const CoolButton = ({ ...props }) => {
         button: {
             backgroundColor: colors.border,
             overflow: 'hidden',
-            borderRadius: props.style?.borderRadius || 10,
+            borderRadius: props.borderRadius || 10,
         },
         pressedInCap: {
             marginBottom: Math.abs(props.pressInHeight || pressInHeight),
@@ -170,8 +195,9 @@ export const CoolButton = ({ ...props }) => {
             backgroundColor: props.useSecondaryColor ? colors.secondary : colors.primary,
             alignItems: 'center',
             justifyContent: 'center',
-            borderRadius: props.style?.borderRadius || 10,
+            borderRadius: props.borderRadius || 10,
             padding: 10,
+            alignSelf: 'stretch',
         },
         content: {
             alignItems: 'center',
@@ -186,7 +212,7 @@ export const CoolButton = ({ ...props }) => {
             style={[
                 styles.button, 
                 pressedIn ? styles.pressedInButton : styles.pressedOutButton, 
-                props.style,
+                props.style
             ]}
             onPressIn={() => setPressedIn(true)}
             onPressOut={() => setPressedIn(false)}>
@@ -203,11 +229,11 @@ export const CoolButton = ({ ...props }) => {
                         props.contentStyle,
                     ]}>
                     {props.leftIcon ? 
-                        <Icon name={props.leftIcon.name} type={props.leftIcon.type || 'material-community'} size={props.leftIcon.size || styles.title.fontSize} color={props.leftIcon.color || styles.title.color} />
+                        <Icon type='material-community' size={styles.title.fontSize} color={styles.title.color} {...props.leftIcon} />
                     : null}
                     <Text style={[styles.title, props.titleStyle]}>{props.title}</Text>
                     {props.rightIcon ? 
-                        <Icon name={props.rightIcon.name} type={props.rightIcon.type || 'material-community'} size={props.rightIcon.size || styles.title.fontSize} color={props.rightIcon.color || styles.title.color} />
+                        <Icon type='material-community' size={styles.title.fontSize} color={styles.title.color} {...props.rightIcon} />
                     : null}
                 </View>
                 
@@ -216,7 +242,25 @@ export const CoolButton = ({ ...props }) => {
     );
 }
 
-export const ImagePicker = ({ ...props }) => {
+interface ImagePickerProps {
+    cameraOptions?: CameraOptions;
+    imageLibraryOptions?: ImageLibraryOptions;
+    launchCamera?: ((event: GestureResponderEvent) => void) | null | undefined;
+    launchImageLibrary?: ((event: GestureResponderEvent) => void) | null | undefined;
+    launchCustomSearch?: ((event: GestureResponderEvent) => void) | null | undefined;
+    onResponse: (response: ImagePickerResponse) => any;
+    onError?:(response: any) => any;
+    onCancel?:(response: ImagePickerResponse) => any;
+    label?: string,
+    containerStyle?: ViewStyle;
+    labelStyle?: TextStyle;
+    iconStyle?: TextStyle | ViewStyle;
+    cameraIconStyle?: TextStyle | ViewStyle;
+    imageLibraryIconStyle?: TextStyle | ViewStyle;
+    required?: boolean;
+}
+
+export const ImagePicker: FC<ImagePickerProps> = ({ ...props }) => {
     const [hasCameraPermission, setHasCameraPermission] = useState<PermissionStatus>();
     const [hasGalleryPermission, setHasGalleryPermission] = useState<PermissionStatus>();
     
@@ -272,18 +316,18 @@ export const ImagePicker = ({ ...props }) => {
         launchCamera(props.cameraOptions || cameraOptions, (response) => {
             if (response.didCancel) {
                 console.warn('User cancelled camera');
-                props.onCancel(response);
+                if (props.onCancel) props.onCancel(response);
             } else if (response.errorCode) {
                 console.warn('Camera error', response.errorCode, ':', response.errorMessage);
-                props.onError(response);
+                if (props.onError) props.onError(response);
             } else if (response) {
-                props.onResponse(response);
+                if (props.onResponse) props.onResponse(response);
             } else {
                 throw new Error('No response');
             }
         }).catch((err) => { 
             console.warn(err);
-            props.onError(err);
+            if (props.onError) props.onError(err);
         });;
     }
 
@@ -304,19 +348,27 @@ export const ImagePicker = ({ ...props }) => {
         launchImageLibrary(props.imageLibraryOptions || imageLibraryOptions, (response) => {
             if (response.didCancel) {
                 console.log('User cancelled image picker');
-                props.onCancel(response);
+                if (props.onCancel) props.onCancel(response);
             } else if (response.errorCode) {
                 console.warn('ImagePicker Error', response.errorCode, ':', response.errorMessage);
-                props.onError(response);
+                if (props.onError) props.onError(response);
             } else if (response) {
-                props.onResponse(response);
+                if (props.onResponse) props.onResponse(response);
             } else {
                 throw new Error('No response');
             }
         }).catch((err) => { 
             console.warn(err);
-            props.onError(err);
+            if (props.onError) props.onError(err);
         });
+    }
+
+    const handleLaunchCustomSearch = () => {
+
+    }
+
+    const launchCustomSearch = () => {
+
     }
 
     const isDarkMode = useColorScheme() === 'dark';
@@ -328,11 +380,11 @@ export const ImagePicker = ({ ...props }) => {
         label: {
             fontSize: 14,
             fontWeight: '500',
-            color: colors.border,
+            color: colors.text,
             alignSelf: 'flex-start',
         },
         iconButton: {
-
+            width: '100%',
         },
         textInput: {
             padding: 8,
@@ -346,22 +398,56 @@ export const ImagePicker = ({ ...props }) => {
         },
         container: {
             margin: 4,
+            alignSelf: 'stretch',
         }
     }), [isDarkMode]);
 
     return (
-        <View style={props.containerStyle || [styles.container, styles.horizontal]}>
-            <TouchableOpacity onPress={props.launchCamera || handleCameraLaunch} style={props.cameraButtonStyle || props.iconButtonStyle || styles.iconButton}>
-                <Icon name='camera-alt' type='material-icons' size={20} color={colors.secondaryContrastText} style={props.cameraIconStyle || props.iconStyle} />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={props.launchImageLibrary || handleLaunchImageLibrary} style={props.imageLibraryButtonStyle || styles.iconButton}>
-                <Icon name='photo-library' type='material-icons' size={20} color={colors.secondaryContrastText} style={props.imageLibraryIconStyle || props.iconStyle} />
-            </TouchableOpacity>
+        <View style={[styles.container, props.containerStyle]}>
             {props.required ? 
-                <RequiredLabel style={props.labelStyle || styles.label}>{props.label || 'Select image'}</RequiredLabel>
+                <RequiredLabel style={[styles.label, props.labelStyle]}>{props.label || 'Select image'}</RequiredLabel>
             :
-                <Text style={props.labelStyle || styles.label}>{props.label || 'Select image'}</Text>
+                <Text style={[styles.label, props.labelStyle]}>{props.label || 'Select image'}</Text>
             }
+            <View style={{...styles.horizontal, alignSelf: 'stretch', justifyContent: 'space-between'}}>
+                <View style={{ flex: 1 }}>
+                    <CoolButton
+                        leftIcon={{
+                            name: 'camera-alt', 
+                            type: 'material-icons', 
+                            size: 30, 
+                            style: props.cameraIconStyle || props.iconStyle,
+                        }}
+                        onPress={props.launchCamera || handleCameraLaunch} 
+                        style={styles.iconButton} 
+                        useSecondaryColor />
+                </View>
+                <View style={{ flex: 1 }}>
+                    <CoolButton
+                        leftIcon={{
+                            name: 'photo-library', 
+                            type: 'material-icons', 
+                            size: 30, 
+                            style: props.imageLibraryIconStyle || props.iconStyle,
+                        }}
+                        onPress={props.launchImageLibrary || handleLaunchImageLibrary}
+                        style={styles.iconButton} 
+                        useSecondaryColor />
+                </View>
+                <View style={{ flex: 1 }}>
+                    <CoolButton
+                        leftIcon={{
+                            name: 'web-plus', 
+                            type: 'material-community', 
+                            size: 30, 
+                            style: props.cameraIconStyle || props.iconStyle,
+                        }}
+                        onPress={props.launchCustomSearch || handleLaunchCustomSearch}
+                        style={styles.iconButton} 
+                        useSecondaryColor />
+                </View>
+            </View>
+            
         </View>
     );
 }

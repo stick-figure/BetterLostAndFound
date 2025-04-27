@@ -2,7 +2,7 @@ import React, { useCallback, useState, useLayoutEffect, useEffect, useMemo } fro
 import { View, Text, StyleSheet, useColorScheme } from 'react-native';
 import { auth, db } from '../../ModularFirebase';
 import { signOut } from 'firebase/auth';
-import { collection, addDoc, getDocs, query, orderBy, onSnapshot, doc, serverTimestamp, CollectionReference, documentId, where } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, orderBy, onSnapshot, doc, serverTimestamp, CollectionReference, documentId, where, getDoc } from 'firebase/firestore';
 import { Avatar, Bubble, BubbleProps, GiftedChat, IMessage, InputToolbar, InputToolbarProps } from 'react-native-gifted-chat';
 
 import {
@@ -13,26 +13,36 @@ import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { CommonActions, useNavigation, useRoute, useTheme } from '@react-navigation/native';
 import SafeAreaView from 'react-native-safe-area-view';
 import { PressableOpacity } from '../hooks/MyElements';
-import { navigateToErrorScreen } from './Error';
+import { navigateToErrorScreen, popupOnError } from './Error';
+import { MyStackScreenProps } from '../navigation/Types';
+import { TypeType, RoomData, UserData, PostData } from '../assets/Types';
 
-type ImageProps = DefaultImageProps & {
-    source: ImageURISource;
-};
-
-export function ChatRoomScreen() {
-    const navigation = useNavigation();
-    const route = useRoute();
-
-    const [room, setRoom] = useState({});
-    const [users, setUsers] = useState<any[]>([]);
+export function ChatRoomScreen({ navigation, route }: MyStackScreenProps<'Chat Room'>) {
+    const [room, setRoom] = useState<RoomData>();
+    const [users, setUsers] = useState<UserData[]>();
+    const [post, setPost] = useState<PostData>();
 
     const [messages, setMessages] = useState<IMessage[]>([]);
 
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     
-    useEffect(() => {
+    useEffect(popupOnError(navigation, () => {
         const unsubscribe = auth.onAuthStateChanged((user) => {
             if (user) {
+                if (route.params.users !== undefined) {
+                    setUsers(route.params.users);
+                } else if (route.params.room?.userIds) {
+                    getDocs(query(collection(db, 'users'), where(documentId(), 'in', route.params.room.userIds))).then((usersSnapshot) => {
+                        setUsers(usersSnapshot.docs.map((doc) => (doc.data() as UserData)));
+                    });
+                }
+                if (route.params.post !== undefined) {
+                    setPost(post);
+                } else if (route.params.room?.postId) {
+                    getDoc(doc(db, 'posts', route.params.room!.postId)).then((snapshot) => {
+                        setPost(snapshot.data()! as PostData);
+                    });
+                }
                 setIsLoggedIn(true);
             } else {
                 setIsLoggedIn(false);
@@ -40,18 +50,17 @@ export function ChatRoomScreen() {
         });
 
         return unsubscribe;
-    }, []);
+    }), []);
 
-    useEffect(() => {
+    useEffect(popupOnError(navigation, () => {
         if (!isLoggedIn) return;
 
-        const unsubscribe = onSnapshot(doc(db, 'rooms', route.params!.room._id), (snapshot) => {
-
-            setRoom({_id: snapshot.id, ...snapshot.data});
-            if (snapshot.get('userIds') != users.map(user => user._id)) {
+        const unsubscribe = onSnapshot(doc(db, 'rooms', route.params!.room.id), (snapshot) => {
+            setRoom(snapshot.data() as RoomData);
+            if (users === undefined || snapshot.get('userIds') != users.map(user => user.id)) {
                 if (snapshot.get('userIds') === undefined) throw new Error('no users found in snapshot..?');
                 getDocs(query(collection(db, 'users'), where(documentId(), 'in', snapshot.get('userIds')))).then((usersSnapshot) => {
-                    setUsers(usersSnapshot.docs.map((doc) => ({_id: doc.id, ...doc.data()})));
+                    setUsers(usersSnapshot.docs.map(doc => doc.data() as UserData));
                 }).catch((error) => {
                     navigateToErrorScreen(navigation, error);
                 });
@@ -59,15 +68,15 @@ export function ChatRoomScreen() {
         });
 
         return unsubscribe;
-    }, [isLoggedIn]);
+    }), [isLoggedIn]);
 
     useEffect(() => {
         if (!isLoggedIn) return;
 
-        if (!route?.params?.room?._id) {
+        if (!route.params.room?.id) {
             return;
         }
-        const unsubscribe = onSnapshot(query(collection(db, 'rooms', route.params!.room._id, 'messages'), orderBy('createdAt', 'desc')), 
+        const unsubscribe = onSnapshot(query(collection(db, 'rooms', route.params!.room.id, 'messages'), orderBy('createdAt', 'desc')), 
             (snapshot) => {
                 setMessages(
                     snapshot.docs.map(doc => ({
@@ -76,7 +85,7 @@ export function ChatRoomScreen() {
                         text: doc.get('text'),
                         user: doc.get('user'),
                     }))
-                )
+                );
             }
         );
 
@@ -84,9 +93,16 @@ export function ChatRoomScreen() {
     }, [isLoggedIn]);
 
     useEffect(() => {
+        if (!users && !route.params!.users) {
+            navigation.setOptions({ 
+                title: 'Unknown User(s)',
+                headerBackTitle: 'Back',
+            });
+            return;
+        }
         navigation.setOptions({ 
-            title: route.params!.room.users.filter(
-                (user) => user._id != auth.currentUser?.uid
+            title: (users ?? route.params.users ?? []).filter(
+                (user) => user.id != auth.currentUser?.uid
             ).map(
                 (user) => user.name
             ).join(
@@ -97,16 +113,17 @@ export function ChatRoomScreen() {
     }, [users]);
 
     const onSend = useCallback((messages: IMessage[] = []) => {
+        if (!isLoggedIn) return;
         const { _id, createdAt, text, user, } = messages[0];
         setMessages(previousMessages => GiftedChat.append(previousMessages, messages));
-        const messageData = { 
+        const messageData = {
             messageId: _id, 
             createdAt: serverTimestamp(), 
             text: text, 
             user: user 
         };
-        addDoc(collection(db, 'rooms', route.params!.room._id, 'messages'), messageData);
-    }, []);
+        addDoc(collection(db, 'rooms', route.params!.room.id, 'messages'), messageData);
+    }, [isLoggedIn]);
 
     const renderInputToolbar = (props: InputToolbarProps<IMessage>) => {
         return (
@@ -131,7 +148,7 @@ export function ChatRoomScreen() {
     }
 
     const renderAccessory = (props: InputToolbarProps<IMessage>) => {
-        if (room.type == 'Found') {
+        if (room?.type == TypeType.FOUND) {
 
         }
         return (

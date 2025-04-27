@@ -9,6 +9,7 @@ import { CommonActions, useIsFocused, useNavigation, useRoute } from '@react-nav
 import { colors, Icon, SearchBar } from 'react-native-elements';
 import { PressableOpacity } from '../hooks/MyElements';
 import { navigateToErrorScreen } from './Error';
+import { MyStackScreenProps } from '../navigation/Types';
 
 interface ItemTile {
     _id: string,
@@ -16,13 +17,10 @@ interface ItemTile {
     description: string,
     ownerName: string,
     isLost: boolean,
-    imageSrc: object,
+    imageUrl: string,
 }
 
-export function SearchItemsScreen() {
-    const navigation = useNavigation();
-    const route = useRoute();
-
+export function SearchItemsScreen({navigation, route}: MyStackScreenProps<'Search Items'>) {
     const [items, setItems] = useState<ItemTile[]>([]);
     const [itemQuery, setItemQuery] =  useState<ItemTile[]>([]);
     const [search, setSearch] = useState('');
@@ -64,7 +62,7 @@ export function SearchItemsScreen() {
                     description: itemDoc.get('description'),
                     ownerName: owner?.get('name') || itemDoc.get('ownerId') || 'Unknown User',
                     isLost: itemDoc.get('isLost'),
-                    imageSrc: itemDoc.get('imageSrc') ? { uri: itemDoc.get('imageSrc') } : undefined,
+                    imageUrl: itemDoc.get('imageUrl') ?? undefined,
                 };
             });
 
@@ -174,7 +172,7 @@ export function SearchItemsScreen() {
         <SafeAreaView style={styles.container}>
             <SearchBar
                 placeholder='Type Here...'
-                onChangeText={(text) => updateSearch(text)}
+                onChangeText={(text?: string) => updateSearch(text ?? '')}
                 value={search}
                 style={styles.searchBar}
                 containerStyle={styles.searchBarContainer} 
@@ -186,6 +184,8 @@ export function SearchItemsScreen() {
                 disabledInputStyle={{opacity: 0.8}}
                 round
                 lightTheme={!isDarkMode}
+                platform='default'
+                
                 />
             <View style={styles.itemList}>
                 <FlatList
@@ -203,7 +203,7 @@ export function SearchItemsScreen() {
                                 key={item._id.toString()}
                                 onPress={() => { navigation.navigate('View Item', { itemId: item._id, itemName: item.name }) }}>    
                             
-                                <Image source={item.imageSrc} style={styles.itemImage} defaultSource={require('../assets/defaultimg.jpg')}/>
+                                <Image source={item.imageUrl ? {uri: item.imageUrl} : undefined} style={styles.itemImage} defaultSource={require('../assets/defaultimg.jpg')}/>
                                 <View style={styles.itemListItemView}>
                                     <Text style={styles.itemTitle}>{item.name}</Text>
                                     <Text style={styles.itemSubtitle}>{item.ownerName}</Text>

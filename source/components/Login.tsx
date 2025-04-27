@@ -9,8 +9,9 @@ import { Input } from 'react-native-elements';
 import SafeAreaView from 'react-native-safe-area-view';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { navigateToErrorScreen } from './Error';
+import { MyStackScreenProps } from '../navigation/Types';
 
-export function LoginScreen({ navigation }: { navigation: any }) {
+export function LoginScreen({navigation, route}: MyStackScreenProps<'Login'>) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [signingIn, setSigningIn] = useState(false);
@@ -22,9 +23,10 @@ export function LoginScreen({ navigation }: { navigation: any }) {
 
     const signIn = () => {
         //        navigation.navigate('Loading');
+        setSigningIn(true);
         signInWithEmailAndPassword(auth, email, password).then((userCredential) => {
             
-            navigation.replace('My Drawer', { screen: 'Bottom Tabs' });
+            navigation.replace('My Drawer', { screen: 'Home Tabs', params: { screen: 'Home' } });
 
         }).catch((error) => {
             switch (error.code) {
@@ -40,6 +42,8 @@ export function LoginScreen({ navigation }: { navigation: any }) {
                 default:
                     setErrorText(error.code + ' ' + error.message);
             }
+        }).finally(() => {
+            setSigningIn(false);
         });
     };
 
@@ -80,9 +84,6 @@ export function LoginScreen({ navigation }: { navigation: any }) {
         },*/
         signupButton: {
             width: 370,
-            marginTop: 10,
-            padding: 10,
-            backgroundColor: colors.primary,
             borderRadius: 7,
         },
         signupButtonText: {

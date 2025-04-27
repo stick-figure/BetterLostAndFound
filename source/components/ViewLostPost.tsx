@@ -3,16 +3,15 @@ import { FlatList, Image, Modal, Pressable, StatusBar, StyleSheet, Text, TextInp
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { auth, db } from '../../ModularFirebase';
 import { addDoc, collection, disableNetwork, doc, documentId, DocumentSnapshot, getDoc, getDocs, onSnapshot, query, QuerySnapshot, runTransaction, serverTimestamp, updateDoc, where } from 'firebase/firestore';
-import { PressableOpacity } from '../hooks/MyElements';
+import { CoolButton, PressableOpacity } from '../hooks/MyElements';
 import SafeAreaView from 'react-native-safe-area-view';
 import { CommonActions, useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
 import { CheckBox, Icon } from 'react-native-elements';
 import { ScrollView } from 'react-native-gesture-handler';
 import { timestampToString } from './SomeFunctions';
-
-export type PostViewRouteParams = {
-    item: {name: string},
-}
+import { MyStackScreenProps } from '../navigation/Types';
+import { navigateToErrorScreen, popupOnError } from './Error';
+import { ChatRoomTile, ItemData, PostData, RoomData, UserData } from '../assets/Types';
 
 const resolveReasons = [
     {
@@ -33,16 +32,14 @@ const resolveReasons = [
     },
 ];
 
-export function ViewLostPostScreen() {
-    const navigation = useNavigation();
-    const route = useRoute();
-    const [item, setItem] = useState({});
+export function ViewLostPostScreen({navigation, route}: MyStackScreenProps<'View Lost Post'>) {
+    const [item, setItem] = useState<ItemData>();
 
-    const [author, setAuthor] = useState({});
+    const [author, setAuthor] = useState<UserData>();
 
-    const [post, setPost] = useState({});
+    const [post, setPost] = useState<PostData>();
 
-    const [rooms, setRooms] = useState([]);
+    const [roomTiles, setRoomTiles] = useState<ChatRoomTile[]>();
 
     const [message, setMessage] = useState<string>();
     
@@ -56,45 +53,43 @@ export function ViewLostPostScreen() {
     
     const [now, setNow] = useState<number>();
 
-    useEffect(() => setNow(Date.now()), [isFocused, item, author, post, rooms, message]);
+    useEffect(() => setNow(Date.now()), [isFocused, item, author, post, roomTiles, message]);
 
     const createChatRoom = async () => {
         try {
             setIsNavigating(true);
-            if ([auth.currentUser?.uid, author._id, post._id].includes(undefined)) 
+            if ([auth.currentUser?.uid, author?.id, post?.id].includes(undefined)) 
                 throw new Error('missing an id, idk which');
-            const roomData = {
-                userIds: [auth.currentUser?.uid, author._id],
-                postId: post._id,
-                createdAt: serverTimestamp(),
-//                secretPhraseValidated: false,
-            };
 
-            let postData;
-            
             await runTransaction(db, async (transaction) => {
-                const postRef = doc(db, 'posts', route.params!.post!._id);
+                const postRef = doc(db, 'posts', route.params!.post!.id);
                 const postSnapshot = await transaction.get(postRef);
                 if (!postSnapshot.exists()) {
                     throw Error('Document does not exist!');
                 }
                 
-                const userSnapshots = await Promise.all(roomData.userIds.map(async (userId) => transaction.get(doc(db, 'users', userId))));
-                
                 const roomRef = doc(collection(db, 'rooms'));
                 
-                transaction.set(roomRef, roomData);
+                const roomData = {
+                    id: roomRef.id,
+                    userIds: [auth.currentUser!.uid, author!.id],
+                    postId: post!.id,
+                    createdAt: serverTimestamp(),
+    //                secretPhraseValidated: false,
+                };
 
-                roomData._id = roomRef.id;
+                const userSnapshots = await Promise.all(roomData.userIds.map(async (userId) => transaction.get(doc(db, 'users', userId))));
+                
+                transaction.set(roomRef, roomData);
                 
                 let postData = postSnapshot!.data()!;
                 postData.roomIds.push(roomRef.id);
 
                 transaction.update(postRef, { roomIds: postData.roomIds });
                 
-                roomData.users = userSnapshots.map((userSnapshot) => ({_id: userSnapshot.id, ...userSnapshot.data()!}));
+                let users = userSnapshots.map((userSnapshot) => (userSnapshot.data()! as UserData));
 
-                navigation.navigate('Chat Room', {post: postData, room: roomData});
+                navigation.navigate('Chat Room', {post: postData as PostData, users: users, room: roomData as RoomData});
                 navigation.dispatch((state: {routes: any[]}) => {
                     const topScreen = state.routes[0];
                     const thisScreen = state.routes[state.routes.length - 1];
@@ -106,7 +101,7 @@ export function ViewLostPostScreen() {
                     });
                 });
             });
-        } catch (err) {
+        } catch (error) {
             navigateToErrorScreen(navigation, error);
         } finally {
             setIsNavigating(false);
@@ -117,19 +112,20 @@ export function ViewLostPostScreen() {
     const navigateToChatRoom = async (roomId: string | number) => {
         try {
             setIsNavigating(true);
-            
+            if (post === undefined) throw new Error('Post is undefined');
+            if (roomTiles === undefined) throw new Error('Room tiles are undefined');
             let roomData;
             if (typeof roomId === 'string') {
-                roomData = rooms.find((r) => r._id == roomId);
+                roomData = roomTiles.find((r) => r.room.id == roomId)?.room;
             }
             if (typeof roomId === 'number') {
-                roomData = rooms[roomId];
+                roomData = roomTiles[roomId].room;
             }
             
             if (roomData === undefined) throw Error('room is undefined');
             
-            navigation.navigate('Chat Room', {room: roomData});
-        } catch (err) {
+            navigation.navigate('Chat Room', {post: post, room: roomData});
+        } catch (error) {
             navigateToErrorScreen(navigation, error);
         } finally {
             setIsNavigating(false);
@@ -151,15 +147,16 @@ export function ViewLostPostScreen() {
     const updateRooms = async (roomSnapshot: QuerySnapshot) => {
         try {
             if (roomSnapshot.empty) throw new Error('roomSnapshot is empty');
-            const roomsData = await Promise.all(roomSnapshot.docs.map((roomDoc) => new Promise(async (resolve, reject) => {
+            const newRoomTiles = await Promise.all(roomSnapshot.docs.map((roomDoc) => new Promise(async (resolve, reject) => {
                 try {
                     if (roomDoc?.get('userIds') === undefined) throw new Error('userIds is undefined');
                     const userSnapshots = await getDocs(query(collection(db, 'users'), where(documentId(), 'in', roomDoc.get('userIds'))));
-                    
+                    const postSnapshot = await getDoc(doc(db, 'post', roomDoc.get('postId') as string));
                     resolve({
-                        _id: roomDoc.id, 
-                        users: userSnapshots.docs.map((userSnapshot) => ({_id: userSnapshot.id, ...userSnapshot.data()!})), 
-                        ...roomDoc.data()
+                        id: roomDoc.id, 
+                        users: userSnapshots.docs.map((userSnapshot) => (userSnapshot.data()! as UserData)), 
+                        room: roomDoc.data() as RoomData,
+                        post: postSnapshot.data() as PostData,
                     });
                     return;
                 } catch (error) {
@@ -167,7 +164,7 @@ export function ViewLostPostScreen() {
                 }
             })));
             
-            setRooms(roomsData);
+            setRoomTiles(newRoomTiles as ChatRoomTile[]);
         } catch (error) {
             navigateToErrorScreen(navigation, error);
         }
@@ -243,58 +240,59 @@ export function ViewLostPostScreen() {
         const unsubscribe = onSnapshot(query(collection(db, 'rooms'), where(documentId(), 'in', post.roomIds)), updateRooms);
         
         return unsubscribe;
-    }, [post.roomIds]);
+    }, [post?.roomIds]);
 
-    useEffect(() => {
+    useEffect(popupOnError(navigation, () => {
         return postUpdateCallback();
-    }, [post.roomIds]);
+    }), [post?.roomIds]);
 
-    useEffect(() => {
+    useEffect(popupOnError(navigation, () => {
         if (!isLoggedIn) return;
-        const itemData = {...route.params!.item};
+        const itemData = route.params!.item as ItemData;
 
         setItem(itemData);
         setAuthor(route.params!.author);
 
         setMessage(route.params!.post.message);
-        if (auth.currentUser!.uid == itemData._id) setIsOwner(true);
-        if (auth.currentUser!.uid == route.params!.author._id) setIsAuthor(true);
+        if (auth.currentUser!.uid == itemData.id) setIsOwner(true);
+        if (auth.currentUser!.uid == route.params!.author.id) setIsAuthor(true);
 
         if (route.params.post?.roomIds === undefined) return;
-    }, [isLoggedIn]);
+    }), [isLoggedIn]);
     
-    useEffect(() => {
-        if (!route.params!.post._id) return;
-        const unsubscribe = onSnapshot(doc(db, 'posts', route.params!.post._id), (snapshot) => {
-            setPost({_id: snapshot.id, ...snapshot.data()});
+    useEffect(popupOnError(navigation, () => {
+        if (route.params!.post as PostData != null) {
+            setPost(route.params!.post as PostData);
+            return;
+        }
+        if (!route.params.post.id) throw new Error('Post id is undefined');
+        const unsubscribe = onSnapshot(doc(db, 'posts', route.params!.post.id), (snapshot) => {
+            setPost(snapshot.data() as PostData);
         });
         return unsubscribe;
-    }, []);
+    }), []);
     
     const actionButtons = () => {
         if (isAuthor) {
             return (
-                <PressableOpacity 
-                    style={styles.bigButton}
+                <CoolButton 
+                    title='Resolve Post'
                     onPress={() => setModalVisible(!modalVisible)} 
-                    disabled={isNavigating}>
-                    <Text style={styles.bigButtonText}>Resolve post</Text>
-                </PressableOpacity>
+                    disabled={isNavigating}
+                    style={{alignSelf: 'center', width: '90%'}}/>
             );
         }
     }
 
     const chatOptions = () => {
         if (!isAuthor) {
-            if (rooms.length == 0) {
+            if (roomTiles === undefined || roomTiles.length == 0) {
                 return (
                     <View>
-                        <PressableOpacity 
-                            style={styles.bigButton}
+                        <CoolButton 
+                            title={`Start chat with ${author?.name || 'owner'}`}
                             onPress={createChatRoom} 
-                            disabled={isNavigating}>
-                            <Text style={styles.bigButtonText}>Start chat with {author?.name || 'owner'}</Text>
-                        </PressableOpacity>
+                            disabled={isNavigating} />
                     </View>
                 );
             } else {
@@ -303,7 +301,7 @@ export function ViewLostPostScreen() {
                         <PressableOpacity 
                             style={styles.chatItem}
                             onPress={() => {
-                                navigateToChatRoom(rooms.findIndex((room) => room.userIds.includes(auth.currentUser?.uid)))
+                                navigateToChatRoom(roomTiles.findIndex((tile) => tile.room.userIds.includes(auth.currentUser!.uid)))
                             }} 
                             disabled={isNavigating}>
                             <Image 
@@ -320,9 +318,9 @@ export function ViewLostPostScreen() {
 
         return (
             <FlatList
-                keyExtractor={(item) => item._id}
+                keyExtractor={(item) => item.room.id}
                 scrollEnabled={false}
-                data={rooms}
+                data={roomTiles}
                 style={styles.chatListContainer}
                 renderItem={({ item }) => {
                     const user = (item.users as any[]).find((user) => user._id != auth.currentUser?.uid);
@@ -331,7 +329,7 @@ export function ViewLostPostScreen() {
                         <PressableOpacity 
                             style={styles.chatItem}
                             onPress={() => {
-                                navigateToChatRoom(rooms.findIndex(room => item._id))
+                                navigateToChatRoom(roomTiles!.findIndex(room => item.room.id))
                             }}
                             disabled={isNavigating}>
                             <Image 
@@ -541,7 +539,7 @@ export function ViewLostPostScreen() {
     }), [isDarkMode]);
 
 
-    if (post?._id == '') {
+    if (post?.id == '') {
         return (
             <View>
                 <Text style={styles.text}>Post not found</Text>
@@ -556,18 +554,18 @@ export function ViewLostPostScreen() {
                     <View style={styles.userHeader}>
                         <Image
                             style={styles.pfp}
-                            source={author.pfpUrl ? {uri: author.pfpUrl} : undefined}
+                            source={author?.pfpUrl ? {uri: author.pfpUrl} : undefined}
                             defaultSource={require('../assets/defaultpfp.jpg')} />
                         <View>
-                            <Text style={styles.userName}>{author.name}</Text>
+                            <Text style={styles.userName}>{author?.name ?? 'Unknown User'}</Text>
                             <Text style={styles.timestamp}>
-                                {post.createdAt ? timestampToString(post.createdAt!, now, true, true) : 'unknown time'}
+                                {post?.createdAt ? timestampToString(post.createdAt!, now, true, true) : 'unknown time'}
                             </Text>
                         </View>
                     </View>
-                    <Text style={styles.postTitle}>Lost <Text style={{fontWeight: '800'}}>{item.name}</Text></Text>
+                    <Text style={styles.postTitle}>Lost <Text style={{fontWeight: '800'}}>{item?.name ?? 'Unknown item'}</Text></Text>
                     <PressableOpacity
-                        onPress={() => { navigation.navigate('View Item', { itemId: item._id, itemName: item.name }) }}
+                        onPress={() => { if (item) navigation.navigate('View Item', { itemId: item.id, itemName: item.name }) }}
                         disabled={isNavigating}>
                         <Image source={post?.imageUrls ? {uri: post.imageUrls[0]} : undefined} style={styles.itemImage} defaultSource={require('../assets/defaultimg.jpg')} />
                         <View style={styles.itemListItemView}>

@@ -4,8 +4,9 @@ import { View, ActivityIndicator, StyleSheet, useColorScheme } from 'react-nativ
 import { auth, db } from '../../ModularFirebase';
 import SafeAreaView from 'react-native-safe-area-view';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
+import { MyStackScreenProps } from '../navigation/Types';
 
-export function LoadingScreen({ navigation }: { navigation: any }) {
+export function LoadingScreen( {navigation, route}: MyStackScreenProps<'Loading'> ) {
     const isDarkMode = useColorScheme() === 'dark';
     const colors = isDarkMode ? DarkThemeColors : LightThemeColors;
     const styles = useMemo(() => StyleSheet.create({

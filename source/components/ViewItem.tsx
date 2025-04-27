@@ -5,28 +5,20 @@ import { auth, db } from '../../ModularFirebase';
 import { deleteObject, getDownloadURL, getStorage, ref, StorageReference, uploadBytesResumable, UploadTask } from 'firebase/storage';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { CommonActions, RouteProp, useFocusEffect, useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
-import { CoolTextInput, PressableOpacity } from '../hooks/MyElements';
+import { CoolButton, CoolTextInput, ImagePicker, PressableOpacity } from '../hooks/MyElements';
 import { Icon } from 'react-native-elements';
 import SafeAreaView from 'react-native-safe-area-view';
-import { MediaType, launchImageLibrary, launchCamera } from 'react-native-image-picker';
-import firebase from 'firebase/compat/app';
+import { MediaType, launchImageLibrary, launchCamera, ImagePickerResponse } from 'react-native-image-picker';
 import { timestampToString } from './SomeFunctions';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
-import { check, PERMISSIONS, PermissionStatus, request, RESULTS } from 'react-native-permissions';
-import { navigateToErrorScreen } from './Error';
+import { navigateToErrorScreen, popupOnError } from './Error';
+import { MyStackScreenProps } from '../navigation/Types';
+import { ItemData, PostData, UserData } from '../assets/Types';
 
-export type ViewItemRouteParams = {
-    itemId: string,
-    itemName: string,
-}
-
-export function ViewItemScreen() {
-    const navigation = useNavigation();
-    const route = useRoute();
+export function ViewItemScreen({navigation, route}: MyStackScreenProps<'View Item'>) {    
+    const [item, setItem] = useState<ItemData>();
     
-    const [item, setItem] = useState({});
-    
-    const [owner, setOwner] = useState({});
+    const [owner, setOwner] = useState<UserData>();
 
     const [itemRef, setItemRef] = useState<DocumentReference>();
     const [imageRef, setImageRef] = useState<StorageReference>();
@@ -73,23 +65,26 @@ export function ViewItemScreen() {
         });
     }, [navigation, hasUnsavedChanges]);*/
 
-    const redirectToNewFoundPost = () => {
+    const redirectToNewFoundPost = popupOnError(navigation, () => {
+        if (!item) throw new Error('item not found');
+        if (!owner) throw new Error('owner not found');
         navigation.navigate('New Found Post', { item: item, owner: owner });
-    }
+    });
     
-    const redirectToCurrentLostPost = async () => {
-        try {
-            const postData = (await getDoc(doc(collection(db, 'posts'), item.lostPostId))).data()!;
-            postData._id = item.lostPostId;
-            navigation.navigate('View Lost Post', { item: item, author: owner, post: postData });
-        } catch (error) {
-            navigateToErrorScreen(navigation, error);
-        }
-    }
+    const redirectToCurrentLostPost = popupOnError(navigation, async () => {
+        if (!item) throw new Error('item not found');
+        if (!owner) throw new Error('owner not found');
 
-    const redirectToNewLostPost = () => {
+        const postData = (await getDoc(doc(collection(db, 'posts'), item.lostPostId))).data()!;
+        postData._id = item.lostPostId;
+        navigation.navigate('View Lost Post', { item: item, author: owner, post: postData as PostData });
+    });
+
+    const redirectToNewLostPost = popupOnError(navigation, () => {
+        if (!item) throw new Error('item not found');
+        if (!owner) throw new Error('owner not found');
         navigation.navigate('New Lost Post', { item: item, owner: owner });
-    }
+    });
     
     const deleteItemAlert = () => {
         Alert.alert('Delete Item?', 'You cannot undo this action!', [
@@ -111,116 +106,45 @@ export function ViewItemScreen() {
         
         Promise.all([deleteObject(imageRef!), deleteDoc(itemRef!)]).then(() => {
             // File deleted successfully
-            navigation.navigate('My Items');
+            navigation.navigate('Home Tabs', {screen: 'My Items'});
         }).catch((error) => {
             navigateToErrorScreen(navigation, error);
             // Uh-oh, an error occurred!
         });
     }
 
-    const setItemInfo = useCallback(() => {
-        getDoc(doc(collection(db, 'items'), route.params!.itemId)).then((snapshot) => {
-            const storage = getStorage();
-            
-            setItemRef(snapshot.ref);
-            setImageRef(ref(storage, 'images/items/' + route.params!.itemId));
-            
-            setItem({
-                _id: route.params!.itemId,
-                ...snapshot.data(),
-            });
-
-            if (snapshot.get('ownerId') as string) {
-                getDoc(doc(collection(db, 'users'), snapshot.get('ownerId') as string)).then((user_snapshot) => {
-                    setOwner({
-                        _id: user_snapshot.id,
-                        ...user_snapshot.data()
-                    });
-                });
-            }
-        });
-    }, []);
-
-    const [hasGalleryPermission, setHasGalleryPermission] = useState<PermissionStatus>(RESULTS.UNAVAILABLE);
-    const [hasCameraPermission, setHasCameraPermission] = useState<PermissionStatus>(RESULTS.UNAVAILABLE);
-    
-    useEffect(() => {
-        check(Platform.OS === 'ios' ? PERMISSIONS.IOS.CAMERA : PERMISSIONS.ANDROID.CAMERA).then((result) => {
-            setHasCameraPermission(result);
-            console.log('camera permission status:', result);
-        });
-        check(Platform.OS === 'ios' ? PERMISSIONS.IOS.PHOTO_LIBRARY : PERMISSIONS.ANDROID.READ_MEDIA_IMAGES).then((result) => {
-            setHasGalleryPermission(result);
-            console.log('image library permission status:', result);
-        });
-    },[]);
-
-    const openImagePicker = () => {
-        if (hasCameraPermission != RESULTS.GRANTED) {
-            request(Platform.OS === 'ios' ? PERMISSIONS.IOS.PHOTO_LIBRARY : PERMISSIONS.ANDROID.READ_MEDIA_IMAGES).then((result) => {
-                setHasCameraPermission(result);
-                console.log(result);
-                if (result == RESULTS.GRANTED) pickImage();
-            });
-            return;
-        }
-        pickImage();
-    }
-
-    const pickImage = () => {
+    const setItemInfo = useCallback(popupOnError(navigation, () => {
+        const storage = getStorage();
         
-        const options = {
-            mediaType: 'photo' as MediaType,
-            includeBase64: false,
-            maxHeight: 2000,
-            maxWidth: 2000,
-            selectionLimit: 1,
-        };
+        if (route.params.item !== undefined) {
+            setItemRef(doc(db, 'items', route.params.item.id));
+            setImageRef(ref(storage, 'images/items/' + route.params.item.id));
+            
+            setItem(route.params.item as ItemData);
 
-        launchImageLibrary(options, (response) => {
-            if (response.didCancel) {
-                console.log('User cancelled image picker');
-            } else if (response.errorCode) {
-                console.log('ImagePicker Error: ', response.errorMessage);
-            } else if (response.assets) {
-                setImageUri(response.assets[0].uri!);
-                setHasUnsavedChanges(true);
-            }
-        }).catch(() => { console.log('whoop de doo') });
-    };
-    const handleCameraLaunch = () => {
-        if (hasCameraPermission != RESULTS.GRANTED) {
-            request(Platform.OS === 'ios' ? PERMISSIONS.IOS.PHOTO_LIBRARY : PERMISSIONS.ANDROID.READ_MEDIA_IMAGES).then((result) => {
-                setHasCameraPermission(result);
-                console.log(result);
-                if (result == RESULTS.GRANTED) myCameraLaunch();
+            getDoc(doc(db, 'users', route.params.item.ownerId)).then((snapshot) => {
+                setOwner(snapshot.data() as UserData);
             });
-            return;    
-        }
-    }
-
-    const myCameraLaunch = () => {
-        const options = {
-            mediaType: 'photo' as MediaType,
-            includeBase64: false,
-            maxHeight: 2000,
-            maxWidth: 2000,
-        };
-
-        launchCamera(options, (response) => {
-            if (response.didCancel) {
-                console.warn('User cancelled camera');
-            } else if (response.errorCode == 'camera_unavailable') {
+        } else if (route.params.itemId !== undefined) {
+            getDoc(doc(db, 'items', route.params.itemId!)).then((itemSnapshot) => {
+                setItemRef(itemSnapshot.ref);
+                setImageRef(ref(storage, 'images/items/' + route.params!.itemId));
                 
-            } else if (response.errorCode) {
-                console.warn('Camera Error', response.errorCode, ': ', response.errorMessage);
-            } else {
-                setImageUri(response.assets![0].uri!);
-                setHasUnsavedChanges(true);
-            }
-        });
+                setItem(itemSnapshot.data() as ItemData);
+
+                if (itemSnapshot.get('ownerId') as string) {
+                    getDoc(doc(collection(db, 'users'), itemSnapshot.get('ownerId') as string)).then((userSnapshot) => {
+                        setOwner(userSnapshot.data() as UserData);
+                    });
+                }
+            });
+        }
+    }), [route.params]);
+
+    const pickImage = (response: ImagePickerResponse) => {
+        setImageUri(response.assets![0].uri!);
+        setHasUnsavedChanges(true);
     }
-    
 
     const uploadImage = () => {
         return new Promise(async (resolve, reject) => {
@@ -254,9 +178,9 @@ export function ViewItemScreen() {
 
     useEffect(() => {
         setIsOwner(item?.ownerId == auth.currentUser!.uid);
-        setName(item.name);
-        setDescription(item.description);
-        setSecretPhrase(item.secretPhrase);
+        setName(item?.name ?? 'Item name');
+        setDescription(item?.description ?? 'Item description');
+        setSecretPhrase(item?.secretPhrase ?? 'Secret phrase');
     }, [item]);
 
     const saveEdits = useCallback(async () => {
@@ -271,11 +195,11 @@ export function ViewItemScreen() {
             } else {
                 let imageUrl = await uploadImage();
                 
-                await updateDoc(itemRef!, { name: name, description: description, secretPhrase: secretPhrase, imageSrc: imageUrl });    
+                await updateDoc(itemRef!, { name: name, description: description, secretPhrase: secretPhrase, imageUrl: imageUrl });    
                 setImageUri('');
             }
             let snapshot = await getDoc(itemRef!);
-            setItem({_id: snapshot.id, ...snapshot.data()!});
+            setItem(snapshot.data() as ItemData);
             setHasUnsavedChanges(false);
         } catch (error) {
             navigateToErrorScreen(navigation, error);
@@ -317,41 +241,39 @@ export function ViewItemScreen() {
         if (item?.isLost) {
             arr.push(
                 <View style={{ flex: 1 }} key={'redirecttolostpost'}>
-                    <PressableOpacity
+                    <CoolButton
+                        title='Go to lost post'
                         onPress={redirectToCurrentLostPost}
-                        style={styles.actionButton}>
-                        <Text style={styles.buttonText}>Go to lost post</Text>
-                    </PressableOpacity>
+                        style={styles.actionButton} 
+                        />
                 </View>
             );
         } else {
             if (isOwner) {
                 arr.push(
-                    <View style={{ flex: 3 }} key={'markaslost'}>
-                        <PressableOpacity
+                    <View style={{ flex: 2 }} key={'markaslost'}>
+                        <CoolButton
+                            title='Post item as lost'
                             onPress={redirectToNewLostPost}
-                            style={styles.actionButton}>
-                            <Text style={styles.buttonText}>Post item as lost</Text>
-                        </PressableOpacity>
+                            style={styles.actionButton} />
                     </View>
                 );
                 arr.push(
                     <View style={{ flex: 1 }} key={'transferownership'}>
-                        <PressableOpacity
+                        <CoolButton
+                            title='Transfer ownership'
                             onPress={() => {}}
-                            style={styles.scaryActionButton}>
-                            <Text style={styles.buttonText}>Transfer ownership</Text>
-                        </PressableOpacity>
+                            style={styles.scaryActionButton} 
+                            capStyle={{backgroundColor: colors.red}} />
                     </View>
                 );
             } else {      
                 arr.push(
                     <View style={{ flex: 1 }} key={'reportasfound'}>
-                        <PressableOpacity
+                        <CoolButton
+                            title='Report item as found'
                             onPress={redirectToNewFoundPost}
-                            style={styles.actionButton}>
-                            <Text style={styles.buttonText}>Report item as found</Text>
-                        </PressableOpacity>
+                            style={styles.actionButton} />
                     </View>
                 );
             }
@@ -359,7 +281,7 @@ export function ViewItemScreen() {
 
         return (
             <View style={[styles.horizontal, {width: '100%', padding: 8, alignSelf: 'center'}]}>
-                <View style={[{flexDirection: 'row', flex: 1, height: 40}]}>
+                <View style={[{flexDirection: 'row', flex: 1 }]}>
                     {arr}
                 </View>
             </View>
@@ -446,31 +368,13 @@ export function ViewItemScreen() {
             padding: 6,
         },
         actionButton: {
-            backgroundColor: colors.primary,
             width: '100%',
-            height: '100%',
-            paddingHorizontal: 10,
-            borderRadius: 10,
-            alignItems: 'center',
-            justifyContent: 'center',
         },
         scaryActionButton: {
-            backgroundColor: colors.red,
             width: '100%',
-            height: '100%',
-            paddingHorizontal: 10,
-            borderRadius: 10,
-            alignItems: 'center',
-            justifyContent: 'center',
         },
         startEditButton: {
-            backgroundColor: colors.secondary,
             width: '100%',
-            height: '100%',
-            paddingHorizontal: 10,
-            borderRadius: 10,
-            alignItems: 'center',
-            justifyContent: 'center',
         },
         finishEditButton: {
             backgroundColor: colors.primary,
@@ -487,13 +391,14 @@ export function ViewItemScreen() {
         },
         deleteItemButton: {
             backgroundColor: colors.red,
-            height: '100%',
-            borderRadius: 10,
-            aspectRatio: 1,
-            alignItems: 'center',
-            justifyContent: 'center',
         },
     }), [isDarkMode]);
+
+    if (!item || !owner) return (
+        <SafeAreaView style={styles.container}>
+            <Text style={styles.text}>Item or owner not found</Text>
+        </SafeAreaView>
+    );
 
     if (isOwner) return (
         <SafeAreaView style={styles.container}>
@@ -512,24 +417,12 @@ export function ViewItemScreen() {
                     <View style={{flex: 1, padding: 5}}>
                         <Image
                             style={styles.itemImage}
-                            source={{uri: imageUri || item.imageSrc || undefined}} 
+                            source={{uri: imageUri || item.imageUrl || undefined}} 
                             defaultSource={require('../assets/defaultimg.jpg')} />
                             {isEditable ? (
-                                <View style={{...styles.horizontal, alignSelf: 'center'}}>
-                                    <PressableOpacity 
-                                        onPress={handleCameraLaunch} 
-                                        style={styles.cameraButton} 
-                                        disabled={!isEditable || isUploading}>
-                                        <Icon name='camera-alt' type='material-icons' size={20} color={colors.text}/>
-                                    </PressableOpacity>
-                                    <PressableOpacity 
-                                        onPress={openImagePicker} 
-                                        style={styles.uploadButton}
-                                        disabled={!isEditable || isUploading}>
-                                        <Icon name='photo-library' type='material-icons' size={20} color={colors.text} />
-                                    </PressableOpacity>
-                                    <Text style={{fontSize: 14, fontWeight: '500', color: colors.text,}}>Set photo</Text>
-                                </View>
+                                <ImagePicker 
+                                    containerStyle={{alignSelf: 'stretch'}}
+                                    onResponse={pickImage} />
                             ) : null}
                     </View>
                     <View style={{flex: 1, margin: 5}}>
@@ -566,22 +459,30 @@ export function ViewItemScreen() {
                             multiline
                             editable={isEditable && !isUploading} />
                         <View style={[styles.horizontal, {width: '100%', padding: 8, alignSelf: 'center'}]}>
-                            <View style={{flexDirection: 'row', flex: 1, height: 40}}>
+                            <View style={{flexDirection: 'row', flex: 1}}>
                                 <View style={{ flex: 1 }}>
-                                    <PressableOpacity
+                                    <CoolButton
+                                        leftIcon={{
+                                            name: 'save', 
+                                            type: 'material-icons', 
+                                            size: 24,
+                                        }}
+                                        
                                         onPress={() => {saveEdits(); setIsEditable(false)}}
-                                        style={styles.finishEditButton}
-                                        disabled={!isEditable || isUploading}>
-                                        <Icon name='save' type='material-icons' color={colors.contrastText} />
-                                    </PressableOpacity>
+                                        disabled={!isEditable || isUploading} />
                                 </View>
                                 <View>
-                                    <PressableOpacity
+                                    <CoolButton
+                                        leftIcon={{
+                                            name: 'delete',
+                                            type: 'material-community',
+                                            size: 24,
+                                            color: colors.text,
+                                        }}
                                         onPress={deleteItemAlert}
-                                        style={styles.deleteItemButton}
-                                        disabled={!isEditable || isUploading}>
-                                        <Icon name='delete' type='material-community' />
-                                    </PressableOpacity>
+                                        capStyle={styles.deleteItemButton}
+                                        disabled={!isEditable || isUploading} />
+                                    
                                 </View>
                             </View>
                         </View>
@@ -592,14 +493,17 @@ export function ViewItemScreen() {
                         <Text style={styles.description}>{description}</Text>
                         {actionButtons()}
                         <View style={[styles.horizontal, {width: '100%', padding: 8, alignSelf: 'center'}]}>
-                            <View style={{flexDirection: 'row', flex: 1, height: 40}}>
+                            <View style={{flexDirection: 'row', flex: 1 }}>
                                 <View style={{ flex: 1 }} key={'editinfo'}>
-                                    <PressableOpacity
+                                    <CoolButton
+                                        leftIcon={{
+                                            name: 'pencil', 
+                                            type: 'material-community', 
+                                        }}
                                         onPress={() => setIsEditable(true)}
                                         style={styles.startEditButton}
-                                        disabled={isUploading}>
-                                        <Icon name='pencil' type='material-community' color={colors.secondaryContrastText} />
-                                    </PressableOpacity>
+                                        disabled={isUploading}
+                                        useSecondaryColor />
                                 </View>
                             </View>
                         </View>
@@ -628,7 +532,7 @@ export function ViewItemScreen() {
                     <View style={{flex: 1, margin: 5}}>
                         <Image
                             style={styles.itemImage}
-                            source={{uri: imageUri || item.imageSrc || undefined}} 
+                            source={{uri: imageUri || item.imageUrl || undefined}} 
                             defaultSource={require('../assets/defaultimg.jpg')} />
                     </View>
                     <View style={{flex: 1, marginVertical: 5}}>

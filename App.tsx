@@ -26,10 +26,10 @@ import { AddItemScreen } from './source/components/AddItem';
 import NotificationsScreen from './source/components/Notifications';
 import { ScanCodeScreen } from './source/components/ScanCode';
 import { ReturnItemScreen } from './source/components/ReturnItem';
-import { ViewItemScreen, ViewItemRouteParams } from './source/components/ViewItem';
+import { ViewItemScreen } from './source/components/ViewItem';
 import { SettingsScreen } from './source/components/Settings';
 import NewLostPostScreen from './source/components/NewLostPost';
-import ViewLostPostScreen, { PostViewRouteParams } from './source/components/ViewLostPost';
+import ViewLostPostScreen from './source/components/ViewLostPost';
 import SearchItemsScreen from './source/components/SearchItems';
 import NewFoundPostScreen from './source/components/NewFoundPost';
 import { Icon } from 'react-native-elements';
@@ -37,10 +37,12 @@ import { DarkThemeColors, LightThemeColors } from './source/assets/Colors';
 import { PostLostItemScreen } from './source/components/PostLostItem';
 import MyChatRoomsScreen from './source/components/MyChatRooms';
 import { PressableOpacity } from './source/hooks/MyElements';
+import { HomeTabParamList, MyDrawerParamList, MyStackParamList, RootStackParamList } from './source/navigation/Types';
 
-const Stack = createStackNavigator();
-const Tab = createBottomTabNavigator();
-const Drawer = createDrawerNavigator();
+const RootStack = createStackNavigator<RootStackParamList>();
+const Stack = createStackNavigator<MyStackParamList>();
+const Tab = createBottomTabNavigator<HomeTabParamList>();
+const Drawer = createDrawerNavigator<MyDrawerParamList>();
 
 function HomeTab() {
     const scheme = useColorScheme();
@@ -48,7 +50,7 @@ function HomeTab() {
 
     return (
         <Tab.Navigator
-            initialRouteName={'Bottom Tabs'}
+            initialRouteName={'Home'}
             screenOptions={{
                 tabBarActiveTintColor: colors.primary,
                 tabBarActiveBackgroundColor: colors.card,
@@ -112,7 +114,7 @@ function MyDrawer() {
 
     return (
         <Drawer.Navigator
-            initialRouteName={'Drawer'}
+            initialRouteName={'Home Tabs'}
             screenOptions={{
                 drawerType: 'slide',
                 drawerActiveTintColor: colors.primary,
@@ -221,7 +223,7 @@ function MyStack() {
                 <Stack.Screen name='Post Lost Item' component={PostLostItemScreen} options={{ title: 'Post Lost Item' }} />
                 <Stack.Screen name='Add Item' component={AddItemScreen} options={{ title: 'Add Item' }} />
                 <Stack.Screen name='View Item' options={({ route }) => ({
-                    title: (route!.params as ViewItemRouteParams).itemName,
+                    title: route.params?.itemName,
                     headerBackTitle: 'Back',
                     headerShown: false,
                 })}
@@ -270,10 +272,10 @@ export function App() {
     return (
         <SafeAreaProvider>
             <NavigationContainer>
-                <Stack.Navigator screenOptions={{headerShown: false}}>
-                    <Stack.Screen name='My Drawer' component={MyDrawer} options={{title: 'Home'}}/>
-                    <Stack.Screen name='My Stack' component={MyStack} options={{title: ''}}/>
-                </Stack.Navigator>
+                <RootStack.Navigator screenOptions={{headerShown: false}}>
+                    <RootStack.Screen name='My Drawer' component={MyDrawer} options={{title: 'Home'}}/>
+                    <RootStack.Screen name='My Stack' component={MyStack} options={{title: ''}}/>
+                </RootStack.Navigator>
             </NavigationContainer>
         </SafeAreaProvider>
     );

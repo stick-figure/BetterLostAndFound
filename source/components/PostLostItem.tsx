@@ -6,11 +6,18 @@ import { auth, db } from '../../ModularFirebase';
 import { CoolButton, PressableOpacity } from '../hooks/MyElements';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { navigateToErrorScreen } from './Error';
+import { MyStackScreenProps } from '../navigation/Types';
+import { ItemData, UserData } from '../assets/Types';
 
 
-export function PostLostItemScreen({ navigation }: { navigation: any }) {
-    const [items, setItems] = useState<any[]>([]);
-    const [itemQuery, setItemQuery] = useState<any[]>([]);
+type ItemTile = {
+    item: ItemData,
+    owner?: UserData,
+};
+
+export function PostLostItemScreen({navigation, route}: MyStackScreenProps<'Post Lost Item'>) {
+    const [itemTiles, setItemTiles] = useState<ItemTile[]>([]);
+    const [itemTileQuery, setItemTileQuery] = useState<ItemTile[]>([]);
     const [search, setSearch] = useState('');
 
     const [isLoggedIn, setIsLoggedIn] = useState(true);
@@ -43,17 +50,13 @@ export function PostLostItemScreen({ navigation }: { navigation: any }) {
                 }
                 
                 return {
-                    _id: itemDoc.id,
-                    name: itemDoc.get('name'),
-                    description: itemDoc.get('description'),
-                    ownerName: owner?.get('name') || itemDoc.get('ownerId') || 'Unknown User',
-                    isLost: itemDoc.get('isLost'),
-                    imageSrc: itemDoc.get('imageSrc') || undefined,
+                    item: itemDoc.data() as ItemData,
+                    owner: owner ? owner.data()! as UserData : undefined,
                 };
             });
 
             Promise.all(promises).then((res) => {
-                setItems(res);
+                setItemTiles(res);
                 setIsLoading(false);
             }).catch((error) => {
                 navigateToErrorScreen(navigation, error);
@@ -65,14 +68,14 @@ export function PostLostItemScreen({ navigation }: { navigation: any }) {
 
     useEffect(() => {
         updateSearch(search);
-    }, [items]);
+    }, [itemTiles]);
 
     const updateSearch = (searchText: string) => {
         setSearch(searchText);
-        let myItemQuery = items.filter((value, index, array) => {
-            return searchText == '' || value.name.toLowerCase().includes(searchText.toLowerCase());
+        let myItemQuery = itemTiles.filter((value, index, array) => {
+            return searchText == '' || value.item.name.toLowerCase().includes(searchText.toLowerCase());
         });
-        setItemQuery(myItemQuery);
+        setItemTileQuery(myItemQuery);
     };
 
     const isDarkMode = useColorScheme() === 'dark';
@@ -175,7 +178,7 @@ export function PostLostItemScreen({ navigation }: { navigation: any }) {
             <Text style={styles.subtitle}>Choose an item</Text>
             <SearchBar
                 placeholder='Type Here...'
-                onChangeText={(text) => updateSearch(text)}
+                onChangeText={(text?: string) => updateSearch(text ?? '')}
                 value={search}
                 style={styles.searchBar}
                 containerStyle={styles.searchBarContainer} 
@@ -191,28 +194,28 @@ export function PostLostItemScreen({ navigation }: { navigation: any }) {
             <View style={styles.itemList}>
                 <FlatList
                     contentContainerStyle={{minHeight: '100%'}}
-                    keyExtractor={item => item._id.toString()}
+                    keyExtractor={item => item.item.id.toString()}
                     ListEmptyComponent={
                         <View style={{flex: 1, alignContent: 'center', alignSelf: 'stretch', justifyContent: 'center'}}>
                             {isLoading ? <ActivityIndicator size='large' /> : <Icon name='cactus' type='material-community' color={colors.text} size={40} />}
                         </View>
                     }
-                    data={itemQuery}
+                    data={itemTileQuery}
                     renderItem={({ item }) => (
                         <View style={styles.itemListItem}>
                             <PressableOpacity
-                                key={item._id.toString()}
+                                key={item.item.id.toString()}
                                 onPress={async () => {
                                     const ownerRef = doc(db, 'users', auth.currentUser!.uid)
                                     const ownerData = (await getDoc(ownerRef)).data();
 
-                                    navigation.navigate('New Lost Post', { item: item, owner: {...ownerData, _id: ownerRef.id} })
+                                    navigation.navigate('New Lost Post', { item: item.item, owner: item.owner })
                                 }}>
                             
-                                <Image source={{uri: item.imageSrc || undefined}} style={styles.itemImage} defaultSource={require('../assets/defaultimg.jpg')}/>
+                                <Image source={{uri: item.item.imageUrl || undefined}} style={styles.itemImage} defaultSource={require('../assets/defaultimg.jpg')}/>
                                 <View style={styles.listItemInfo}>
-                                    <Text style={styles.itemTitle}>{item.name}</Text>
-                                    <Text style={styles.itemSubtitle}>{item.ownerName}</Text>
+                                    <Text style={styles.itemTitle}>{item.item?.name ?? 'Unknown Item'}</Text>
+                                    <Text style={styles.itemSubtitle}>{item.owner?.name ?? 'Unknown User'}</Text>
                                 </View> 
                             </PressableOpacity>
                         </View>

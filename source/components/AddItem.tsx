@@ -1,24 +1,22 @@
-import { addDoc, collection, doc, getDoc, runTransaction, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, doc, getDoc, runTransaction, serverTimestamp, setDoc, Timestamp, updateDoc } from 'firebase/firestore';
 import { getDownloadURL, getStorage, ref, uploadBytesResumable } from 'firebase/storage';
 import { useEffect, useMemo, useState } from 'react';
 import { View, Text, Button, StyleSheet, Image, Pressable, ImageSourcePropType, TextInput, useColorScheme, Platform } from 'react-native';
-import { launchCamera, launchImageLibrary, MediaType } from 'react-native-image-picker';
+import { ImagePickerResponse, launchCamera, launchImageLibrary, MediaType } from 'react-native-image-picker';
 
 import { auth, db } from '../../ModularFirebase';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { ScrollView, TouchableOpacity } from 'react-native-gesture-handler';
 import { CommonActions, useTheme, useNavigation, useRoute } from '@react-navigation/native';
 import { Icon, Input } from 'react-native-elements';
-import { CoolButton, CoolTextInput, MyInput, RequiredLabel } from '../hooks/MyElements';
+import { CoolButton, CoolTextInput, ImagePicker, MyInput, RequiredLabel } from '../hooks/MyElements';
 import SafeAreaView from 'react-native-safe-area-view';
 import { request, PERMISSIONS, RESULTS, check, PermissionStatus } from 'react-native-permissions';
 import { useCameraDevices, Camera } from 'react-native-vision-camera';
 import { navigateToErrorScreen } from './Error';
+import { MyStackScreenProps } from '../navigation/Types';
 
-export function AddItemScreen() {
-    const navigation = useNavigation();
-    const route = useRoute();
-
+export function AddItemScreen({ navigation, route }: MyStackScreenProps<'Add Item'>) {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [secretPhrase, setSecretPhrase] = useState('');
@@ -51,6 +49,10 @@ export function AddItemScreen() {
             setHasGalleryPermission(result);
         });
     },[]);
+
+    const onImagePicked = (response: ImagePickerResponse) => {
+        setImgSrc( { uri: response.assets![0].uri! } );
+    }
 
     const openImagePicker = () => {
         if (hasGalleryPermission != RESULTS.GRANTED) {
@@ -147,26 +149,27 @@ export function AddItemScreen() {
 
     const uploadItem = async () => {
         try {
+            navigation.navigate('Loading');
+            
+            const ownerData = (await getDoc(doc(db, 'users', auth.currentUser!.uid))).data();
+            
+            const docRef = doc(collection(db, 'items'));
+            
+            const url = await uploadImage(docRef.id);
+
             const itemData = {
+                id: docRef.id,
                 name: name,
                 description: description,
                 ownerId: auth.currentUser?.uid,
                 isLost: false,
                 secretPhrase: secretPhrase,
                 createdAt: serverTimestamp(),
-                imageSrc: '',
+                imageUrl: url,
                 timesLost: 0,
             };
             
-            navigation.navigate('Loading');
-            
-            const ownerData = (await getDoc(doc(db, 'users', auth.currentUser!.uid))).data();
-            
-            const docRef = await addDoc(collection(db, "items"), itemData);
-            
-            const url = await uploadImage(docRef.id);
-
-            await updateDoc(docRef, {imageSrc: url});
+            await setDoc(docRef, itemData)
 
             if (route.params!.nextScreen == 'New Lost Post') {
                 navigation.dispatch(
@@ -174,8 +177,8 @@ export function AddItemScreen() {
                         index: 0,
                         routes: [
                             { name: 'New Lost Post', params: {
-                                item: {_id: docRef.id, ...itemData, imageSrc: url}, 
-                                owner: {_id: auth.currentUser!.id, ...ownerData},
+                                item: {_id: docRef.id, ...itemData, imageUrl: url}, 
+                                owner: {_id: auth.currentUser!.uid, ...ownerData},
                             }
                         }],
                     })
@@ -287,11 +290,15 @@ export function AddItemScreen() {
                 <View style={styles.imageContainer}>
                     <Image
                         style={styles.itemImage}
-                        source={imgSrc.uri != '' ? imgSrc : require('../assets/defaultimg.jpg')}
-                    />
+                        source={imgSrc.uri != '' ? imgSrc : undefined}
+                        defaultSource={require('../assets/defaultimg.jpg')}/>
+                    
                 </View>
+                <ImagePicker 
+                        onResponse={onImagePicked} 
+                        required />
                 
-
+                {/* 
                 <View style={styles.horizontalContainer}>
                     <TouchableOpacity onPress={handleCameraLaunch} style={styles.iconButton}>
                         <Icon name='camera-alt' type='material-icons' size={40} color={colors.secondaryContrastText} />
@@ -304,6 +311,7 @@ export function AddItemScreen() {
                     </TouchableOpacity>
                     <RequiredLabel style={styles.imageLabel}>Select image</RequiredLabel>
                 </View>
+                */}
                 <View style={{width: '100%', alignItems: 'center'}}>
                     <CoolTextInput
                         label='Name'

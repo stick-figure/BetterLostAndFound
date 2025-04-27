@@ -8,20 +8,22 @@ import { CommonActions } from '@react-navigation/native';
 import { CoolButton, PressableOpacity } from '../hooks/MyElements';
 import { Icon } from 'react-native-elements';
 import { navigateToErrorScreen } from './Error';
+import { UserData } from '../assets/Types';
+import { HomeTabScreenProps } from '../navigation/Types';
 
 interface ItemTile {
     _id: string,
     name: string,
     description: string,
-    ownerName: string,
+    owner?: UserData,
     isLost: boolean,
-    imageSrc: object,
+    imageUrl?: string,
 }
 
-export function MyItemsScreen({ navigation }: { navigation: any }) {
-    const [items, setItems] = useState<ItemTile[]>([]);
-    const [sortedItems, setSortedItems] = useState<ItemTile[]>([]);
-    const [userData, setUserData] = useState({});
+export function MyItemsScreen({navigation, route}: HomeTabScreenProps<'My Items'>) {
+    const [itemTiles, setItemTiles] = useState<ItemTile[]>([]);
+    const [sortedItemTiles, setSortedItemTiles] = useState<ItemTile[]>([]);
+    const [userData, setUserData] = useState<UserData>();
 
     const [isLoggedIn, setIsLoggedIn] = useState(false);
 
@@ -56,14 +58,14 @@ export function MyItemsScreen({ navigation }: { navigation: any }) {
                     _id: itemDoc.id,
                     name: itemDoc.get('name'),
                     description: itemDoc.get('description'),
-                    ownerName: owner?.get('name') || itemDoc.get('ownerId') || 'Unknown User',
+                    owner: owner?.data() as UserData || undefined,
                     isLost: itemDoc.get('isLost'),
-                    imageSrc: (itemDoc.get('imageSrc')?.length > 0 ? { uri: itemDoc.get('imageSrc') } : undefined),
+                    imageUrl: itemDoc.get('imageUrl') || undefined,
                 };
             });
 
             Promise.all(promises).then((res) => {
-                setItems(res);
+                setItemTiles(res);
                 setIsLoading(false);
             }).catch((error) => {
                 navigateToErrorScreen(navigation, error);
@@ -74,16 +76,16 @@ export function MyItemsScreen({ navigation }: { navigation: any }) {
     }, [isLoggedIn]);
 
     useEffect(() => {
-        setSortedItems(items.sort((a, b) => {
-            return a.isLost - b.isLost;
+        setSortedItemTiles(itemTiles.sort((a, b) => {
+            return (a.isLost ? 0 : 1) - (b.isLost ? 0 : 1);
         }));
-    }, [items]);
+    }, [itemTiles]);
     
     useEffect(() => {
         if (!isLoggedIn) return;
         
         const unsubscribe = onSnapshot(doc(db, 'users', auth.currentUser!.uid), (snapshot) => {
-            setUserData({...snapshot.data()});
+            setUserData(snapshot.data() as UserData);
         });
 
         return unsubscribe;
@@ -198,7 +200,7 @@ export function MyItemsScreen({ navigation }: { navigation: any }) {
         <SafeAreaView style={styles.container}>
             <View style={[styles.horizontal, {alignSelf:'flex-start'}]}>
                 <Image 
-                    source={{uri: userData?.pfpUrl}} 
+                    source={{uri: userData?.pfpUrl || undefined}} 
                     style={styles.pfp}
                     defaultSource={require('../assets/defaultpfp.jpg')}
                     />
@@ -249,14 +251,14 @@ export function MyItemsScreen({ navigation }: { navigation: any }) {
                             {isLoading ? <ActivityIndicator size='large' /> : <Icon name='cactus' type='material-community' color={colors.text} size={40} />}
                         </View>
                     }
-                    data={sortedItems}
+                    data={sortedItemTiles}
                     renderItem={({ item }) => (
                         <View style={[styles.itemListItem, item.isLost ? {backgroundColor: 'red',} : null]}>
                             <PressableOpacity
                                 key={item._id.toString()}
                                 onPress={() => { navigation.navigate('My Stack', {screen: 'View Item', params: { itemId: item._id, itemName: item.name } }) }}>
                                 <View style={styles.itemListItemView}>
-                                    <Image source={item.imageSrc} style={styles.itemImage} defaultSource={require('../assets/defaultimg.jpg')}/>
+                                    <Image source={{uri: item.imageUrl || undefined}} style={styles.itemImage} defaultSource={require('../assets/defaultimg.jpg')}/>
                                     <Text style={styles.itemTitle}>{item.name}</Text>
                                 </View>
                             </PressableOpacity>

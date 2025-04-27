@@ -9,10 +9,9 @@ import SafeAreaView from 'react-native-safe-area-view';
 import { CoolTextInput, PressableOpacity } from '../hooks/MyElements';
 import { Input } from 'react-native-elements';
 import { navigateToErrorScreen } from './Error';
+import { MyStackScreenProps } from '../navigation/Types';
 
-export function NewFoundPostScreen() {
-    const navigation = useNavigation();
-    const route = useRoute();
+export function NewFoundPostScreen({navigation, route}: MyStackScreenProps<'New Found Post'>) {
     const [item, setItem] = useState({
         _id: '',
         name: '',
@@ -22,7 +21,7 @@ export function NewFoundPostScreen() {
         timesLost: -1,
         secretPhrase: '',
         createdAt: -1,
-        imageSrc: require('../assets/defaultimg.jpg'),
+        imageUrl: require('../assets/defaultimg.jpg'),
     });
 
     const [owner, setOwner] = useState({});
@@ -70,7 +69,7 @@ export function NewFoundPostScreen() {
             authorId: auth.currentUser?.uid,
             createdAt: serverTimestamp(),
             resolved: false,
-            resolvedAt: -1,
+            resolvedAt: null,
             resolveReason: '',
             views: 0,
             roomIds: [],
@@ -79,6 +78,7 @@ export function NewFoundPostScreen() {
         navigation.navigate('Loading');
 
         addDoc(collection(db, 'posts'), postData).then((postRef) => {
+            navigation.goBack();
             navigation.navigate('Found Post View', {item: item, owner: owner, author: owner, post: postData});
             navigation.dispatch((state: {routes: any[]}) => {
                 const topScreen = state.routes[0];
@@ -222,7 +222,7 @@ export function NewFoundPostScreen() {
                     disabled={uploading}>
                         <View style={styles.horizontal}>
                         <Image 
-                            source={{uri: item.imageSrc}} 
+                            source={{uri: item.imageUrl}} 
                             defaultSource={require('../assets/defaultimg.jpg')} 
                             style={styles.itemImage} />
                             <View style={styles.itemListItemView}>
@@ -237,7 +237,7 @@ export function NewFoundPostScreen() {
                 label='Message'
                 multiline={true}
                 placeholder=''
-                onChangeText={text => setMessage(text)}
+                
                 value={message}
                 editable={!uploading}
                 required

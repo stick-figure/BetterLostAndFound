@@ -4,13 +4,14 @@ import { auth, db } from '../../ModularFirebase';
 import { deleteUser, signOut } from 'firebase/auth';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { collection, deleteDoc, doc, getDocs, Query, query, where, writeBatch } from 'firebase/firestore';
-import { CommonActions } from '@react-navigation/native';
+import { CommonActions, useNavigation } from '@react-navigation/native';
 import { deleteObject } from 'firebase/storage';
 import SafeAreaView from 'react-native-safe-area-view';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
+import { MyDrawerScreenProps } from '../navigation/Types';
+import { navigateToErrorScreen } from './Error';
 
-export function SettingsScreen({ navigation }: { navigation: any }) {
-
+export function SettingsScreen({navigation, route}: MyDrawerScreenProps<'Settings'>) {
     const signOutNow = () => {
 //        navigation.navigate('Loading');
         signOut(auth).then(() => {
@@ -21,7 +22,12 @@ export function SettingsScreen({ navigation }: { navigation: any }) {
             // An error happened.
             const errorCode = error.code;
             const errorMessage = error.message;
-            navigation.navigate('Error', { code: errorCode, message: errorMessage });
+            navigation.navigate('My Stack', { 
+                screen: 'Error', 
+                params: {
+                    error: error,
+                } 
+            });
         });
     }
 
@@ -61,9 +67,7 @@ export function SettingsScreen({ navigation }: { navigation: any }) {
             navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Login' }] }));
         }).catch((error) => {
             // An error happened.
-            const errorCode = error.code;
-            const errorMessage = error.message;
-            navigation.navigate('Error', {code: errorCode, message: errorMessage});
+            navigateToErrorScreen(navigation, error);
         });
     }
 

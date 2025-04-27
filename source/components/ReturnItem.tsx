@@ -10,9 +10,11 @@ import SafeAreaView from 'react-native-safe-area-view';
 import { timestampToString } from './SomeFunctions';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { navigateToErrorScreen } from './Error';
+import { HomeTabScreenProps } from '../navigation/Types';
+import { PostData, ItemData, UserData } from '../assets/Types';
 
 
-export function ReturnItemScreen({ navigation }: { navigation: any }) {
+export function ReturnItemScreen({navigation, route}: HomeTabScreenProps<'Return Item'>) {
     const [lostPosts, setLostPosts] = useState<any[]>([]);
     const [lostPostQuery, setLostPostQuery] = useState<any[]>([]);
     const [search, setSearch] = useState('');
@@ -60,7 +62,7 @@ export function ReturnItemScreen({ navigation }: { navigation: any }) {
                     message: postDoc.get('message'),
                     authorName: owner?.get('name') || postDoc.get('authorId') || 'Unknown User',
                     pfpSrc: owner?.get('pfpUrl'),
-                    imageSrc: item?.get('imageSrc'),
+                    imageUrl: item?.get('imageUrl'),
                     createdAt: postDoc.get('createdAt'),
                 };
             });
@@ -89,12 +91,9 @@ export function ReturnItemScreen({ navigation }: { navigation: any }) {
         try {
             const postSnapshot = await getDoc(doc(db, 'posts', postId));
             const postData = postSnapshot.data()!;
-            postData._id = postSnapshot.id;
             const itemData = (await getDoc(doc(db, 'items', postData!.itemId))).data()!;
-            itemData._id = postData!.itemId;
             const authorData = (await getDoc(doc(db, 'users', postData!.authorId))).data()!;
-            authorData._id = postData!.authorId;
-            navigation.navigate('My Stack', {screen: 'View Lost Post', params: {post: postData, item: itemData, author: authorData}});
+            navigation.navigate('My Stack', {screen: 'View Lost Post', params: {post: postData as PostData, item: itemData as ItemData, author: authorData as UserData}});
         } catch (error) {
             navigateToErrorScreen(navigation, error);
         }
@@ -232,15 +231,10 @@ export function ReturnItemScreen({ navigation }: { navigation: any }) {
                 title='Report uncataloged item'
                 onPress={() => navigation.navigate('My Stack', { screen: 'Search Items' })}
                 style={styles.returnItemButton} />
-            <PressableOpacity
-                onPress={() => {}}
-                style={styles.returnItemButton}>
-                <Text style={styles.buttonText}></Text>
-            </PressableOpacity>
             <Text style={styles.subtitle}>Wanted (Lost) items</Text>
             <SearchBar
                 placeholder='Type Here...'
-                onChangeText={(text) => updateSearch(text)}
+                onChangeText={(text?: string) => updateSearch(text ?? '')}
                 value={search}
                 style={styles.searchBar}
                 containerStyle={styles.searchBarContainer} 
@@ -251,7 +245,8 @@ export function ReturnItemScreen({ navigation }: { navigation: any }) {
                 rightIconContainerStyle={{borderWidth: 0}}
                 disabledInputStyle={{opacity: 0.8}}
                 round
-                lightTheme={!isDarkMode} />
+                lightTheme={!isDarkMode} 
+                platform='default' />
             <View style={styles.itemList}>
                 <FlatList
                     contentContainerStyle={{flexGrow: 1, minHeight: '100%'}}
@@ -282,7 +277,7 @@ export function ReturnItemScreen({ navigation }: { navigation: any }) {
                                     <Text style={styles.itemTitle}>{item.title}</Text>
                                     <Text style={styles.itemContent}>{item.message}</Text>
                                 </View>
-                                <Image source={{uri: item?.imageSrc}} style={styles.itemImage} defaultSource={require('../assets/defaultimg.jpg')} />
+                                <Image source={{uri: item?.imageUrl}} style={styles.itemImage} defaultSource={require('../assets/defaultimg.jpg')} />
                             </PressableOpacity>
                         </View>
                     )}
