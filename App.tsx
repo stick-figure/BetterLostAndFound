@@ -38,6 +38,7 @@ import { PostLostItemScreen } from './source/components/PostLostItem';
 import MyChatRoomsScreen from './source/components/MyChatRooms';
 import { PressableOpacity } from './source/hooks/MyElements';
 import { HomeTabParamList, MyDrawerParamList, MyStackParamList, RootStackParamList } from './source/navigation/Types';
+import WhoFoundScreen from './source/components/WhoFound';
 
 const RootStack = createStackNavigator<RootStackParamList>();
 const Stack = createStackNavigator<MyStackParamList>();
@@ -80,8 +81,10 @@ function HomeTab() {
                     title: 'Return Item', 
                     headerShown: false, 
                     tabBarIcon: ({ focused, color, size }) => {
-                        if (focused) return <Icon name='search' type='feather' size={size} color={color} />;
-                        return <Icon name='search' type='octicons' size={size} color={color} />;
+                        //if (focused) return <Icon name='search' type='feather' size={size} color={color} />;
+                        //return <Icon name='search' type='octicons' size={size} color={color} />;
+                        if (focused) return <Icon name='hand-holding-heart' type='font-awesome-5' size={size} color={color} />;
+                        return <Icon name='hand-holding' type='font-awesome-5' size={size} color={color} />;
                     },
                 }} />
             <Tab.Screen 
@@ -250,6 +253,7 @@ function MyStack() {
             <Stack.Group screenOptions={{ presentation: 'modal' }}>
                 <Stack.Screen name='Error' component={ErrorScreen} options={{ title: 'Error' }} />
                 <Stack.Screen name='Loading' component={LoadingScreen} options={{ title: 'Loading' }} />
+                <Stack.Screen name='Who Found' component={WhoFoundScreen} options={{ title: 'Who found your item?' }} />
             </Stack.Group>
         </Stack.Navigator>
     );

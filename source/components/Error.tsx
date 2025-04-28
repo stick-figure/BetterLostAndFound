@@ -21,7 +21,7 @@ function a(a: string) {
 type AnyFunction = (...args: any[]) => any;
 
 export const popupOnError = <Func extends AnyFunction>(
-        navigation: NavigationProp<any>, fn: Func, onFinally?: Func,
+        navigation: NavigationProp<any>, fn: Func, onFinally?: () => any,
     ): ((...args: Parameters<Func>) => ReturnType<Func> | undefined) => {
     const wrappedFn = (...args: Parameters<Func>): ReturnType<Func> | undefined => {
         // your code here
@@ -30,7 +30,7 @@ export const popupOnError = <Func extends AnyFunction>(
         } catch (e) {
             navigateToErrorScreen(navigation, e, fn);
         } finally {
-            if (onFinally !== undefined) return onFinally(...args);
+            if (onFinally !== undefined) return onFinally();
         } 
     };
     return wrappedFn;

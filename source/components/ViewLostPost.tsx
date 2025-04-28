@@ -7,27 +7,31 @@ import { CoolButton, PressableOpacity } from '../hooks/MyElements';
 import SafeAreaView from 'react-native-safe-area-view';
 import { CommonActions, useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
 import { CheckBox, Icon } from 'react-native-elements';
-import { ScrollView } from 'react-native-gesture-handler';
+import { ScrollView, Swipeable } from 'react-native-gesture-handler';
 import { timestampToString } from './SomeFunctions';
 import { MyStackScreenProps } from '../navigation/Types';
 import { navigateToErrorScreen, popupOnError } from './Error';
-import { ChatRoomTile, ItemData, PostData, RoomData, UserData } from '../assets/Types';
+import { ChatRoomTile, ItemData, LostPostResolveReasons, PostData, RoomData, UserData } from '../assets/Types';
 
 const resolveReasons = [
     {
-        code: 'found-item',
+        code: LostPostResolveReasons.FOUND_ITEM,
         description: 'Someone found my item for me', 
     },
     {
-        code: 'self-found-item',
+        code: LostPostResolveReasons.SELF_FOUND_ITEM,
         description: 'Found it myself', 
     },
     {
-        code: 'self-removed-post-gave-up',
+        code: LostPostResolveReasons.GAVE_UP,
         description: 'Gave up search', 
     },
     {
-        code: 'self-removed-post-other',
+        code: LostPostResolveReasons.DIDNT_MEAN_TO_POST,
+        description: 'Didn\'t mean to post this', 
+    },
+    {
+        code: LostPostResolveReasons.REMOVED_OTHER_REASON,
         description: 'A different reason', 
     },
 ];
@@ -36,6 +40,7 @@ export function ViewLostPostScreen({navigation, route}: MyStackScreenProps<'View
     const [item, setItem] = useState<ItemData>();
 
     const [author, setAuthor] = useState<UserData>();
+    const [owner, setOwner] = useState<UserData>();
 
     const [post, setPost] = useState<PostData>();
 
@@ -53,13 +58,16 @@ export function ViewLostPostScreen({navigation, route}: MyStackScreenProps<'View
     
     const [now, setNow] = useState<number>();
 
-    useEffect(() => setNow(Date.now()), [isFocused, item, author, post, roomTiles, message]);
+    useEffect(() => setNow(Date.now()), [isFocused, item, author, owner, post, roomTiles, message]);
 
     const createChatRoom = async () => {
         try {
             setIsNavigating(true);
             if ([auth.currentUser?.uid, author?.id, post?.id].includes(undefined)) 
                 throw new Error('missing an id, idk which');
+
+            if (auth.currentUser!.uid == author!.id) 
+                throw new Error('wait this is the same person');
 
             await runTransaction(db, async (transaction) => {
                 const postRef = doc(db, 'posts', route.params!.post!.id);
@@ -226,12 +234,8 @@ export function ViewLostPostScreen({navigation, route}: MyStackScreenProps<'View
         );
     }
 
-    const resolvePost = () => new Promise((resolve, reject) => {
-        try {
-            
-        } catch (error) {
-            navigateToErrorScreen(navigation, error);
-        }
+    const resolvePost = popupOnError(navigation, async () => {
+        if (reasonIndex == 2) {}
     });
 
     const postUpdateCallback = useCallback(() => {
@@ -254,11 +258,22 @@ export function ViewLostPostScreen({navigation, route}: MyStackScreenProps<'View
         setAuthor(route.params!.author);
 
         setMessage(route.params!.post.message);
-        if (auth.currentUser!.uid == itemData.id) setIsOwner(true);
-        if (auth.currentUser!.uid == route.params!.author.id) setIsAuthor(true);
 
         if (route.params.post?.roomIds === undefined) return;
     }), [isLoggedIn]);
+
+    useEffect(popupOnError(navigation, () => {
+        setIsAuthor(author !== undefined && author.id == auth.currentUser!.uid);
+        if (author && route.params.item?.ownerId && author.id == route.params.item.ownerId) {
+            setOwner(author);
+        } else if (route.params.owner) {
+            setOwner(route.params.owner);
+        }
+    }), [author]);
+
+    useEffect(popupOnError(navigation, () => {
+        setIsOwner(owner !== undefined && owner.id == route.params.item.ownerId);
+    }), [owner]);
     
     useEffect(popupOnError(navigation, () => {
         if (route.params!.post as PostData != null) {
@@ -271,15 +286,34 @@ export function ViewLostPostScreen({navigation, route}: MyStackScreenProps<'View
         });
         return unsubscribe;
     }), []);
+
+    const markPostAsFound = () => {
+        
+    }
     
     const actionButtons = () => {
         if (isAuthor) {
             return (
-                <CoolButton 
-                    title='Resolve Post'
-                    onPress={() => setModalVisible(!modalVisible)} 
+                <View style={[styles.horizontal, {width: '90%', alignSelf: 'center', alignItems: 'center'}]}>
+                    <CoolButton 
+                    title='Someone found it!'
+                    onPress={
+                        () => navigation.navigate('Who Found', {
+                            post: post!,
+                            rooms: roomTiles?.map(tile => tile.room)!,
+                            item: item!,
+                            owner: owner!,
+                            users: roomTiles!.flatMap(tile => tile.users.filter(user => user.id != auth.currentUser!.uid))!,
+                        })} 
                     disabled={isNavigating}
-                    style={{alignSelf: 'center', width: '90%'}}/>
+                    containerStyle={{alignSelf: 'center', flex: 1}}/>
+                    <CoolButton 
+                        title='Remove Post'
+                        onPress={() => setModalVisible(!modalVisible)} 
+                        disabled={isNavigating}
+                        containerStyle={{alignSelf: 'center', flex: 1}}
+                        useSecondaryColor />
+                </View>
             );
         }
     }
@@ -298,7 +332,7 @@ export function ViewLostPostScreen({navigation, route}: MyStackScreenProps<'View
             } else {
                 return (
                     <View style={styles.chatListContainer}>
-                        <PressableOpacity 
+                        <PressableOpacity
                             style={styles.chatItem}
                             onPress={() => {
                                 navigateToChatRoom(roomTiles.findIndex((tile) => tile.room.userIds.includes(auth.currentUser!.uid)))
@@ -306,7 +340,7 @@ export function ViewLostPostScreen({navigation, route}: MyStackScreenProps<'View
                             disabled={isNavigating}>
                             <Image 
                                 style={styles.chatThumbnail}
-                                source={{uri: author?.pfpUrl}}
+                                source={{uri: author?.pfpUrl || undefined}}
                                 defaultSource={require('../assets/defaultpfp.jpg')} />
                             <Text style={styles.chatTitle}>{author?.name || 'Chat with owner'}</Text>
                         </PressableOpacity>
@@ -315,6 +349,45 @@ export function ViewLostPostScreen({navigation, route}: MyStackScreenProps<'View
             }
             return;
         }
+        const deletePost = (id?: string) => {
+            // Step 3: Update state to remove the item
+
+        };
+
+        const renderLeftAction = (id?: string) => {
+            return (
+                <View style={{height: '90%', aspectRatio: 1, alignSelf: 'center'}}>
+                    <CoolButton 
+                        leftIcon={{
+                            name: 'delete',
+                            size: 20,
+                            color: colors.secondaryContrastText,
+                        }}
+                        onPress={() => deletePost(id)} 
+                        containerStyle={{flex: 1}} 
+                        style={{flex: 1}}
+                        capStyle={{flex: 1, backgroundColor: colors.red}} />
+                </View>
+            );
+        };
+
+        const markItemAsFound = (id?: string) => {
+            // Step 3: Update state to remove the item
+
+        };
+    
+        const renderRightAction = (id?: string) => {
+            return (
+                <View style={{height: '90%', alignSelf: 'center'}}>
+                    <CoolButton 
+                        title='I found it!' 
+                        onPress={() => markItemAsFound(id)} 
+                        containerStyle={{flex: 1}} 
+                        style={{flex: 1}}
+                        capStyle={{flex: 1}} />
+                </View>
+            );
+        };
 
         return (
             <FlatList
@@ -326,18 +399,32 @@ export function ViewLostPostScreen({navigation, route}: MyStackScreenProps<'View
                     const user = (item.users as any[]).find((user) => user._id != auth.currentUser?.uid);
                     
                     return (
-                        <PressableOpacity 
-                            style={styles.chatItem}
-                            onPress={() => {
-                                navigateToChatRoom(roomTiles!.findIndex(room => item.room.id))
-                            }}
-                            disabled={isNavigating}>
-                            <Image 
-                                style={styles.chatThumbnail}
-                                source={{uri: user?.pfpUrl}}
-                                defaultSource={require('../assets/defaultpfp.jpg')} />
-                            <Text style={styles.chatTitle}>{user?.name || 'Unknown user'}</Text>
-                        </PressableOpacity>
+                        <Swipeable 
+                            containerStyle={{borderTopWidth: 4, borderColor: colors.border}} 
+                            renderLeftActions={() => renderLeftAction(item.room.id)}
+                            renderRightActions={() => renderRightAction(item.room.id)}>
+                            <View
+                                style={{backgroundColor: colors.card}}>
+                                <PressableOpacity
+                                    style={styles.chatItem}
+                                    onPress={() => {
+                                        navigateToChatRoom(roomTiles!.findIndex(room => item.room.id))
+                                    }}
+                                    disabled={isNavigating}>
+                                    <Image 
+                                        style={styles.chatThumbnail}
+                                        source={{uri: item.users.find((user) => user.id != auth.currentUser?.uid)?.pfpUrl || undefined}}
+                                        defaultSource={require('../assets/defaultpfp.jpg')} />
+                                    <Text style={styles.chatTitle}>{(item.users ?? []).filter(
+                                                    (user) => user.id != auth.currentUser?.uid
+                                                ).map(
+                                                    (user) => user.name
+                                                ).join(
+                                                    ', '
+                                                ) || 'Unknown user'}</Text>
+                                </PressableOpacity>
+                            </View>
+                        </Swipeable>
                     );
                 }}
                 ListEmptyComponent={
@@ -348,8 +435,7 @@ export function ViewLostPostScreen({navigation, route}: MyStackScreenProps<'View
                         </View>
                     </View>
                 }
-                 />
-                
+            />
         );
 
     }
@@ -463,16 +549,12 @@ export function ViewLostPostScreen({navigation, route}: MyStackScreenProps<'View
             fontSize: 24,
             fontWeight: '500',
             color: colors.text,
-            margin: 8,
         },
-        itemListItem: {
-            width: 120,
-            marginLeft: 10,
-            paddingTop: 10,
-            paddingBottom: 10,
-        },
-        itemListItemView: {
+        itemInfoContainer: {
             margin: 4,
+            alignSelf: 'stretch',
+            flexDirection: 'row',
+            height: '10%',
         },
         itemTitle: {
             color: colors.text,
@@ -486,7 +568,6 @@ export function ViewLostPostScreen({navigation, route}: MyStackScreenProps<'View
         itemContent: {
             color: colors.text,
             fontSize: 12,
-            alignSelf: 'center',
         },
         imageLabel: {
             fontSize: 16,
@@ -517,13 +598,13 @@ export function ViewLostPostScreen({navigation, route}: MyStackScreenProps<'View
             height: 'auto',
             backgroundColor: colors.card,
             alignSelf: 'center',
-            padding: 6,
         },
         chatItem: {
             alignItems: 'center',
             alignSelf: 'stretch',
-            padding: 4,
+            padding: 10,
             flexDirection: 'row',
+            backgroundColor: colors.card,
         },
         chatThumbnail: {
             width: 40,
@@ -536,10 +617,17 @@ export function ViewLostPostScreen({navigation, route}: MyStackScreenProps<'View
             color: colors.text,
             fontWeight: '600',
         },
+        rightAction: {
+            backgroundColor: 'blue',
+        },
+        rightActionText: {
+            fontSize: 16,
+            fontWeight: '600',
+        },
     }), [isDarkMode]);
 
 
-    if (post?.id == '') {
+    if (!post) {
         return (
             <View>
                 <Text style={styles.text}>Post not found</Text>
@@ -563,13 +651,21 @@ export function ViewLostPostScreen({navigation, route}: MyStackScreenProps<'View
                             </Text>
                         </View>
                     </View>
-                    <Text style={styles.postTitle}>Lost <Text style={{fontWeight: '800'}}>{item?.name ?? 'Unknown item'}</Text></Text>
                     <PressableOpacity
                         onPress={() => { if (item) navigation.navigate('View Item', { itemId: item.id, itemName: item.name }) }}
                         disabled={isNavigating}>
                         <Image source={post?.imageUrls ? {uri: post.imageUrls[0]} : undefined} style={styles.itemImage} defaultSource={require('../assets/defaultimg.jpg')} />
-                        <View style={styles.itemListItemView}>
-                            <Text style={styles.itemContent}>Click for item info</Text>
+                        <View style={styles.itemInfoContainer}>
+                            <View style={{flex: 2}}>
+                                <Text style={styles.postTitle}>Lost <Text style={{fontWeight: '800'}}>{item?.name ?? 'unknown item'}</Text></Text>
+                                <Text style={styles.itemContent}>{item?.description ?? ''}</Text>
+                            </View>
+                            <View style={{flex: 1}}>
+                                <Text style={styles.itemContent}>
+                                    Phone number: {`\n${(post?.showPhoneNumber ? owner?.phoneNumber || 'Unknown phone number' : 'N/A')}\n`}
+                                    Address: {`\n${post?.showAddress ? owner?.address || 'Unknown address' : 'N/A'}\n`}
+                                </Text>
+                            </View>
                         </View>
                     </PressableOpacity>
                 </View>

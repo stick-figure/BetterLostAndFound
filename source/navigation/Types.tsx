@@ -92,6 +92,13 @@ export type MyStackParamList = {
         onClose?: any,
     };
     'Loading': undefined;
+    'Who Found': {
+        post: PostData,
+        rooms: RoomData[],
+        item: ItemData,
+        owner: UserData,
+        users: UserData[],
+    },
 };
 
 export type MyStackScreenProps<T extends keyof MyStackParamList> =

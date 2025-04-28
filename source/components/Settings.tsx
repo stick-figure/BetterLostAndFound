@@ -44,7 +44,7 @@ export function SettingsScreen({navigation, route}: MyDrawerScreenProps<'Setting
             chunks[i].forEach((doc) => {
                 batch.delete(doc.ref);
             });
-
+            
             await batch.commit();
         }
         console.log('deleted');

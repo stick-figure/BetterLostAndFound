@@ -8,10 +8,10 @@ import { auth, db } from '../../ModularFirebase';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { CommonActions } from '@react-navigation/native';
 import { CoolButton, CoolTextInput, PressableOpacity } from '../hooks/MyElements';
-import { Input } from 'react-native-elements';
+import { CheckBox, Input } from 'react-native-elements';
 import SafeAreaView from 'react-native-safe-area-view';
 import { MyStackScreenProps } from '../navigation/Types';
-import { ItemData, PostData, TypeType, UserData } from '../assets/Types';
+import { ItemData, PostData, PostDataUpload, TypeType, UserData } from '../assets/Types';
 import { navigateToErrorScreen, popupOnError } from './Error';
 
 
@@ -37,7 +37,7 @@ export function NewLostPostScreen({navigation, route}: MyStackScreenProps<'New L
 
         const postRef = doc(collection(db, 'posts'));
 
-        const postDataToUpload = {
+        const postDataToUpload: PostDataUpload = {
             id: postRef.id,
             type: TypeType.LOST,
             itemId: item.id,
@@ -47,7 +47,7 @@ export function NewLostPostScreen({navigation, route}: MyStackScreenProps<'New L
             createdAt: serverTimestamp(),
             resolved: false,
             resolvedAt: null,
-            resolveReason: '',
+            resolveReason: null,
             views: 0,
             roomIds: [],
             showPhoneNumber: false,
@@ -241,7 +241,20 @@ export function NewLostPostScreen({navigation, route}: MyStackScreenProps<'New L
                 editable={!uploading}
                 required
             />
-
+            {owner?.phoneNumber ? 
+                <CheckBox
+                    key={'showPhoneNumber'}
+                    checked={showPhoneNumber}
+                    onPress={() => setShowPhoneNumber(!showPhoneNumber)}
+                    title='Show phone number'
+                /> : null}
+            {owner?.address ? 
+                <CheckBox
+                    key={'showAddress'}
+                    checked={showAddress}
+                    onPress={() => setShowAddress(!showAddress)}
+                    title='Show address'
+                /> : null}
             {/*TODO EXPIRE BY FIELD*/}
 
             <CoolButton

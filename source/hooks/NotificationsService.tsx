@@ -6,4 +6,3 @@ async function requestNotificationsPermission() {
 }
 
 export default requestNotificationsPermission;
-  

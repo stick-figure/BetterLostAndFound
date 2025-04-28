@@ -1,8 +1,11 @@
 import { initializeApp, getApp } from 'firebase/app';
 import { connectFirestoreEmulator, initializeFirestore } from 'firebase/firestore';
 import { initializeAuth, getReactNativePersistence, connectAuthEmulator } from 'firebase/auth';
+import { getMessaging } from 'firebase/messaging';
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 import firebaseConfig from './FirebaseConfig';
+import { getStorage } from 'firebase/storage';
+
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -14,6 +17,10 @@ const auth = initializeAuth(app, {
 });
 
 const db = initializeFirestore(app, {experimentalForceLongPolling: true});
+
+const storage = getStorage(app);
+
+const messaging = getMessaging(app);
 
 if (process.env.FUNCTIONS_EMULATOR) {
     console.log('Connecting Firestore to Emulator...');
@@ -50,4 +57,4 @@ exports.authenticatedFunction =
     return { result: 'Function called' };
 });*/
 
-export { db, auth };
+export { db, auth, storage, messaging };

@@ -5,6 +5,7 @@ import { Icon } from 'react-native-elements';
 import { check, checkMultiple, Permission, PERMISSIONS, PermissionStatus, request, requestMultiple, RESULTS } from 'react-native-permissions';
 import { MediaType, launchImageLibrary, launchCamera, ImagePickerResponse, CameraOptions, ImageLibraryOptions } from 'react-native-image-picker';
 import { IconButtonProps } from 'react-native-vector-icons/Icon';
+import { navigateToErrorScreen } from '../components/Error';
 
 export const PressableOpacity = ({ children, ...props }) => {
     const animated = useRef(new Animated.Value(1)).current;
@@ -77,7 +78,7 @@ export const MyInput = ({ ...props }) => {
                 :
                     <Text style={[styles.label, props.labelStyle]}>{props.label}</Text>
             }
-            <View style={{alignSelf: 'stretch', borderColor: colors.border, borderBottomWidth: 2, flexDirection: 'row'}}>
+            <View style={{borderColor: colors.border, borderBottomWidth: 2, flexDirection: 'row'}}>
                 {props.leftIcon !== undefined ? 
                     <Icon containerStyle={{alignSelf: 'center', justifyContent: 'center', paddingLeft: 8,
                         marginLeft: 4,}} name={props.leftIcon.name} type={props.leftIcon.type || 'material-community'} color={props.leftIcon.color || styles.label.color} size={props.leftIcon.color || styles.textInput.fontSize} /> 
@@ -93,8 +94,8 @@ export const MyInput = ({ ...props }) => {
 
 interface CoolTextInputProps extends TextInputProps {
     label?: string,
-    labelStyle?:  StyleProp<TextStyle>;
-    containerStyle?: StyleProp<ViewStyle>;
+    labelStyle?:  TextStyle;
+    containerStyle?: ViewStyle;
     leftIcon?: IconButtonProps & {type: string};
     rightIcon?: IconButtonProps & {type: string};
     required?: boolean;
@@ -111,7 +112,7 @@ export const CoolTextInput: FC<CoolTextInputProps> = ({ ...props }) => {
             alignSelf: 'flex-start',
         },
         textInput: {
-            flexGrow: 1,
+//            flexGrow: 1,
             padding: 8,
             fontWeight: 600,
             fontSize: 18,
@@ -136,7 +137,11 @@ export const CoolTextInput: FC<CoolTextInputProps> = ({ ...props }) => {
             }
             <TextInput
                 {...props}
-                style={[styles.textInput, props.style]}>
+                style={[
+                    styles.textInput, 
+                    !props.editable ? {opacity: 0.7} : {}, 
+                    props.style
+                ]}>
             </TextInput>
         </View>
     );
@@ -147,10 +152,11 @@ interface CoolButtonProps extends PressableProps {
     pressInHeight?: number;
     pressOutHeight?: number;
     useSecondaryColor?: boolean;
+    containerStyle?: ViewStyle;
     style?: StyleProp<any>;
-    capStyle?: StyleProp<ViewStyle>;
-    contentStyle?: StyleProp<ViewStyle>;
-    titleStyle?: StyleProp<TextStyle>;
+    capStyle?: ViewStyle;
+    contentStyle?: ViewStyle;
+    titleStyle?: TextStyle;
     leftIcon?: IconButtonProps & {type?: string};
     rightIcon?: IconButtonProps & {type?: string};
     borderRadius?: number;
@@ -183,6 +189,9 @@ export const CoolButton: FC<CoolButtonProps> = ({ ...props }) => {
         pressedOutButton: {
             marginTop: 0,
         },
+        container: {
+
+        },
         title: {
             textAlign: 'center',
             color: props.useSecondaryColor ? colors.secondaryContrastText : colors.primaryContrastText,
@@ -207,38 +216,40 @@ export const CoolButton: FC<CoolButtonProps> = ({ ...props }) => {
     }), [isDarkMode]);
 
     return (
-        <Pressable
-            {...props}
-            style={[
-                styles.button, 
-                pressedIn ? styles.pressedInButton : styles.pressedOutButton, 
-                props.style
-            ]}
-            onPressIn={() => setPressedIn(true)}
-            onPressOut={() => setPressedIn(false)}>
-            <View 
+        <View style={[styles.container, props.containerStyle]}>
+            <Pressable
+                {...props}
                 style={[
-                    styles.cap, 
-                    props.disabled ? {opacity: 0.4} : {opacity: 1},
-                    pressedIn ? styles.pressedInCap : styles.pressedOutCap, 
-                    props.capStyle,
-                ]}>
+                    styles.button, 
+                    pressedIn ? styles.pressedInButton : styles.pressedOutButton, 
+                    props.style
+                ]}
+                onPressIn={() => setPressedIn(true)}
+                onPressOut={() => setPressedIn(false)}>
                 <View 
                     style={[
-                        styles.content,
-                        props.contentStyle,
+                        styles.cap, 
+                        props.disabled ? {opacity: 0.4} : {opacity: 1},
+                        pressedIn ? styles.pressedInCap : styles.pressedOutCap, 
+                        props.capStyle,
                     ]}>
-                    {props.leftIcon ? 
-                        <Icon type='material-community' size={styles.title.fontSize} color={styles.title.color} {...props.leftIcon} />
-                    : null}
-                    <Text style={[styles.title, props.titleStyle]}>{props.title}</Text>
-                    {props.rightIcon ? 
-                        <Icon type='material-community' size={styles.title.fontSize} color={styles.title.color} {...props.rightIcon} />
-                    : null}
+                    <View 
+                        style={[
+                            styles.content,
+                            props.contentStyle,
+                        ]}>
+                        {props.leftIcon ? 
+                            <Icon type='material-community' size={styles.title.fontSize} color={styles.title.color} {...props.leftIcon} />
+                        : null}
+                        <Text style={[styles.title, props.titleStyle]}>{props.title}</Text>
+                        {props.rightIcon ? 
+                            <Icon type='material-community' size={styles.title.fontSize} color={styles.title.color} {...props.rightIcon} />
+                        : null}
+                    </View>
+                    
                 </View>
-                
-            </View>
-        </Pressable>
+            </Pressable>
+        </View>
     );
 }
 
@@ -258,6 +269,9 @@ interface ImagePickerProps {
     cameraIconStyle?: TextStyle | ViewStyle;
     imageLibraryIconStyle?: TextStyle | ViewStyle;
     required?: boolean;
+    useCamera?: boolean;
+    useImageLibrary?: boolean;
+    useCustomSearch?: boolean;
 }
 
 export const ImagePicker: FC<ImagePickerProps> = ({ ...props }) => {
@@ -410,42 +424,45 @@ export const ImagePicker: FC<ImagePickerProps> = ({ ...props }) => {
                 <Text style={[styles.label, props.labelStyle]}>{props.label || 'Select image'}</Text>
             }
             <View style={{...styles.horizontal, alignSelf: 'stretch', justifyContent: 'space-between'}}>
-                <View style={{ flex: 1 }}>
-                    <CoolButton
-                        leftIcon={{
-                            name: 'camera-alt', 
-                            type: 'material-icons', 
-                            size: 30, 
-                            style: props.cameraIconStyle || props.iconStyle,
-                        }}
-                        onPress={props.launchCamera || handleCameraLaunch} 
-                        style={styles.iconButton} 
-                        useSecondaryColor />
-                </View>
-                <View style={{ flex: 1 }}>
-                    <CoolButton
-                        leftIcon={{
-                            name: 'photo-library', 
-                            type: 'material-icons', 
-                            size: 30, 
-                            style: props.imageLibraryIconStyle || props.iconStyle,
-                        }}
-                        onPress={props.launchImageLibrary || handleLaunchImageLibrary}
-                        style={styles.iconButton} 
-                        useSecondaryColor />
-                </View>
-                <View style={{ flex: 1 }}>
-                    <CoolButton
-                        leftIcon={{
-                            name: 'web-plus', 
-                            type: 'material-community', 
-                            size: 30, 
-                            style: props.cameraIconStyle || props.iconStyle,
-                        }}
-                        onPress={props.launchCustomSearch || handleLaunchCustomSearch}
-                        style={styles.iconButton} 
-                        useSecondaryColor />
-                </View>
+                {props.useCamera || props.useCamera === undefined ? 
+                    <View style={{ flex: 1 }}>
+                        <CoolButton
+                            leftIcon={{
+                                name: 'camera-alt', 
+                                type: 'material-icons', 
+                                size: 30, 
+                                style: props.cameraIconStyle || props.iconStyle,
+                            }}
+                            onPress={props.launchCamera || handleCameraLaunch} 
+                            containerStyle={styles.iconButton} 
+                            useSecondaryColor />
+                    </View> : null}
+                {props.useImageLibrary || props.useImageLibrary === undefined ? 
+                    <View style={{ flex: 1 }}>
+                        <CoolButton
+                            leftIcon={{
+                                name: 'photo-library', 
+                                type: 'material-icons', 
+                                size: 30, 
+                                style: props.imageLibraryIconStyle || props.iconStyle,
+                            }}
+                            onPress={props.launchImageLibrary || handleLaunchImageLibrary}
+                            containerStyle={styles.iconButton} 
+                            useSecondaryColor /> 
+                    </View> : null}
+                {props.useCustomSearch || props.useCustomSearch !== undefined ? 
+                    <View style={{ flex: 1 }}>
+                        <CoolButton
+                            leftIcon={{
+                                name: 'web-plus', 
+                                type: 'material-community', 
+                                size: 30, 
+                                style: props.cameraIconStyle || props.iconStyle,
+                            }}
+                            onPress={props.launchCustomSearch || handleLaunchCustomSearch}
+                            containerStyle={styles.iconButton} 
+                            useSecondaryColor />
+                    </View> : null}
             </View>
             
         </View>

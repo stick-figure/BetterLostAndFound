@@ -8,7 +8,7 @@ import { launchCamera, launchImageLibrary, MediaType } from 'react-native-image-
 import { CommonActions, NavigationProp, useNavigation, useRoute } from '@react-navigation/native';
 import { ScrollView, TouchableOpacity } from 'react-native-gesture-handler';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
-import { CoolButton, CoolTextInput, MyInput } from '../hooks/MyElements';
+import { CoolButton, CoolTextInput, ImagePicker, MyInput } from '../hooks/MyElements';
 import { colors, Icon, Input } from 'react-native-elements';
 import SafeAreaView from 'react-native-safe-area-view';
 import PhoneInput from 'react-native-phone-number-input';
@@ -217,7 +217,7 @@ export function RegisterScreen({navigation, route}: MyStackScreenProps<'Register
         container: {
             flex: 1,
             alignItems: 'center',
-            paddingTop: 100,
+            justifyContent: 'center',
             backgroundColor: colors.background,
         },
         subTitle: {
@@ -273,7 +273,7 @@ export function RegisterScreen({navigation, route}: MyStackScreenProps<'Register
             borderRadius: 10,
             width: 50,
             height: 50,
-            marginRight: 4,
+//            marginRight: 4,
             alignItems: 'center',
             justifyContent: 'center', 
             backgroundColor: colors.secondary,
@@ -300,29 +300,22 @@ export function RegisterScreen({navigation, route}: MyStackScreenProps<'Register
         <SafeAreaView style={{backgroundColor: colors.background, flex: 1, padding: 3}}>
             <ScrollView contentContainerStyle={styles.container}>
                 <Text style={styles.subTitle}>Register</Text>
-                <View style={{flexDirection: 'row', width: '80%', alignItems: 'center'}}>
+                <View style={{flexDirection: 'row', width: '80%', alignSelf: 'center', alignItems: 'center'}}>
                     <View style={styles.pfpContainer}>
                         <Image
                             style={styles.pfpImage}
                             source={pfpSrc.uri != '' ? pfpSrc : require('../assets/defaultpfp.jpg')}
                         />
-                        <Text style={{fontSize: 14, fontWeight: '500'}}>Set photo</Text>
-                        <View style={styles.horizontalContainer}>
-                            <TouchableOpacity onPress={handleCameraLaunch} style={styles.cameraButton}>
-                                <Icon name='camera-alt' type='material-icons' size={40} color={colors.secondaryContrastText} />
-                            </TouchableOpacity>
-                            <TouchableOpacity onPress={openImagePicker} style={styles.uploadButton}>
-                                <Icon name='photo-library' type='material-icons' size={40} color={colors.secondaryContrastText} />
-                            </TouchableOpacity>
-                        </View>
+                        <ImagePicker
+                            onResponse={(response) => setPfpSrc({uri: response.assets![0].uri!})} />
                     </View>
-                    <View style={{alignSelf: 'stretch'}}>
+                    <View style={{flex: 1,alignItems: 'stretch'}}>
                         <CoolTextInput
                             label='Name'
                             placeholder='Enter your name'
                             value={name}
                             editable={!registering}
-                            containerStyle={{alignSelf: 'stretch'}}
+                            containerStyle={{}}
                             onChangeText={(text: string) => setName(text)} 
                             required />
                         <CoolTextInput
@@ -331,15 +324,15 @@ export function RegisterScreen({navigation, route}: MyStackScreenProps<'Register
                                 name: 'phone',
                                 type: 'material-community'
                             }}
-                            containerStyle={{alignSelf: 'stretch'}}
+                            containerStyle={{}}
                             placeholder='Enter your phone number'
                             value={phoneNumber}
                             editable={!registering}
                             onChangeText={(text: string) => setPhoneNumber(text)} 
                             />
                         <CoolTextInput
-                            label='Regular Address (optional)'
-                            containerStyle={{alignSelf: 'stretch'}}
+                            label='Address (optional)'
+                            containerStyle={{}}
                             placeholder='Address you want your stuff returned to'
                             value={address}
                             editable={!registering}

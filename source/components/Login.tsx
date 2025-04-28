@@ -53,14 +53,15 @@ export function LoginScreen({navigation, route}: MyStackScreenProps<'Login'>) {
         container: {
             flex: 1,
             alignItems: 'center',
+            justifyContent: 'center',
             padding: 10,
-            paddingTop: 100,
             backgroundColor: colors.background,
         },
         horizontal: {
             flexDirection: 'row',
         },
         title: {
+            marginTop: '-50%',
             fontSize: 24,
             textAlign: 'center',
             fontWeight: 'bold',
@@ -135,7 +136,7 @@ export function LoginScreen({navigation, route}: MyStackScreenProps<'Login'>) {
                 title='Log in'
                 style={styles.loginButton} 
                 onPress={signIn} 
-                disabled={email ==  '' || password == ''} 
+                disabled={email ==  '' || password == '' || signingIn} 
                 useSecondaryColor />
         </SafeAreaView>
     );

@@ -176,6 +176,12 @@ export function MyChatRoomsScreen({ navigation, route }: HomeTabScreenProps<'My 
             fontSize: 18,
             color: colors.text,
             fontWeight: '600',
+            marginTop: 2,
+        },
+        lastMessage: {
+            fontSize: 12,
+            color: colors.text,
+            marginTop: 8,
         },
         postImage: {
             width: 72, 
@@ -267,6 +273,7 @@ export function MyChatRoomsScreen({ navigation, route }: HomeTabScreenProps<'My 
                             <View>
                                 <Text style={styles.text}>{item.post?.type} {item.post?.title}</Text>
                                 <Text style={styles.chatTitle}>{user?.name || 'Unknown user'}</Text>
+                                {item.lastMessage ? <Text style={styles.lastMessage}>{item.lastMessage!.text!}</Text> : null}
                             </View>
 
                         </PressableOpacity>
