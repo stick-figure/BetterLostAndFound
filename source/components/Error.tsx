@@ -9,9 +9,21 @@ const debugMode = true;
 
 export const navigateToErrorScreen = (navigation: NavigationProp<any>, error, func?: Function) => {
     if (error instanceof FirebaseError) {
-        navigation.navigate('My Stack', {screen: 'Error', params: {error: error, func: func}});
+        navigation.navigate('My Stack', {
+            screen: 'Error', 
+            params: {
+                error: error, 
+                func: func
+            }
+        });
     } else {
-        navigation.navigate('My Stack', {screen: 'Error', params: {error: error, func: func}});
+        navigation.navigate('My Stack', {
+            screen: 'Error', 
+            params: {
+                error: error, 
+                func: func
+            }
+        });
     }
 }
 function a(a: string) {

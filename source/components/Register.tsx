@@ -15,6 +15,7 @@ import PhoneInput from 'react-native-phone-number-input';
 import { check, PERMISSIONS, PermissionStatus, request, RESULTS } from 'react-native-permissions';
 import { navigateToErrorScreen } from './Error';
 import { MyStackScreenProps } from '../navigation/Types';
+import { uriFrom } from './SomeFunctions';
 
 export function RegisterScreen({navigation, route}: MyStackScreenProps<'Register'>) {
     const [name, setName] = useState('');
@@ -25,7 +26,7 @@ export function RegisterScreen({navigation, route}: MyStackScreenProps<'Register
     const [password, setPassword] = useState('');
     const [errorText, setErrorText] = useState('');
 
-    const [pfpSrc, setPfpSrc] = useState({ uri: '' });
+    const [pfpUri, setPfpUri] = useState('');
     const [registering, setRegistering] = useState(false);
 
     const phoneInput = useRef<PhoneInput>(null);
@@ -49,7 +50,7 @@ export function RegisterScreen({navigation, route}: MyStackScreenProps<'Register
                 
                 let pfpUrl: string | undefined;
                 try {
-                    if (pfpSrc.uri != '') pfpUrl = await uploadImage(userCredential.user.uid) as string;
+                    if (pfpUri != '') pfpUrl = await uploadImage(userCredential.user.uid) as string;
                 } catch (error) {
                     pfpUrl = undefined;
                 }
@@ -62,7 +63,7 @@ export function RegisterScreen({navigation, route}: MyStackScreenProps<'Register
                     pfpUrl: pfpUrl ?? await getDownloadURL(ref(getStorage(), 'images/pfps/default/defaultpfp.jpg')),
                     emailVertified: false,
                     createdAt: serverTimestamp(),
-                    timesOwnItemLost: 0,
+                    timesItemLost: 0,
                     timesOwnItemFound: 0,
                     timesOthersItemFound: 0,
                     blockedList: [],
@@ -150,8 +151,7 @@ export function RegisterScreen({navigation, route}: MyStackScreenProps<'Register
             } else if (response.errorCode) {
                 console.log('ImagePicker Error: ', response.errorMessage);
             } else if (response.assets) {
-                const source = { uri: response.assets[0].uri! };
-                setPfpSrc(source);
+                setPfpUri(response.assets![0].uri!);
             }
         }).catch((error) => { 
             navigateToErrorScreen(navigation, error);
@@ -180,8 +180,7 @@ export function RegisterScreen({navigation, route}: MyStackScreenProps<'Register
             } else if (response.errorCode) {
                 console.log('Camera Error: ', response.errorMessage);
             } else {
-                let source = { uri: response.assets![0].uri! };
-                setPfpSrc(source);
+                setPfpUri(response.assets![0].uri!);
             }
         });
     }
@@ -189,9 +188,9 @@ export function RegisterScreen({navigation, route}: MyStackScreenProps<'Register
     const uploadImage = (imageId: string) => {
         return new Promise(async (resolve, reject) => {
             try {
-                console.log('fetching image now, ' + pfpSrc.uri);
+                console.log('fetching image now, ' + pfpUri);
 
-                const blob = await (await fetch(pfpSrc.uri)).blob();
+                const blob = await (await fetch(pfpUri)).blob();
                 console.log('uploading images bytes...');
                 
                 const storage = getStorage();
@@ -226,6 +225,7 @@ export function RegisterScreen({navigation, route}: MyStackScreenProps<'Register
             fontWeight: '600',
             color: colors.text,
             marginVertical: 20,
+            marginTop: '-30%',
         },
         text: {
             fontSize: 16,
@@ -250,18 +250,16 @@ export function RegisterScreen({navigation, route}: MyStackScreenProps<'Register
         pfpContainer: {
             alignSelf: 'flex-start',
             alignItems: 'center',
-            
+            marginRight: 4,
         },
         horizontalContainer: {
             justifyContent: 'space-between',
             alignSelf: 'stretch',
             alignItems: 'center',
             flexDirection: 'row',
-            padding: 5,
         },
         registerButton: {
             width: 370,
-            marginBottom: 200, 
         },
         registerButtonText: {
             textAlign: 'center',
@@ -304,12 +302,13 @@ export function RegisterScreen({navigation, route}: MyStackScreenProps<'Register
                     <View style={styles.pfpContainer}>
                         <Image
                             style={styles.pfpImage}
-                            source={pfpSrc.uri != '' ? pfpSrc : require('../assets/defaultpfp.jpg')}
+                            source={uriFrom(pfpUri)}
+                            defaultSource={require('../assets/defaultpfp.jpg')}
                         />
                         <ImagePicker
-                            onResponse={(response) => setPfpSrc({uri: response.assets![0].uri!})} />
+                            onResponse={(response) => setPfpUri(response.assets![0].uri!)} />
                     </View>
-                    <View style={{flex: 1,alignItems: 'stretch'}}>
+                    <View style={{flex: 1, alignItems: 'stretch'}}>
                         <CoolTextInput
                             label='Name'
                             placeholder='Enter your name'
@@ -379,6 +378,19 @@ export function RegisterScreen({navigation, route}: MyStackScreenProps<'Register
                         type: 'material-community'
                     }}
                     placeholder='Enter your password'
+                    containerStyle={{width: '80%'}}
+                    value={password} 
+                    onChangeText={(text: string) => setPassword(text)}
+                    editable={!registering}
+                    secureTextEntry 
+                    required/>
+                <CoolTextInput
+                    label='Confirm Password'
+                    leftIcon={{
+                        name: 'lock',
+                        type: 'material-community'
+                    }}
+                    placeholder='Type password again'
                     containerStyle={{width: '80%'}}
                     value={password} 
                     onChangeText={(text: string) => setPassword(text)}

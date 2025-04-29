@@ -9,7 +9,7 @@ import { CoolButton, CoolTextInput, ImagePicker, PressableOpacity } from '../hoo
 import { Icon } from 'react-native-elements';
 import SafeAreaView from 'react-native-safe-area-view';
 import { MediaType, launchImageLibrary, launchCamera, ImagePickerResponse } from 'react-native-image-picker';
-import { timestampToString } from './SomeFunctions';
+import { timestampToString, uriFrom } from './SomeFunctions';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { navigateToErrorScreen, popupOnError } from './Error';
 import { MyStackScreenProps } from '../navigation/Types';
@@ -74,8 +74,9 @@ export function ViewItemScreen({navigation, route}: MyStackScreenProps<'View Ite
     const redirectToCurrentLostPost = popupOnError(navigation, async () => {
         if (!item) throw new Error('item not found');
         if (!owner) throw new Error('owner not found');
+        if (!item.lostPostId) throw new Error('item post not found');
 
-        const postData = (await getDoc(doc(collection(db, 'posts'), item.lostPostId))).data()!;
+        const postData = (await getDoc(doc(db, 'posts', item.lostPostId!))).data()!;
         postData._id = item.lostPostId;
         navigation.navigate('View Lost Post', { item: item, author: owner, post: postData as PostData });
     });
@@ -106,7 +107,7 @@ export function ViewItemScreen({navigation, route}: MyStackScreenProps<'View Ite
         
         Promise.all([deleteObject(imageRef!), deleteDoc(itemRef!)]).then(() => {
             // File deleted successfully
-            navigation.navigate('Home Tabs', {screen: 'My Items'});
+            navigation.navigate('My Drawer', {screen: 'Home Tabs', params: {screen:'My Items'}});
         }).catch((error) => {
             navigateToErrorScreen(navigation, error);
             // Uh-oh, an error occurred!
@@ -406,7 +407,7 @@ export function ViewItemScreen({navigation, route}: MyStackScreenProps<'View Ite
                 <View style={styles.userHeader}>
                     <Image
                         style={[styles.pfp, {width: null, height: 50, aspectRatio: 1}]}
-                        source={{uri: owner.pfpUrl || undefined}}
+                        source={uriFrom(owner.pfpUrl)}
                         defaultSource={require('../assets/defaultpfp.jpg')} />
                     <View>
                         <Text>You own this item</Text>
@@ -417,7 +418,7 @@ export function ViewItemScreen({navigation, route}: MyStackScreenProps<'View Ite
                     <View style={{flex: 1, padding: 5}}>
                         <Image
                             style={styles.itemImage}
-                            source={{uri: imageUri || item.imageUrl || undefined}} 
+                            source={uriFrom(imageUri ?? item.imageUrl)} 
                             defaultSource={require('../assets/defaultimg.jpg')} />
                             {isEditable ? (
                                 <ImagePicker 
@@ -469,7 +470,8 @@ export function ViewItemScreen({navigation, route}: MyStackScreenProps<'View Ite
                                         }}
                                         
                                         onPress={() => {saveEdits(); setIsEditable(false)}}
-                                        disabled={!isEditable || isUploading} />
+                                        disabled={!isEditable || isUploading} 
+                                        useSecondaryColor />
                                 </View>
                                 <View>
                                     <CoolButton
@@ -499,6 +501,7 @@ export function ViewItemScreen({navigation, route}: MyStackScreenProps<'View Ite
                                         leftIcon={{
                                             name: 'pencil', 
                                             type: 'material-community', 
+                                            size: 20,
                                         }}
                                         onPress={() => setIsEditable(true)}
                                         style={styles.startEditButton}
@@ -521,7 +524,7 @@ export function ViewItemScreen({navigation, route}: MyStackScreenProps<'View Ite
             <View style={styles.userHeader}>
                     <Image
                         style={[styles.pfp, {width: null, height: 50, aspectRatio: 1}]}
-                        source={{uri: owner.pfpUrl || undefined}}
+                        source={uriFrom(owner.pfpUrl)}
                         defaultSource={require('../assets/defaultpfp.jpg')} />
                     <View>
                         <Text>Owned by</Text>
@@ -532,7 +535,7 @@ export function ViewItemScreen({navigation, route}: MyStackScreenProps<'View Ite
                     <View style={{flex: 1, margin: 5}}>
                         <Image
                             style={styles.itemImage}
-                            source={{uri: imageUri || item.imageUrl || undefined}} 
+                            source={uriFrom(imageUri || item.imageUrl)} 
                             defaultSource={require('../assets/defaultimg.jpg')} />
                     </View>
                     <View style={{flex: 1, marginVertical: 5}}>

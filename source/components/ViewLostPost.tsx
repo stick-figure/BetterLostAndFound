@@ -2,13 +2,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, Image, Modal, Pressable, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, useColorScheme, View } from 'react-native';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { auth, db } from '../../ModularFirebase';
-import { addDoc, collection, disableNetwork, doc, documentId, DocumentSnapshot, getDoc, getDocs, onSnapshot, query, QuerySnapshot, runTransaction, serverTimestamp, updateDoc, where } from 'firebase/firestore';
+import { addDoc, collection, disableNetwork, doc, documentId, DocumentSnapshot, getDoc, getDocs, limit, onSnapshot, query, QuerySnapshot, runTransaction, serverTimestamp, updateDoc, where } from 'firebase/firestore';
 import { CoolButton, PressableOpacity } from '../hooks/MyElements';
 import SafeAreaView from 'react-native-safe-area-view';
 import { CommonActions, useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
 import { CheckBox, Icon } from 'react-native-elements';
 import { ScrollView, Swipeable } from 'react-native-gesture-handler';
-import { timestampToString } from './SomeFunctions';
+import { timestampToString, uriFrom } from './SomeFunctions';
 import { MyStackScreenProps } from '../navigation/Types';
 import { navigateToErrorScreen, popupOnError } from './Error';
 import { ChatRoomTile, ItemData, LostPostResolveReasons, PostData, RoomData, UserData } from '../assets/Types';
@@ -44,6 +44,7 @@ export function ViewLostPostScreen({navigation, route}: MyStackScreenProps<'View
 
     const [post, setPost] = useState<PostData>();
 
+    const [rooms, setRooms] = useState<RoomData[]>();
     const [roomTiles, setRoomTiles] = useState<ChatRoomTile[]>();
 
     const [message, setMessage] = useState<string>();
@@ -66,16 +67,27 @@ export function ViewLostPostScreen({navigation, route}: MyStackScreenProps<'View
             if ([auth.currentUser?.uid, author?.id, post?.id].includes(undefined)) 
                 throw new Error('missing an id, idk which');
 
+            if (post && post.resolved) 
+                throw new Error(`Post was already been resolved ${timestampToString(post.resolvedAt, now)} for reason '${post.resolveReason ?? 'unknown'}'`);
+
             if (auth.currentUser!.uid == author!.id) 
                 throw new Error('wait this is the same person');
-
-            await runTransaction(db, async (transaction) => {
-                const postRef = doc(db, 'posts', route.params!.post!.id);
+            
+            const chatParams = await runTransaction(db, async (transaction) => {
+                const postRef = doc(db, 'posts', post!.id);
                 const postSnapshot = await transaction.get(postRef);
+
                 if (!postSnapshot.exists()) {
                     throw Error('Document does not exist!');
                 }
-                
+
+                const roomsWithThisUser = await getDocs(query(collection(db, 'rooms'), where('postId', '==', post!.id), where('userIds', 'array-contains', auth.currentUser!.uid), limit(1)));
+                if (!roomsWithThisUser.empty) {
+                    throw Error(`A chat with this user and the owner already exists: ${
+                        roomsWithThisUser.docs.map((doc) => doc.get('id')?.toString() ?? 'chat missing id').join(', ')
+                    }`);
+                };
+
                 const roomRef = doc(collection(db, 'rooms'));
                 
                 const roomData = {
@@ -95,18 +107,22 @@ export function ViewLostPostScreen({navigation, route}: MyStackScreenProps<'View
 
                 transaction.update(postRef, { roomIds: postData.roomIds });
                 
-                let users = userSnapshots.map((userSnapshot) => (userSnapshot.data()! as UserData));
+                let userDatas = userSnapshots.map((userSnapshot) => (userSnapshot.data()! as UserData));
+                
+                return {post: postData as PostData, users: userDatas, room: roomData as RoomData};
+            });
+            
+            setPost(chatParams.post);
 
-                navigation.navigate('Chat Room', {post: postData as PostData, users: users, room: roomData as RoomData});
-                navigation.dispatch((state: {routes: any[]}) => {
-                    const topScreen = state.routes[0];
-                    const thisScreen = state.routes[state.routes.length - 1];
-                    const routes = [topScreen, thisScreen];
-                    return CommonActions.reset({
-                        ...state,
-                        index: routes.length - 1,
-                        routes,
-                    });
+            navigation.navigate('Chat Room', chatParams);
+            navigation.dispatch((state: {routes: any[]}) => {
+                const topScreen = state.routes[0];
+                const thisScreen = state.routes[state.routes.length - 1];
+                const routes = [topScreen, thisScreen];
+                return CommonActions.reset({
+                    ...state,
+                    index: routes.length - 1,
+                    routes,
                 });
             });
         } catch (error) {
@@ -154,6 +170,7 @@ export function ViewLostPostScreen({navigation, route}: MyStackScreenProps<'View
 
     const updateRooms = async (roomSnapshot: QuerySnapshot) => {
         try {
+            console.log('rooms updating...');
             if (roomSnapshot.empty) throw new Error('roomSnapshot is empty');
             const newRoomTiles = await Promise.all(roomSnapshot.docs.map((roomDoc) => new Promise(async (resolve, reject) => {
                 try {
@@ -340,7 +357,7 @@ export function ViewLostPostScreen({navigation, route}: MyStackScreenProps<'View
                             disabled={isNavigating}>
                             <Image 
                                 style={styles.chatThumbnail}
-                                source={{uri: author?.pfpUrl || undefined}}
+                                source={uriFrom(author?.pfpUrl)}
                                 defaultSource={require('../assets/defaultpfp.jpg')} />
                             <Text style={styles.chatTitle}>{author?.name || 'Chat with owner'}</Text>
                         </PressableOpacity>
@@ -413,7 +430,7 @@ export function ViewLostPostScreen({navigation, route}: MyStackScreenProps<'View
                                     disabled={isNavigating}>
                                     <Image 
                                         style={styles.chatThumbnail}
-                                        source={{uri: item.users.find((user) => user.id != auth.currentUser?.uid)?.pfpUrl || undefined}}
+                                        source={uriFrom(item.users.find((user) => user.id != auth.currentUser?.uid)?.pfpUrl)}
                                         defaultSource={require('../assets/defaultpfp.jpg')} />
                                     <Text style={styles.chatTitle}>{(item.users ?? []).filter(
                                                     (user) => user.id != auth.currentUser?.uid
@@ -549,6 +566,8 @@ export function ViewLostPostScreen({navigation, route}: MyStackScreenProps<'View
             fontSize: 24,
             fontWeight: '500',
             color: colors.text,
+            flexWrap: 'wrap',
+            flex: 1,
         },
         itemInfoContainer: {
             margin: 4,
@@ -568,6 +587,8 @@ export function ViewLostPostScreen({navigation, route}: MyStackScreenProps<'View
         itemContent: {
             color: colors.text,
             fontSize: 12,
+            flexWrap: 'wrap',
+            flex: 1,
         },
         imageLabel: {
             fontSize: 16,
@@ -624,6 +645,10 @@ export function ViewLostPostScreen({navigation, route}: MyStackScreenProps<'View
             fontSize: 16,
             fontWeight: '600',
         },
+        resolveTitle: {
+            fontSize: 24,
+            fontWeight: 'bold',
+        }
     }), [isDarkMode]);
 
 
@@ -642,7 +667,7 @@ export function ViewLostPostScreen({navigation, route}: MyStackScreenProps<'View
                     <View style={styles.userHeader}>
                         <Image
                             style={styles.pfp}
-                            source={author?.pfpUrl ? {uri: author.pfpUrl} : undefined}
+                            source={uriFrom(author?.pfpUrl)}
                             defaultSource={require('../assets/defaultpfp.jpg')} />
                         <View>
                             <Text style={styles.userName}>{author?.name ?? 'Unknown User'}</Text>
@@ -654,9 +679,9 @@ export function ViewLostPostScreen({navigation, route}: MyStackScreenProps<'View
                     <PressableOpacity
                         onPress={() => { if (item) navigation.navigate('View Item', { itemId: item.id, itemName: item.name }) }}
                         disabled={isNavigating}>
-                        <Image source={post?.imageUrls ? {uri: post.imageUrls[0]} : undefined} style={styles.itemImage} defaultSource={require('../assets/defaultimg.jpg')} />
+                        <Image source={uriFrom(post.imageUrls?.at(0))} style={styles.itemImage} defaultSource={require('../assets/defaultimg.jpg')} />
                         <View style={styles.itemInfoContainer}>
-                            <View style={{flex: 2}}>
+                            <View style={{flex: 2,}}>
                                 <Text style={styles.postTitle}>Lost <Text style={{fontWeight: '800'}}>{item?.name ?? 'unknown item'}</Text></Text>
                                 <Text style={styles.itemContent}>{item?.description ?? ''}</Text>
                             </View>
@@ -677,12 +702,25 @@ export function ViewLostPostScreen({navigation, route}: MyStackScreenProps<'View
                         value={message}
                         editable={isAuthor && !isNavigating}
                         selectTextOnFocus={false} 
-                        style={styles.message}/>
+                        style={styles.message} />
                 </View>
-                {resolvePostModal()}
-                {actionButtons()}
-                <Text style={[styles.text, {fontSize: 20, margin: 8}]}>Chat with {!isAuthor && 'owner'}</Text>
-                {chatOptions()}
+                {!post.resolved ? (
+                    <View>
+                        {resolvePostModal()}
+                        {actionButtons()}
+                        <Text style={[styles.text, {fontSize: 20, margin: 8}]}>Chat with {!isAuthor && 'owner'}</Text>
+                        {chatOptions()}
+                    </View>
+                    ) : (
+                    <View>
+                        {post.resolveReason == LostPostResolveReasons.FOUND_ITEM ? 
+                            <Text style={styles.resolveTitle}>Item has been found</Text>
+                        : 
+                            <Text style={styles.resolveTitle}>{post.resolveReason}</Text>
+                        }
+                        <Text style={styles.timestamp}>Resolved {timestampToString(post.resolvedAt, now, true, true)}</Text>
+                    </View>
+                )}
             </ScrollView>
         </SafeAreaView>
     );

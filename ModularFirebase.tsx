@@ -20,7 +20,7 @@ const db = initializeFirestore(app, {experimentalForceLongPolling: true});
 
 const storage = getStorage(app);
 
-const messaging = getMessaging(app);
+//const messaging = getMessaging(app);
 
 if (process.env.FUNCTIONS_EMULATOR) {
     console.log('Connecting Firestore to Emulator...');
@@ -57,4 +57,4 @@ exports.authenticatedFunction =
     return { result: 'Function called' };
 });*/
 
-export { db, auth, storage, messaging };
+export { db, auth, storage, };

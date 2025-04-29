@@ -11,6 +11,7 @@ import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { navigateToErrorScreen, popupOnError } from './Error';
 import { ChatRoomTile, GiftedMessageData, PostData, RoomData, UserData } from '../assets/Types';
 import { HomeTabScreenProps } from '../navigation/Types';
+import { uriFrom } from './SomeFunctions';
 
 export function MyChatRoomsScreen({ navigation, route }: HomeTabScreenProps<'My Chat Rooms'> ) {
 //    const navigation = useNavigation<HomeTabScreenProps<'My Chat Rooms'>['navigation']>();
@@ -107,30 +108,33 @@ export function MyChatRoomsScreen({ navigation, route }: HomeTabScreenProps<'My 
         if (!isLoggedIn) return;
         
         const unsubscribe = onSnapshot(query(collection(db, 'rooms'), where('userIds', 'array-contains', auth.currentUser!.uid)), async (roomSnapshot) => {
-            if (roomSnapshot.empty) throw new Error('roomSnapshot is empty');
-            const newRoomTiles = await Promise.all(roomSnapshot.docs.map((roomDoc) => new Promise(async (resolve, reject) => {
-                try {
-                    if (roomDoc?.get('userIds') === undefined) throw new Error('userIds is undefined');
-                    const userSnapshots = await getDocs(query(collection(db, 'users'), where(documentId(), 'in', roomDoc.get('userIds'))));
-                    let lastMessage = (await getDocs(query(collection(db, roomDoc.ref.path, 'messages'), orderBy('createdAt', 'desc'), limit(1)))).docs[0];
-                    let postRef = doc(db, 'posts', roomDoc.get('postId'));
-                    let post = await getDoc(postRef);
-                    
-                    resolve({
-                        _id: roomDoc.id, 
-                        users: userSnapshots.docs.map(userSnapshot => userSnapshot.data()! as UserData), 
-                        post: post.data()! as PostData,
-                        lastMessage: lastMessage ? lastMessage.data()! as GiftedMessageData : undefined,
-                        room: roomDoc.data()! as RoomData,
-                    });
-                    return;
-                } catch (error) {
-                    reject(error);
+            try {
+                const newRoomTiles = await Promise.all(roomSnapshot.docs.map((roomDoc) => new Promise(async (resolve, reject) => {
+                    try {
+                        if (roomDoc?.get('userIds') === undefined) throw new Error('userIds is undefined');
+                        const userSnapshots = await getDocs(query(collection(db, 'users'), where(documentId(), 'in', roomDoc.get('userIds'))));
+                        let lastMessage = (await getDocs(query(collection(db, roomDoc.ref.path, 'messages'), orderBy('createdAt', 'desc'), limit(1)))).docs[0];
+                        let postRef = doc(db, 'posts', roomDoc.get('postId'));
+                        let post = await getDoc(postRef);
+                        
+                        resolve({
+                            _id: roomDoc.id, 
+                            users: userSnapshots.docs.map(userSnapshot => userSnapshot.data()! as UserData), 
+                            post: post.data()! as PostData,
+                            lastMessage: lastMessage ? lastMessage.data()! as GiftedMessageData : undefined,
+                            room: roomDoc.data()! as RoomData,
+                        });
+                        return;
+                    } catch (error) {
+                        reject(error);
+                    }
+                })));
+                
+                if (newRoomTiles as RoomData[] !== null) {
+                    setRoomTiles((newRoomTiles as ChatRoomTile[]).sort((a, b) => (b.lastMessage?.createdAt?.seconds ?? 0) - (a.lastMessage?.createdAt?.seconds ?? 0)));
                 }
-            })));
-
-            if (newRoomTiles as RoomData[] !== null) {
-                setRoomTiles((newRoomTiles as ChatRoomTile[]).sort((a, b) => (b.lastMessage?.createdAt?.seconds ?? 0) - (a.lastMessage?.createdAt?.seconds ?? 0)));
+            } catch (error) {
+                navigateToErrorScreen(navigation, error);
             }
         });
 
@@ -268,7 +272,7 @@ export function MyChatRoomsScreen({ navigation, route }: HomeTabScreenProps<'My 
                             disabled={isNavigating}>
                             <Image 
                                 style={styles.chatThumbnail}
-                                source={{uri: user?.pfpUrl}}
+                                source={uriFrom(user?.pfpUrl)}
                                 defaultSource={require('../assets/defaultpfp.jpg')} />
                             <View>
                                 <Text style={styles.text}>{item.post?.type} {item.post?.title}</Text>

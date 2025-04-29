@@ -15,6 +15,7 @@ import { request, PERMISSIONS, RESULTS, check, PermissionStatus } from 'react-na
 import { useCameraDevices, Camera } from 'react-native-vision-camera';
 import { navigateToErrorScreen } from './Error';
 import { MyStackScreenProps } from '../navigation/Types';
+import { uriFrom } from './SomeFunctions';
 
 export function AddItemScreen({ navigation, route }: MyStackScreenProps<'Add Item'>) {
     const [name, setName] = useState('');
@@ -22,7 +23,7 @@ export function AddItemScreen({ navigation, route }: MyStackScreenProps<'Add Ite
     const [secretPhrase, setSecretPhrase] = useState('');
     const [tags, setTags] = useState([]);
 
-    const [imgSrc, setImgSrc] = useState({ uri: '' });
+    const [imageUri, setImageUri] = useState('');
     const [uploading, setUploading] = useState(false);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     
@@ -51,7 +52,7 @@ export function AddItemScreen({ navigation, route }: MyStackScreenProps<'Add Ite
     },[]);
 
     const onImagePicked = (response: ImagePickerResponse) => {
-        setImgSrc( { uri: response.assets![0].uri! } );
+        setImageUri(response.assets![0].uri!);
     }
 
     const openImagePicker = () => {
@@ -78,8 +79,7 @@ export function AddItemScreen({ navigation, route }: MyStackScreenProps<'Add Ite
             } else if (response.errorCode) {
                 console.log('ImagePicker Error: ', response.errorMessage);
             } else if (response.assets) {
-                const source = { uri: response.assets[0].uri! };
-                setImgSrc(source);
+                setImageUri(response.assets![0].uri!);
             }
         }).catch(() => { console.log('whoop de doo') });
     };
@@ -108,8 +108,7 @@ export function AddItemScreen({ navigation, route }: MyStackScreenProps<'Add Ite
             }else if (response.errorCode) {
                 console.warn('Camera Error', response.errorCode, ': ', response.errorMessage);
             } else {
-                let source = { uri: response.assets![0].uri! };
-                setImgSrc(source);
+                setImageUri(response.assets![0].uri!);
             }
         });
     }
@@ -123,7 +122,7 @@ export function AddItemScreen({ navigation, route }: MyStackScreenProps<'Add Ite
             try {
                 setUploading(true);
                 navigation.navigate('Loading');
-                const response = await fetch(imgSrc.uri);
+                const response = await fetch(imageUri);
                 const blob = await response.blob();
 
                 const storage = getStorage();
@@ -132,7 +131,7 @@ export function AddItemScreen({ navigation, route }: MyStackScreenProps<'Add Ite
 
                 uploadBytesResumable(imageRef, blob).then(async () => {
                     const url = await getDownloadURL(imageRef);
-                    setImgSrc({ uri: '' });
+                    setImageUri('');
                     resolve(url);
                     setUploading(false);
                     return;
@@ -171,7 +170,7 @@ export function AddItemScreen({ navigation, route }: MyStackScreenProps<'Add Ite
             
             await setDoc(docRef, itemData)
 
-            if (route.params!.nextScreen == 'New Lost Post') {
+            if (route.params!.nextScreen !== undefined && route.params!.nextScreen == 'New Lost Post') {
                 navigation.dispatch(
                     CommonActions.reset({
                         index: 0,
@@ -290,7 +289,7 @@ export function AddItemScreen({ navigation, route }: MyStackScreenProps<'Add Ite
                 <View style={styles.imageContainer}>
                     <Image
                         style={styles.itemImage}
-                        source={imgSrc.uri != '' ? imgSrc : undefined}
+                        source={uriFrom(imageUri)}
                         defaultSource={require('../assets/defaultimg.jpg')}/>
                     
                 </View>
@@ -344,7 +343,7 @@ export function AddItemScreen({ navigation, route }: MyStackScreenProps<'Add Ite
                     />
                     <CoolButton 
                         title={route.params?.nextScreen ? 'Continue' : 'Add item'}
-                        disabled={name.trim().length < 1 || description.trim().length < 1 || imgSrc.uri == '' || uploading}
+                        disabled={name.trim().length < 1 || description.trim().length < 1 || imageUri == '' || uploading}
                         onPress={uploadItem}
                         style={styles.saveButton}
                         />

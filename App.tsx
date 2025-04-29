@@ -12,6 +12,7 @@ import { createStackNavigator } from '@react-navigation/stack'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { auth } from './ModularFirebase';
+import { HomeTabParamList, MyDrawerParamList, MyStackParamList, RootStackParamList } from './source/navigation/Types';
 
 import { SafeAreaProvider } from 'react-native-safe-area-view';
 
@@ -37,7 +38,6 @@ import { DarkThemeColors, LightThemeColors } from './source/assets/Colors';
 import { PostLostItemScreen } from './source/components/PostLostItem';
 import MyChatRoomsScreen from './source/components/MyChatRooms';
 import { PressableOpacity } from './source/hooks/MyElements';
-import { HomeTabParamList, MyDrawerParamList, MyStackParamList, RootStackParamList } from './source/navigation/Types';
 import WhoFoundScreen from './source/components/WhoFound';
 
 const RootStack = createStackNavigator<RootStackParamList>();
@@ -51,8 +51,8 @@ function HomeTab() {
 
     return (
         <Tab.Navigator
-            initialRouteName={'Home'}
             screenOptions={{
+                headerShown: false, 
                 tabBarActiveTintColor: colors.primary,
                 tabBarActiveBackgroundColor: colors.card,
                 tabBarInactiveTintColor: colors.border,
@@ -63,7 +63,8 @@ function HomeTab() {
                 tabBarStyle: {
                     backgroundColor: colors.card,
                 }
-            }}>
+            }}
+            initialRouteName={'Home'}>
             <Tab.Screen 
                 name='Home' 
                 component={HomeScreen} 
@@ -75,14 +76,23 @@ function HomeTab() {
                     },
                 }} />
             <Tab.Screen 
+                name='Post Lost Item' 
+                component={PostLostItemScreen} 
+                options={{ 
+                    title: 'Post Lost Item', 
+                    headerShown: false, 
+                    tabBarIcon: ({ focused, color, size }) => {
+                        if (focused) return <Icon name='post' type='material-community' size={size} color={color} />;
+                        return <Icon name='post-outline' type='material-community' size={size} color={color} />;
+                    },
+                }} />
+            <Tab.Screen 
                 name='Return Item' 
                 component={ReturnItemScreen} 
                 options={{
                     title: 'Return Item', 
                     headerShown: false, 
                     tabBarIcon: ({ focused, color, size }) => {
-                        //if (focused) return <Icon name='search' type='feather' size={size} color={color} />;
-                        //return <Icon name='search' type='octicons' size={size} color={color} />;
                         if (focused) return <Icon name='hand-holding-heart' type='font-awesome-5' size={size} color={color} />;
                         return <Icon name='hand-holding' type='font-awesome-5' size={size} color={color} />;
                     },
@@ -117,7 +127,6 @@ function MyDrawer() {
 
     return (
         <Drawer.Navigator
-            initialRouteName={'Home Tabs'}
             screenOptions={{
                 drawerType: 'slide',
                 drawerActiveTintColor: colors.primary,
@@ -149,7 +158,9 @@ function MyDrawer() {
                         </PressableOpacity>
                     );
                 },
-            }}>
+            }}
+            initialRouteName={'Home Tabs'}
+            >
             <Drawer.Screen 
                 name='Home Tabs' 
                 component={HomeTab} 
@@ -220,10 +231,11 @@ function MyStack() {
                     shadowOpacity: 0.5,
                     shadowOffset: {width: 3, height: 3},
                 },
-            }}>
+            }}
+            initialRouteName={'Login'}
+            >
             {/* Screens for logged in users */}
             <Stack.Group>
-                <Stack.Screen name='Post Lost Item' component={PostLostItemScreen} options={{ title: 'Post Lost Item' }} />
                 <Stack.Screen name='Add Item' component={AddItemScreen} options={{ title: 'Add Item' }} />
                 <Stack.Screen name='View Item' options={({ route }) => ({
                     title: route.params?.itemName,
@@ -260,23 +272,14 @@ function MyStack() {
 }
 
 export function App() {
-    /*
-    useEffect(() => {
-        const unsubscribe = auth.onAuthStateChanged((user) => {
-            if (user) {
-                setIsLoggedIn(true);
-            } else {
-                setIsLoggedIn(false);
-            }
-        });
-
-        return unsubscribe;
-    }, []);*/
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
     
     return (
         <SafeAreaProvider>
             <NavigationContainer>
-                <RootStack.Navigator screenOptions={{headerShown: false}}>
+                <RootStack.Navigator 
+                    initialRouteName={'My Stack'}
+                    screenOptions={{headerShown: false}}>
                     <RootStack.Screen name='My Drawer' component={MyDrawer} options={{title: 'Home'}}/>
                     <RootStack.Screen name='My Stack' component={MyStack} options={{title: ''}}/>
                 </RootStack.Navigator>

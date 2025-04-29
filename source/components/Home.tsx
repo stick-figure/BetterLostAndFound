@@ -2,13 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { View, Button, StyleSheet, Text, FlatList, Image, ActivityIndicator, useColorScheme } from 'react-native';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
-import { onSnapshot, query, collection, where, getDoc, DocumentSnapshot, doc, FieldValue, serverTimestamp, limit } from 'firebase/firestore';
+import { onSnapshot, query, collection, where, getDoc, DocumentSnapshot, doc, limit, Timestamp } from 'firebase/firestore';
 import { db, auth } from '../../ModularFirebase';
 import { CommonActions, DrawerActions, useIsFocused } from '@react-navigation/native';
 import { Icon } from 'react-native-elements';
 import SafeAreaView from 'react-native-safe-area-view';
 import { CoolButton } from '../hooks/MyElements';
-import { timestampToString } from './SomeFunctions';
+import { timestampToString, uriFrom } from './SomeFunctions';
 import { navigateToErrorScreen } from './Error';
 import { HomeTabScreenProps } from '../navigation/Types';
 import { ItemData, PostData, UserData } from '../assets/Types';
@@ -21,7 +21,7 @@ interface PostListItem {
     authorName: string,
     pfpUrl: string,
     imageUrls: string[],
-    createdAt: FieldValue,
+    createdAt: Timestamp,
 }
 
 export function HomeScreen({ navigation, route }: HomeTabScreenProps<'Home'>) {
@@ -36,8 +36,18 @@ export function HomeScreen({ navigation, route }: HomeTabScreenProps<'Home'>) {
             if (user) {
                 setIsLoggedIn(true);
             } else {
-                navigation.replace('My Stack', {screen: 'Login'});
-//                navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Login' }] }));
+                setIsLoggedIn(false);
+//                navigation.replace('My Stack', {screen: 'Login'});
+//                navigation.dispatch(CommonActions.reset({ 
+//                    index: 0, routes: [{ name: 'Login' }] 
+//                }));
+                navigation.dispatch(CommonActions.reset({ 
+                    index: 0, routes: [{
+                        name: 'My Stack', 
+                        params: {
+                            screen: 'Login',
+                        }}] 
+                }));
             }
         });
 
@@ -80,7 +90,7 @@ export function HomeScreen({ navigation, route }: HomeTabScreenProps<'Home'>) {
                 });
 
                 Promise.all(promises).then((res) => {
-                    setPosts(res.sort((a, b) => b.createdAt.seconds - a.createdAt.seconds)); setIsLoading(false);
+                    setPosts(res.sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0))); setIsLoading(false);
                 }).catch((error) => {
                     navigateToErrorScreen(navigation, error);
                 });
@@ -91,7 +101,6 @@ export function HomeScreen({ navigation, route }: HomeTabScreenProps<'Home'>) {
 
         return unsubscribe;
     }, [isLoggedIn]);
-
     
     const navigateToPost = async (postId: string) => {
         try {
@@ -187,7 +196,7 @@ export function HomeScreen({ navigation, route }: HomeTabScreenProps<'Home'>) {
                         title='HELP I LOST SOMETHING'
                         style={{width: '100%'}}
                         titleStyle={{fontSize: 20}} 
-                        onPress={() => navigation.navigate('My Stack', {screen: 'Post Lost Item'})} />
+                        onPress={() => navigation.navigate('Post Lost Item')} />
                 </View>
                 
                 <View style={styles.itemList}>
@@ -206,7 +215,7 @@ export function HomeScreen({ navigation, route }: HomeTabScreenProps<'Home'>) {
                                     <View style={[styles.horizontal, {width: '100%', justifyContent: 'flex-start', alignItems: 'center'}]}>
                                         <Image
                                             style={styles.pfp}
-                                            source={{uri: item.pfpUrl}}
+                                            source={uriFrom(item.pfpUrl)}
                                             defaultSource={require('../assets/defaultpfp.jpg')} />
                                         <View>
                                             <Text style={styles.userName}>{item.authorName}</Text>
@@ -219,7 +228,7 @@ export function HomeScreen({ navigation, route }: HomeTabScreenProps<'Home'>) {
                                         <Text style={{...styles.itemTitle, fontWeight: '500'}}>{item?.type && item.type + " "}<Text style={styles.itemTitle}>{item.title}</Text></Text>
                                         <Text style={styles.itemContent}>{item.message}</Text>
                                     </View>
-                                    <Image source={item?.imageUrls ? {uri: item?.imageUrls[0]} : undefined} style={styles.itemImage} defaultSource={require('../assets/defaultimg.jpg')} />
+                                    <Image source={uriFrom(item?.imageUrls![0])} style={styles.itemImage} defaultSource={require('../assets/defaultimg.jpg')} />
                                 </TouchableOpacity>
                             </View>
                             )}

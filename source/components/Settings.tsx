@@ -44,7 +44,7 @@ export function SettingsScreen({navigation, route}: MyDrawerScreenProps<'Setting
             chunks[i].forEach((doc) => {
                 batch.delete(doc.ref);
             });
-            
+
             await batch.commit();
         }
         console.log('deleted');
@@ -56,7 +56,10 @@ export function SettingsScreen({navigation, route}: MyDrawerScreenProps<'Setting
 
     const deleteAccount = () => {
 
-        navigation.navigate('Loading');
+        navigation.navigate('My Stack', {
+            screen: 'Loading'
+        });
+        
         deleteFirestoreRecursively(query(collection(db, 'posts'), where('authorId', '==', auth.currentUser!.uid))).then(() => {
             return deleteFirestoreRecursively(query(collection(db, 'items'), where('ownerId', '==', auth.currentUser!.uid)));
         }).then(() => {

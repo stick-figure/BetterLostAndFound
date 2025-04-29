@@ -10,6 +10,7 @@ import { Icon } from 'react-native-elements';
 import { navigateToErrorScreen } from './Error';
 import { UserData } from '../assets/Types';
 import { HomeTabScreenProps } from '../navigation/Types';
+import { uriFrom } from './SomeFunctions';
 
 interface ItemTile {
     _id: string,
@@ -200,21 +201,21 @@ export function MyItemsScreen({navigation, route}: HomeTabScreenProps<'My Items'
         <SafeAreaView style={styles.container}>
             <View style={[styles.horizontal, {alignSelf:'flex-start'}]}>
                 <Image 
-                    source={{uri: userData?.pfpUrl || undefined}} 
+                    source={uriFrom(userData?.pfpUrl)} 
                     style={styles.pfp}
                     defaultSource={require('../assets/defaultpfp.jpg')}
                     />
                 <View style={{flexGrow: 1, alignItems: 'flex-start'}}>
-                    <Text style={styles.userName}>{userData?.name}</Text>
+                    <Text style={styles.userName}>{userData?.name ?? 'Unknown user'}</Text>
                     <Text style={styles.text}>Waaagh</Text>
                     <View style={styles.userStats}>
                         <View style={styles.userStat}>
                             <Text style={styles.userStatLabel}>Times own item lost</Text>
-                            <Text style={styles.userStatValue}>{userData?.timesOwnItemLost || 'n/a'}</Text>
+                            <Text style={styles.userStatValue}>{userData?.timesLostItem || 'n/a'}</Text>
                         </View>
                         <View style={styles.userStat}>
                             <Text style={styles.userStatLabel}>Times item found for others</Text>
-                            <Text style={styles.userStatValue}>{userData?.timesOthersItemFound || 'n/a'}</Text>
+                            <Text style={styles.userStatValue}>{userData?.timesFoundOthersItem || 'n/a'}</Text>
                         </View>
                     </View>
                 </View>
@@ -245,6 +246,8 @@ export function MyItemsScreen({navigation, route}: HomeTabScreenProps<'My Items'
             </View>
             <View style={styles.itemList}>
                 <FlatList
+                    style={{flex: 1}}
+                    contentContainerStyle={{minHeight: '100%'}}
                     keyExtractor={item => item._id.toString()}
                     ListEmptyComponent={
                         <View style={{height: '100%', alignContent: 'center', alignSelf: 'stretch', justifyContent: 'center'}}>
@@ -258,7 +261,7 @@ export function MyItemsScreen({navigation, route}: HomeTabScreenProps<'My Items'
                                 key={item._id.toString()}
                                 onPress={() => { navigation.navigate('My Stack', {screen: 'View Item', params: { itemId: item._id, itemName: item.name } }) }}>
                                 <View style={styles.itemListItemView}>
-                                    <Image source={{uri: item.imageUrl || undefined}} style={styles.itemImage} defaultSource={require('../assets/defaultimg.jpg')}/>
+                                    <Image source={uriFrom(item.imageUrl)} style={styles.itemImage} defaultSource={require('../assets/defaultimg.jpg')}/>
                                     <Text style={styles.itemTitle}>{item.name}</Text>
                                 </View>
                             </PressableOpacity>

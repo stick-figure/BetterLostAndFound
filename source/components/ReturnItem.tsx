@@ -7,7 +7,7 @@ import { Icon, SearchBar } from 'react-native-elements';
 import { getDoc, doc, onSnapshot, query, collection, where, limit } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import SafeAreaView from 'react-native-safe-area-view';
-import { timestampToString } from './SomeFunctions';
+import { timestampToString, uriFrom } from './SomeFunctions';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { navigateToErrorScreen } from './Error';
 import { HomeTabScreenProps } from '../navigation/Types';
@@ -102,7 +102,7 @@ export function ReturnItemScreen({navigation, route}: HomeTabScreenProps<'Return
 
     const updateSearch = (searchText: string) => {
         setSearch(searchText);
-        let myPostQuery = [...lostPosts].sort((a,b) => b.createdAt.seconds - a.createdAt.seconds).filter((value, index, array) => {
+        let myPostQuery = [...lostPosts].sort((a,b) => (b.createdAt?.seconds ?? 0) - (a.createdAt.seconds ?? 0)).filter((value, index, array) => {
             return searchText == '' || value.title.toLowerCase().includes(searchText.toLowerCase()) || value.message.toLowerCase().includes(searchText.toLowerCase());
         });
         setLostPostQuery(myPostQuery);
@@ -264,7 +264,7 @@ export function ReturnItemScreen({navigation, route}: HomeTabScreenProps<'Return
                                 <View style={[styles.horizontal, {width: '100%', justifyContent: 'flex-start', alignItems: 'center'}]}>
                                     <Image
                                         style={styles.pfp}
-                                        source={{uri: item?.pfpSrc}} 
+                                        source={uriFrom(item?.pfpSrc)} 
                                         defaultSource={require('../assets/defaultpfp.jpg')} />
                                     <View>
                                         <Text style={styles.userName}>{item.authorName}</Text>
@@ -277,7 +277,7 @@ export function ReturnItemScreen({navigation, route}: HomeTabScreenProps<'Return
                                     <Text style={styles.itemTitle}>{item.title}</Text>
                                     <Text style={styles.itemContent}>{item.message}</Text>
                                 </View>
-                                <Image source={{uri: item?.imageUrl}} style={styles.itemImage} defaultSource={require('../assets/defaultimg.jpg')} />
+                                <Image source={uriFrom(item?.imageUrl)} style={styles.itemImage} defaultSource={require('../assets/defaultimg.jpg')} />
                             </PressableOpacity>
                         </View>
                     )}

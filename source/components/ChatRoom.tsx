@@ -21,7 +21,7 @@ export function ChatRoomScreen({ navigation, route }: MyStackScreenProps<'Chat R
     const [room, setRoom] = useState<RoomData>();
     const [users, setUsers] = useState<UserData[]>();
     const [post, setPost] = useState<PostData>();
-
+    
     const [messages, setMessages] = useState<IMessage[]>([]);
 
     const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -81,7 +81,7 @@ export function ChatRoomScreen({ navigation, route }: MyStackScreenProps<'Chat R
                 setMessages(
                     snapshot.docs.map(doc => ({
                         _id: doc.get('messageId'),
-                        createdAt: new Date((doc.data()?.createdAt?.seconds ?? 0) * 1000),
+                        createdAt: new Date((doc.get('createdAt')?.seconds ?? 0) * 1000),
                         text: doc.get('text'),
                         user: doc.get('user'),
                     }))

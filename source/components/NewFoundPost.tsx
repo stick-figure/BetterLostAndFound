@@ -10,6 +10,7 @@ import { CoolTextInput, PressableOpacity } from '../hooks/MyElements';
 import { Input } from 'react-native-elements';
 import { navigateToErrorScreen } from './Error';
 import { MyStackScreenProps } from '../navigation/Types';
+import { uriFrom } from './SomeFunctions';
 
 export function NewFoundPostScreen({navigation, route}: MyStackScreenProps<'New Found Post'>) {
     const [item, setItem] = useState({
@@ -222,7 +223,7 @@ export function NewFoundPostScreen({navigation, route}: MyStackScreenProps<'New 
                     disabled={uploading}>
                         <View style={styles.horizontal}>
                         <Image 
-                            source={{uri: item.imageUrl}} 
+                            source={uriFrom(item.imageUrl)} 
                             defaultSource={require('../assets/defaultimg.jpg')} 
                             style={styles.itemImage} />
                             <View style={styles.itemListItemView}>

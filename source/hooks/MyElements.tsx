@@ -123,7 +123,7 @@ export const CoolTextInput: FC<CoolTextInputProps> = ({ ...props }) => {
             color: colors.text,
         },
         container: {
-            margin: 4,
+            marginVertical: 4,
         }
     }), [isDarkMode]);
 

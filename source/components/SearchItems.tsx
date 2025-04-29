@@ -10,6 +10,7 @@ import { colors, Icon, SearchBar } from 'react-native-elements';
 import { PressableOpacity } from '../hooks/MyElements';
 import { navigateToErrorScreen } from './Error';
 import { MyStackScreenProps } from '../navigation/Types';
+import { uriFrom } from './SomeFunctions';
 
 interface ItemTile {
     _id: string,
@@ -203,7 +204,7 @@ export function SearchItemsScreen({navigation, route}: MyStackScreenProps<'Searc
                                 key={item._id.toString()}
                                 onPress={() => { navigation.navigate('View Item', { itemId: item._id, itemName: item.name }) }}>    
                             
-                                <Image source={item.imageUrl ? {uri: item.imageUrl} : undefined} style={styles.itemImage} defaultSource={require('../assets/defaultimg.jpg')}/>
+                                <Image source={uriFrom(item.imageUrl)} style={styles.itemImage} defaultSource={require('../assets/defaultimg.jpg')}/>
                                 <View style={styles.itemListItemView}>
                                     <Text style={styles.itemTitle}>{item.name}</Text>
                                     <Text style={styles.itemSubtitle}>{item.ownerName}</Text>

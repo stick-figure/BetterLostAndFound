@@ -54,7 +54,7 @@ export type UserData = {
     emailVertified: boolean,
     createdAt: Timestamp | null,
     timesLostItem: number,
-    timesSelfFoundItem: number,
+    timesFoundOwnItem: number,
     timesOthersFoundItem: number,
     timesFoundOthersItem: number,
     blockedList: string[],
@@ -107,6 +107,7 @@ export type RoomData = {
     postId: string | null,
     createdAt: Timestamp | null,
     resolved: boolean,
+    resolveReason: LostPostResolveReasons | FoundPostResolveReasons | null,
     resolvedAt: Timestamp | null,
 //                secretPhraseValidated: false,
 };

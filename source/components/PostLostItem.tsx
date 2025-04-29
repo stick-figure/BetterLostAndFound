@@ -6,8 +6,9 @@ import { auth, db } from '../../ModularFirebase';
 import { CoolButton, PressableOpacity } from '../hooks/MyElements';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { navigateToErrorScreen } from './Error';
-import { MyStackScreenProps } from '../navigation/Types';
+import { HomeTabScreenProps, MyStackScreenProps } from '../navigation/Types';
 import { ItemData, UserData } from '../assets/Types';
+import { uriFrom } from './SomeFunctions';
 
 
 type ItemTile = {
@@ -15,7 +16,7 @@ type ItemTile = {
     owner?: UserData,
 };
 
-export function PostLostItemScreen({navigation, route}: MyStackScreenProps<'Post Lost Item'>) {
+export function PostLostItemScreen({navigation, route}: HomeTabScreenProps<'Post Lost Item'>) {
     const [itemTiles, setItemTiles] = useState<ItemTile[]>([]);
     const [itemTileQuery, setItemTileQuery] = useState<ItemTile[]>([]);
     const [search, setSearch] = useState('');
@@ -193,7 +194,7 @@ export function PostLostItemScreen({navigation, route}: MyStackScreenProps<'Post
                 />
             <View style={styles.itemList}>
                 <FlatList
-                    contentContainerStyle={{minHeight: '100%'}}
+                    contentContainerStyle={{flex: 1}}
                     keyExtractor={item => item.item.id.toString()}
                     ListEmptyComponent={
                         <View style={{flex: 1, alignContent: 'center', alignSelf: 'stretch', justifyContent: 'center'}}>
@@ -209,10 +210,10 @@ export function PostLostItemScreen({navigation, route}: MyStackScreenProps<'Post
                                     const ownerRef = doc(db, 'users', auth.currentUser!.uid)
                                     const ownerData = (await getDoc(ownerRef)).data();
 
-                                    navigation.navigate('New Lost Post', { item: item.item, owner: item.owner })
+                                    navigation.navigate('My Stack', {screen: 'New Lost Post', params: { item: item.item, owner: item.owner } })
                                 }}>
                             
-                                <Image source={{uri: item.item.imageUrl || undefined}} style={styles.itemImage} defaultSource={require('../assets/defaultimg.jpg')}/>
+                                <Image source={uriFrom(item.item.imageUrl)} style={styles.itemImage} defaultSource={require('../assets/defaultimg.jpg')}/>
                                 <View style={styles.listItemInfo}>
                                     <Text style={styles.itemTitle}>{item.item?.name ?? 'Unknown Item'}</Text>
                                     <Text style={styles.itemSubtitle}>{item.owner?.name ?? 'Unknown User'}</Text>

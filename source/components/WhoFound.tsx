@@ -7,7 +7,7 @@ import { Swipeable } from "react-native-gesture-handler";
 import { auth, db } from "../../ModularFirebase";
 import { PressableOpacity } from "../hooks/MyElements";
 import { ChatRoomTile, ItemData, LostPostResolveReasons, PostData, RoomData, UserData } from "../assets/Types";
-import { popupOnError } from "./Error";
+import { navigateToErrorScreen, popupOnError } from "./Error";
 import { doc, runTransaction, serverTimestamp, updateDoc } from "firebase/firestore";
 
 
@@ -17,6 +17,7 @@ export function WhoFoundScreen( {navigation, route}: MyStackScreenProps<'Who Fou
     const [owner, setOwner] = useState<UserData>();
     const [users, setUsers] = useState<UserData[]>();
     const [isNavigating, setIsNavigating] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
     
     const isDarkMode = useColorScheme() === 'dark';
     const colors = isDarkMode ? DarkThemeColors : LightThemeColors;
@@ -93,32 +94,52 @@ export function WhoFoundScreen( {navigation, route}: MyStackScreenProps<'Who Fou
         if (!post) throw new Error('Post is undefined');
         if (!item) throw new Error('Item is undefined');
 
+        if (post.resolved) throw new Error('Post has already been resolved');
+
+        setIsUploading(true);
+
         await runTransaction(db, async (transaction) => {
-            const userSnapshot = await transaction.get(doc(db, 'users', user.id));
-            const ownerSnapshot = await transaction.get(doc(db, 'users', owner.id));
-            
-            const postUpdate = {
-                resolved: true,
-                resolveReason: LostPostResolveReasons.FOUND_ITEM,
-                resolvedAt: serverTimestamp(),
-                foundBy: user.id,
-            };
-            transaction.update(doc(db, 'posts', post.id), postUpdate);
+            try {
+                const userSnapshot = await transaction.get(doc(db, 'users', user.id));
+                const ownerSnapshot = await transaction.get(doc(db, 'users', owner.id));
+                
+                const postUpdate = {
+                    resolved: true,
+                    resolveReason: LostPostResolveReasons.FOUND_ITEM,
+                    resolvedAt: serverTimestamp(),
+                    foundBy: user.id,
+                };
+                transaction.update(doc(db, 'posts', post.id), postUpdate);
 
-            const itemUpdate = {
-                isLost: false,
-            }
-            transaction.update(doc(db, 'items', item.id), itemUpdate);
+                const itemUpdate = {
+                    isLost: false,
+                };
+                transaction.update(doc(db, 'items', item.id), itemUpdate);
+                
+//                throw (userSnapshot.get('timesFoundOthersItem') instanceof Number).toString();
+                const timesFoundOthersItem = parseInt(userSnapshot.get('timesFoundOthersItem'));
+                const userUpdate = {
+                    timesFoundOthersItem: !isNaN(timesFoundOthersItem) ? timesFoundOthersItem + 1 : undefined,
+                };
+                transaction.update(doc(db, 'users', user.id), userUpdate);
 
-            const userUpdate = {
-                timesFoundOthersItem: userSnapshot.get('timesFoundOthersItem') ? userSnapshot.get('timesFoundOthersItem') + 1 : undefined,
-            }
-            transaction.update(doc(db, 'users', user.id), userUpdate);
+                const timesOthersFoundItem = parseInt(userSnapshot.get('timesOthersFoundItem'));
+                const ownerUpdate = {
+                    timesOthersFoundItem: !isNaN(timesOthersFoundItem) ? timesOthersFoundItem + 1 : undefined,
+                };
+                transaction.update(doc(db, 'users', owner.id), ownerUpdate);
 
-            const ownerUpdate = {
-                timesOthersFoundItem: ownerSnapshot.get('timesOthersFoundItem') ? ownerSnapshot.get('timesOthersFoundItem') + 1 : undefined,
+                navigation.navigate('My Drawer', {
+                    screen: 'Home Tabs', 
+                    params: {
+                        screen: 'Home',
+                    }
+                });
+            } catch (error) {
+                navigateToErrorScreen(navigation, error);
+            } finally {
+                setIsUploading(false);
             }
-            transaction.update(doc(db, 'users', owner.id), ownerUpdate);
         });
     });
 
@@ -155,10 +176,10 @@ export function WhoFoundScreen( {navigation, route}: MyStackScreenProps<'Who Fou
                             <PressableOpacity
                                 style={styles.chatItem}
                                 onPress={() => resolvePost(item)}
-                                disabled={isNavigating}>
+                                disabled={isNavigating || isUploading}>
                                 <Image 
                                     style={styles.chatThumbnail}
-                                    source={{uri: item.pfpUrl || undefined}}
+                                    source={uriFrom(item.pfpUrl)}
                                     defaultSource={require('../assets/defaultpfp.jpg')} />
                                 <Text style={styles.chatTitle}>{item.name || 'Unknown user'}</Text>
                             </PressableOpacity>

@@ -16,6 +16,7 @@ export function LoginScreen({navigation, route}: MyStackScreenProps<'Login'>) {
     const [password, setPassword] = useState('');
     const [signingIn, setSigningIn] = useState(false);
     const [errorText, setErrorText] = useState('');
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
     
     const openRegisterScreen = () => {
         navigation.navigate('Register', { email: email, password: password });
@@ -43,9 +44,33 @@ export function LoginScreen({navigation, route}: MyStackScreenProps<'Login'>) {
                     setErrorText(error.code + ' ' + error.message);
             }
         }).finally(() => {
+            setPassword('');
             setSigningIn(false);
         });
     };
+
+    useEffect(() => {
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+            if (user) {
+                setIsLoggedIn(true);
+                navigation.dispatch(CommonActions.reset({ 
+                    index: 0, routes: [{
+                        name: 'My Drawer', 
+                        params: {
+                            screen: 'Home Tab',
+                            params: {
+                                screen: 'Home'
+                            }
+                        }}] 
+                }));
+            } else {
+                setIsLoggedIn(false);
+//                navigation.replace('My Stack', {screen: 'Login'});
+            }
+        });
+
+        return unsubscribe;
+    }, []);
 
     const isDarkMode = useColorScheme() === 'dark';
     const colors = isDarkMode ? DarkThemeColors : LightThemeColors;

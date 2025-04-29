@@ -11,8 +11,9 @@ import { CoolButton, CoolTextInput, PressableOpacity } from '../hooks/MyElements
 import { CheckBox, Input } from 'react-native-elements';
 import SafeAreaView from 'react-native-safe-area-view';
 import { MyStackScreenProps } from '../navigation/Types';
-import { ItemData, PostData, PostDataUpload, TypeType, UserData } from '../assets/Types';
+import { ItemData, PostData, LostPostDataUpload, TypeType, UserData } from '../assets/Types';
 import { navigateToErrorScreen, popupOnError } from './Error';
+import { uriFrom } from './SomeFunctions';
 
 
 export function NewLostPostScreen({navigation, route}: MyStackScreenProps<'New Lost Post'>) {
@@ -37,7 +38,7 @@ export function NewLostPostScreen({navigation, route}: MyStackScreenProps<'New L
 
         const postRef = doc(collection(db, 'posts'));
 
-        const postDataToUpload: PostDataUpload = {
+        const postDataToUpload: LostPostDataUpload = {
             id: postRef.id,
             type: TypeType.LOST,
             itemId: item.id,
@@ -47,6 +48,7 @@ export function NewLostPostScreen({navigation, route}: MyStackScreenProps<'New L
             createdAt: serverTimestamp(),
             resolved: false,
             resolvedAt: null,
+            foundBy: null,
             resolveReason: null,
             views: 0,
             roomIds: [],
@@ -60,7 +62,7 @@ export function NewLostPostScreen({navigation, route}: MyStackScreenProps<'New L
         setDoc(postRef, postDataToUpload).then(() => {
             return updateDoc(doc(db, 'items', item.id), {isLost: true, lostPostId: postRef.id, timesLost: item.timesLost as number + 1});
         }).then(() => {
-            return updateDoc(doc(db, 'users', owner.id), {timesOwnItemLost: owner.timesOwnItemLost as number + 1});
+            return updateDoc(doc(db, 'users', owner.id), {timesItemLost: owner.timesLostItem + 1});
         }).then(() => {
             return getDoc(postRef);
         }).then((snapshot) => {
@@ -211,7 +213,7 @@ export function NewLostPostScreen({navigation, route}: MyStackScreenProps<'New L
                         disabled={uploading}>
                             <View style={styles.horizontal}>
                             <Image 
-                                source={{uri: item!.imageUrl || undefined}} 
+                                source={uriFrom(item!.imageUrl)} 
                                 defaultSource={require('../assets/defaultimg.jpg')} 
                                 style={styles.itemImage} />
                                 <View style={styles.itemListItemView}>
@@ -235,7 +237,8 @@ export function NewLostPostScreen({navigation, route}: MyStackScreenProps<'New L
                 multiline={true}
                 numberOfLines={4}
                 placeholder=''
-                containerStyle={{width: '100%', height: 200}}
+                containerStyle={{alignSelf: 'stretch'}}
+                style={{height: 200}}
                 onChangeText={text => setMessage(text)}
                 value={message}
                 editable={!uploading}

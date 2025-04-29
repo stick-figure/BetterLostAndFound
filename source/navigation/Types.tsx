@@ -30,6 +30,7 @@ export type MyDrawerScreenProps<T extends keyof MyDrawerParamList> =
 
 export type HomeTabParamList = {
     'Home': undefined;
+    'Post Lost Item': undefined;
     'Return Item': undefined;
     'My Chat Rooms': undefined;
     'My Items': undefined;
@@ -43,7 +44,6 @@ export type HomeTabScreenProps<T extends keyof HomeTabParamList> =
 
 export type MyStackParamList = {
     /* Screens for logged in users */
-    'Post Lost Item': undefined;
     'Notifications': undefined;
     'Add Item': {
         nextScreen: string
