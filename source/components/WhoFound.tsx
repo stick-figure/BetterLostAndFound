@@ -9,6 +9,7 @@ import { PressableOpacity } from "../hooks/MyElements";
 import { ChatRoomTile, ItemData, LostPostResolveReasons, PostData, RoomData, UserData } from "../assets/Types";
 import { navigateToErrorScreen, popupOnError } from "./Error";
 import { doc, runTransaction, serverTimestamp, updateDoc } from "firebase/firestore";
+import { uriFrom } from "./SomeFunctions";
 
 
 export function WhoFoundScreen( {navigation, route}: MyStackScreenProps<'Who Found'> ) {
@@ -86,9 +87,9 @@ export function WhoFoundScreen( {navigation, route}: MyStackScreenProps<'Who Fou
         setUsers(route.params!.users);
 
         if (route.params.post?.roomIds === undefined) return;
-    }), [isLoggedIn]);    
+    }), [isLoggedIn]);
 
-    const resolvePost = popupOnError(navigation, async (user: UserData) => {
+    const resolvePostAsFound = popupOnError(navigation, async (user: UserData) => {
         if (!user) throw new Error('User is undefined');
         if (!owner) throw new Error('Owner is undefined');
         if (!post) throw new Error('Post is undefined');
@@ -175,7 +176,7 @@ export function WhoFoundScreen( {navigation, route}: MyStackScreenProps<'Who Fou
                             style={{backgroundColor: colors.card}}>
                             <PressableOpacity
                                 style={styles.chatItem}
-                                onPress={() => resolvePost(item)}
+                                onPress={() => resolvePostAsFound(item)}
                                 disabled={isNavigating || isUploading}>
                                 <Image 
                                     style={styles.chatThumbnail}

@@ -238,8 +238,36 @@ export function ViewItemScreen({navigation, route}: MyStackScreenProps<'View Ite
 
     const actionButtons = () => {
         let arr: ReactNode[] = [];
-
-        if (item?.isLost) {
+        if (isEditable) {
+            arr.push(
+                <View style={{ flex: 1 }} key={'save'}>
+                    <CoolButton
+                        leftIcon={{
+                            name: 'save', 
+                            type: 'material-icons', 
+                            size: 24,
+                        }}
+                        
+                        onPress={() => {saveEdits(); setIsEditable(false)}}
+                        disabled={!isEditable || isUploading} 
+                        useSecondaryColor />
+                </View>
+            );
+            arr.push(
+                <View key={'deletepost'}>
+                    <CoolButton
+                        leftIcon={{
+                            name: 'delete',
+                            type: 'material-community',
+                            size: 24,
+                            color: colors.text,
+                        }}
+                        onPress={deleteItemAlert}
+                        capStyle={styles.deleteItemButton}
+                        disabled={!isEditable || isUploading} />
+                </View>
+            );
+        } else if (item?.isLost) {
             arr.push(
                 <View style={{ flex: 1 }} key={'redirecttolostpost'}>
                     <CoolButton
@@ -252,13 +280,28 @@ export function ViewItemScreen({navigation, route}: MyStackScreenProps<'View Ite
         } else {
             if (isOwner) {
                 arr.push(
-                    <View style={{ flex: 2 }} key={'markaslost'}>
+                    <View style={{ flex: 0 }} key={'editpost'}>
+                        <CoolButton
+                            leftIcon={{
+                                name: 'pencil', 
+                                type: 'material-community', 
+                                size: 20,
+                            }}
+                            onPress={() => setIsEditable(true)}
+                            style={styles.startEditButton}
+                            disabled={isUploading}
+                            useSecondaryColor />
+                    </View>
+                );
+                arr.push(
+                    <View style={{ flex: 1 }} key={'markaslost'}>
                         <CoolButton
                             title='Post item as lost'
                             onPress={redirectToNewLostPost}
-                            style={styles.actionButton} />
+                            style={styles.actionButton} 
+                             />
                     </View>
-                );
+                );/*
                 arr.push(
                     <View style={{ flex: 1 }} key={'transferownership'}>
                         <CoolButton
@@ -267,7 +310,8 @@ export function ViewItemScreen({navigation, route}: MyStackScreenProps<'View Ite
                             style={styles.scaryActionButton} 
                             capStyle={{backgroundColor: colors.red}} />
                     </View>
-                );
+                );*/
+                
             } else {      
                 arr.push(
                     <View style={{ flex: 1 }} key={'reportasfound'}>
@@ -459,57 +503,13 @@ export function ViewItemScreen({navigation, route}: MyStackScreenProps<'View Ite
                             value={description} 
                             multiline
                             editable={isEditable && !isUploading} />
-                        <View style={[styles.horizontal, {width: '100%', padding: 8, alignSelf: 'center'}]}>
-                            <View style={{flexDirection: 'row', flex: 1}}>
-                                <View style={{ flex: 1 }}>
-                                    <CoolButton
-                                        leftIcon={{
-                                            name: 'save', 
-                                            type: 'material-icons', 
-                                            size: 24,
-                                        }}
-                                        
-                                        onPress={() => {saveEdits(); setIsEditable(false)}}
-                                        disabled={!isEditable || isUploading} 
-                                        useSecondaryColor />
-                                </View>
-                                <View>
-                                    <CoolButton
-                                        leftIcon={{
-                                            name: 'delete',
-                                            type: 'material-community',
-                                            size: 24,
-                                            color: colors.text,
-                                        }}
-                                        onPress={deleteItemAlert}
-                                        capStyle={styles.deleteItemButton}
-                                        disabled={!isEditable || isUploading} />
-                                    
-                                </View>
-                            </View>
-                        </View>
+                        {actionButtons()}
                     </View>
                 ) : (
                     <View style={styles.infoContainer}>
                         <Text style={styles.itemName}>{name}</Text>
                         <Text style={styles.description}>{description}</Text>
                         {actionButtons()}
-                        <View style={[styles.horizontal, {width: '100%', padding: 8, alignSelf: 'center'}]}>
-                            <View style={{flexDirection: 'row', flex: 1 }}>
-                                <View style={{ flex: 1 }} key={'editinfo'}>
-                                    <CoolButton
-                                        leftIcon={{
-                                            name: 'pencil', 
-                                            type: 'material-community', 
-                                            size: 20,
-                                        }}
-                                        onPress={() => setIsEditable(true)}
-                                        style={styles.startEditButton}
-                                        disabled={isUploading}
-                                        useSecondaryColor />
-                                </View>
-                            </View>
-                        </View>
 
                         <Text style={styles.text}>Posts mentioning this item</Text>
                     </View>

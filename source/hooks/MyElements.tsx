@@ -73,9 +73,9 @@ export const MyInput = ({ ...props }) => {
     return (
         <View style={[styles.textInputContainer, props.textInputContainerStyle]}>
             { 
-                props.required ? 
+                props.required ? (
                     <RequiredLabel style={[styles.label, props.labelStyle]}>{props.label}</RequiredLabel>
-                :
+            )   :
                     <Text style={[styles.label, props.labelStyle]}>{props.label}</Text>
             }
             <View style={{borderColor: colors.border, borderBottomWidth: 2, flexDirection: 'row'}}>

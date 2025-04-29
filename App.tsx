@@ -165,6 +165,7 @@ function MyDrawer() {
                 name='Home Tabs' 
                 component={HomeTab} 
                 options={{
+                    title: 'Home Tabs',
                     headerTitle: 'Better Lost and Found', 
                     headerShown: true, 
                     drawerItemStyle: {
@@ -196,6 +197,7 @@ function MyDrawer() {
                 name='Notifications' 
                 component={NotificationsScreen} 
                 options={{ 
+                    title: 'Notifications',
                     headerTitle: 'Notifications',
                     drawerIcon({ focused, color, size }) {
                         return <Icon name='notifications' type='material-icons' size={size} color={color} />;
@@ -205,6 +207,7 @@ function MyDrawer() {
                 name='Settings' 
                 component={SettingsScreen} 
                 options={{ 
+                    title: 'Settings',
                     headerTitle: 'Settings', 
                     drawerIcon({ focused, color, size }) {
                         return <Icon name='settings' type='material-icons' size={size} color={color} />;
@@ -245,12 +248,12 @@ function MyStack() {
                     component={ViewItemScreen} />
                 <Stack.Screen name='Scan Code' component={ScanCodeScreen} options={{ title: 'Scan Code' }} />
                 <Stack.Screen name='New Lost Post' component={NewLostPostScreen} options={{ title: 'New Post' }} />
-                <Stack.Screen name='View Lost Post' component={ViewLostPostScreen} options={{ headerShown: false }} />
+                <Stack.Screen name='View Lost Post' component={ViewLostPostScreen} options={{ title: 'View Lost Post', headerShown: false }} />
                 <Stack.Screen name='Search Items' component={SearchItemsScreen} options={{ 
                     title: 'Search Items', 
                     headerShown: false}} />
                 <Stack.Screen name='New Found Post' component={NewFoundPostScreen} options={{ title: 'New Post' }} />
-                <Stack.Screen name='Chat Room' component={ChatRoomScreen} />
+                <Stack.Screen name='Chat Room' component={ChatRoomScreen} options={{title: 'Chat Room'}} />
             </Stack.Group>
             
             {/* Auth screens */}
@@ -280,8 +283,8 @@ export function App() {
                 <RootStack.Navigator 
                     initialRouteName={'My Stack'}
                     screenOptions={{headerShown: false}}>
-                    <RootStack.Screen name='My Drawer' component={MyDrawer} options={{title: 'Home'}}/>
-                    <RootStack.Screen name='My Stack' component={MyStack} options={{title: ''}}/>
+                    <RootStack.Screen name='My Drawer' component={MyDrawer} options={{title: 'My Drawer'}}/>
+                    <RootStack.Screen name='My Stack' component={MyStack} options={{title: 'My Stack'}}/>
                 </RootStack.Navigator>
             </NavigationContainer>
         </SafeAreaProvider>
