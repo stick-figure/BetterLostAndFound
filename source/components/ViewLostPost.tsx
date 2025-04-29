@@ -45,7 +45,7 @@ export function ViewLostPostScreen({navigation, route}: MyStackScreenProps<'View
     const [post, setPost] = useState<PostData>();
 
     const [rooms, setRooms] = useState<RoomData[]>();
-    const [roomTiles, setRoomTiles] = useState<ChatRoomTile[]>();
+    const [roomTiles, setRoomTiles] = useState<ChatRoomTile[]>([]);
 
     const [message, setMessage] = useState<string>();
     

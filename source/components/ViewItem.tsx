@@ -68,6 +68,8 @@ export function ViewItemScreen({navigation, route}: MyStackScreenProps<'View Ite
     const redirectToNewFoundPost = popupOnError(navigation, () => {
         if (!item) throw new Error('item not found');
         if (!owner) throw new Error('owner not found');
+//        if (!item.foundPostId) throw new Error('item already has a post');
+        
         navigation.navigate('New Found Post', { item: item, owner: owner });
     });
     
@@ -84,6 +86,8 @@ export function ViewItemScreen({navigation, route}: MyStackScreenProps<'View Ite
     const redirectToNewLostPost = popupOnError(navigation, () => {
         if (!item) throw new Error('item not found');
         if (!owner) throw new Error('owner not found');
+        if (item.lostPostId && item.lostPostId !== '') throw new Error('item already has a post');
+
         navigation.navigate('New Lost Post', { item: item, owner: owner });
     });
     
@@ -267,16 +271,6 @@ export function ViewItemScreen({navigation, route}: MyStackScreenProps<'View Ite
                         disabled={!isEditable || isUploading} />
                 </View>
             );
-        } else if (item?.isLost) {
-            arr.push(
-                <View style={{ flex: 1 }} key={'redirecttolostpost'}>
-                    <CoolButton
-                        title='Go to lost post'
-                        onPress={redirectToCurrentLostPost}
-                        style={styles.actionButton} 
-                        />
-                </View>
-            );
         } else {
             if (isOwner) {
                 arr.push(
@@ -293,15 +287,7 @@ export function ViewItemScreen({navigation, route}: MyStackScreenProps<'View Ite
                             useSecondaryColor />
                     </View>
                 );
-                arr.push(
-                    <View style={{ flex: 1 }} key={'markaslost'}>
-                        <CoolButton
-                            title='Post item as lost'
-                            onPress={redirectToNewLostPost}
-                            style={styles.actionButton} 
-                             />
-                    </View>
-                );/*
+                /*
                 arr.push(
                     <View style={{ flex: 1 }} key={'transferownership'}>
                         <CoolButton
@@ -311,14 +297,34 @@ export function ViewItemScreen({navigation, route}: MyStackScreenProps<'View Ite
                             capStyle={{backgroundColor: colors.red}} />
                     </View>
                 );*/
-                
-            } else {      
+            } else if (item && !item.isLost) {
                 arr.push(
                     <View style={{ flex: 1 }} key={'reportasfound'}>
                         <CoolButton
                             title='Report item as found'
                             onPress={redirectToNewFoundPost}
                             style={styles.actionButton} />
+                    </View>
+                );
+            }
+            if (item?.isLost) {
+                arr.push(
+                    <View style={{ flex: 1 }} key={'redirecttolostpost'}>
+                        <CoolButton
+                            title='Go to lost post'
+                            onPress={redirectToCurrentLostPost}
+                            style={styles.actionButton} 
+                            />
+                    </View>
+                );
+            } else {
+                arr.push(
+                    <View style={{ flex: 1 }} key={'markaslost'}>
+                        <CoolButton
+                            title='Post item as lost'
+                            onPress={redirectToNewLostPost}
+                            style={styles.actionButton} 
+                             />
                     </View>
                 );
             }

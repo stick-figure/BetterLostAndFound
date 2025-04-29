@@ -7,13 +7,12 @@ import { FirebaseError } from 'firebase/app';
 
 const debugMode = true;
 
-export const navigateToErrorScreen = (navigation: NavigationProp<any>, error, func?: Function) => {
+export const navigateToErrorScreen = (navigation: NavigationProp<any>, error: unknown) => {
     if (error instanceof FirebaseError) {
         navigation.navigate('My Stack', {
             screen: 'Error', 
             params: {
                 error: error, 
-                func: func
             }
         });
     } else {
@@ -21,7 +20,6 @@ export const navigateToErrorScreen = (navigation: NavigationProp<any>, error, fu
             screen: 'Error', 
             params: {
                 error: error, 
-                func: func
             }
         });
     }
@@ -40,7 +38,7 @@ export const popupOnError = <Func extends AnyFunction>(
         try {
             return fn(...args);
         } catch (e) {
-            navigateToErrorScreen(navigation, e, fn);
+            navigateToErrorScreen(navigation, e);
         } finally {
             if (onFinally !== undefined) return onFinally();
         } 

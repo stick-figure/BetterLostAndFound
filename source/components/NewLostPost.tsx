@@ -1,4 +1,4 @@
-import { addDoc, collection, doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, doc, getDoc, runTransaction, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes } from 'firebase/storage';
 import { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Image, useColorScheme } from 'react-native';
@@ -30,55 +30,75 @@ export function NewLostPostScreen({navigation, route}: MyStackScreenProps<'New L
 
     const [uploading, setUploading] = useState(false);
 
-    const uploadPost = popupOnError(navigation, () => {
+    const uploadPost = popupOnError(navigation, async () => {
         setUploading(true);
         if (!isLoggedIn || !auth.currentUser) throw new Error('User is not authenticated');
-        if (!item) throw new Error('Item is not defined');
-        if (!owner) throw new Error('Owner is not defined');
+        if (!item?.id) throw new Error('Item is not defined');
+        if (!owner?.id) throw new Error('Owner is not defined');
 
-        const postRef = doc(collection(db, 'posts'));
-
-        const postDataToUpload: LostPostDataUpload = {
-            id: postRef.id,
-            type: TypeType.LOST,
-            itemId: item.id,
-            title: title.trim().length > 0 ? title : item.name,
-            message: message,
-            authorId: auth.currentUser!.uid,
-            createdAt: serverTimestamp(),
-            resolved: false,
-            resolvedAt: null,
-            foundBy: null,
-            resolveReason: null,
-            views: 0,
-            roomIds: [],
-            showPhoneNumber: false,
-            showAddress: false,
-            imageUrls: [item.imageUrl],
-        };
-
-        navigation.navigate('Loading');
-
-        setDoc(postRef, postDataToUpload).then(() => {
-            return updateDoc(doc(db, 'items', item.id), {isLost: true, lostPostId: postRef.id, timesLost: item.timesLost as number + 1});
-        }).then(() => {
-            return updateDoc(doc(db, 'users', owner.id), {timesItemLost: owner.timesLostItem + 1});
-        }).then(() => {
-            return getDoc(postRef);
-        }).then((snapshot) => {
-            navigation.navigate('View Lost Post', {item: item, owner: owner, author: owner, post: snapshot.data()! as PostData});
-            navigation.dispatch((state: {routes: any[]}) => {
-                const topScreen = state.routes[0];
-                const thisScreen = state.routes[state.routes.length - 1];
-                const routes = [topScreen, thisScreen];
-                return CommonActions.reset({
-                    ...state,
-                    index: routes.length - 1,
-                    routes,
-                });
-            });
-            setUploading(false);
+        const [postRef, currentItem, currentOwner] = await runTransaction(db, async (transaction) => {
+            try {
+                const currentItem = await transaction.get(doc(db, 'items', item!.id));
+                const currentOwner = await transaction.get(doc(db, 'owners', owner!.id));
+                if (currentItem.get('lostPostId') && currentItem.get('lostPostId') !== '') throw new Error(`Post already exists for this item: ${currentItem.get('lostPostId')}`);
+    
+                const postRef = doc(collection(db, 'posts'));
+    
+                const postDataToUpload: LostPostDataUpload = {
+                    id: postRef.id,
+                    type: TypeType.LOST,
+                    itemId: item!.id,
+                    title: title.trim().length > 0 ? title : item!.name,
+                    message: message,
+                    authorId: auth.currentUser!.uid,
+                    createdAt: serverTimestamp(),
+                    resolved: false,
+                    resolvedAt: null,
+                    foundBy: null,
+                    resolveReason: null,
+                    views: 0,
+                    roomIds: [],
+                    showPhoneNumber: false,
+                    showAddress: false,
+                    imageUrls: [item!.imageUrl],
+                };
+                transaction.set(postRef, postDataToUpload);
+                transaction.update(doc(db, 'items', currentItem!.id), {isLost: true, lostPostId: postRef.id, timesLost: currentItem!.get('timesLost') as number + 1});
+                transaction.update(doc(db, 'users', currentOwner!.id), {timesItemLost: currentOwner.get('timesLostItem') as number + 1});
+    
+                return [postRef, currentItem, currentOwner];
+            } catch (error) {
+                navigateToErrorScreen(navigation, error);
+                return [null, null, null]
+            }
         });
+
+        const currentPost = await getDoc(postRef!);
+
+        navigation.setParams({
+            item: currentItem!.data() as ItemData, 
+            owner: currentOwner!.data() as UserData, 
+        });
+
+        navigation.dispatch((state: {routes: any[]}) => {
+            const topScreen = state.routes[0];
+            const thisScreen = {
+                name: 'View Lost Post', 
+                params: {
+                    item: currentItem!.data() as ItemData, 
+                    owner: currentOwner!.data() as UserData, 
+                    author: currentOwner!.data() as UserData, 
+                    post: currentPost!.data() as PostData,
+                }
+            };
+            const routes = [topScreen, thisScreen];
+            return CommonActions.reset({
+                ...state,
+                index: routes.length - 1,
+                routes,
+            });
+        });
+        setUploading(false);
     });
 
     const [isLoggedIn, setIsLoggedIn] = useState(false);

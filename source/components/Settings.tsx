@@ -3,13 +3,13 @@ import { Alert, StyleSheet, Text, useColorScheme, View } from 'react-native';
 import { auth, db } from '../../ModularFirebase';
 import { deleteUser, signOut } from 'firebase/auth';
 import { TouchableOpacity } from 'react-native-gesture-handler';
-import { collection, deleteDoc, doc, getDocs, Query, query, where, writeBatch } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDocs, namedQuery, Query, query, runTransaction, where, writeBatch } from 'firebase/firestore';
 import { CommonActions, useNavigation } from '@react-navigation/native';
 import { deleteObject } from 'firebase/storage';
 import SafeAreaView from 'react-native-safe-area-view';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { MyDrawerScreenProps } from '../navigation/Types';
-import { navigateToErrorScreen } from './Error';
+import { navigateToErrorScreen, popupOnError } from './Error';
 
 export function SettingsScreen({navigation, route}: MyDrawerScreenProps<'Settings'>) {
     const signOutNow = () => {
@@ -50,29 +50,25 @@ export function SettingsScreen({navigation, route}: MyDrawerScreenProps<'Setting
         console.log('deleted');
     }
 
-    const deleteStorageRecursively = async (query: Query) => {
+    const deleteFirestoreAndStorageImagesRecursively = async (query: Query) => {
         deleteObject
     }
 
-    const deleteAccount = () => {
-
+    const deleteAccount = popupOnError(navigation, async () => {
         navigation.navigate('My Stack', {
             screen: 'Loading'
         });
+
+        await deleteFirestoreRecursively(query(collection(db, 'posts'), where('authorId', '==', auth.currentUser!.uid)));
         
-        deleteFirestoreRecursively(query(collection(db, 'posts'), where('authorId', '==', auth.currentUser!.uid))).then(() => {
-            return deleteFirestoreRecursively(query(collection(db, 'items'), where('ownerId', '==', auth.currentUser!.uid)));
-        }).then(() => {
-            return deleteDoc(doc(db, 'users', auth.currentUser!.uid));
-        }).then(() => {
-            return deleteUser(auth.currentUser!)
-        }).then(() => {
-            navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Login' }] }));
-        }).catch((error) => {
-            // An error happened.
-            navigateToErrorScreen(navigation, error);
-        });
-    }
+        await deleteFirestoreRecursively(query(collection(db, 'items'), where('ownerId', '==', auth.currentUser!.uid)));
+        
+        await deleteDoc(doc(db, 'users', auth.currentUser!.uid));
+        
+        await deleteUser(auth.currentUser!)
+        
+        navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Login' }] }));
+    });
 
     const promptDeleteAccount = () => {
         Alert.alert('Delete Account?', 'You cannot undo this action!', [

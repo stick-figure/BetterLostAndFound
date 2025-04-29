@@ -114,17 +114,18 @@ export function WhoFoundScreen( {navigation, route}: MyStackScreenProps<'Who Fou
 
                 const itemUpdate = {
                     isLost: false,
+                    lostPostId: null,
                 };
                 transaction.update(doc(db, 'items', item.id), itemUpdate);
                 
 //                throw (userSnapshot.get('timesFoundOthersItem') instanceof Number).toString();
-                const timesFoundOthersItem = parseInt(userSnapshot.get('timesFoundOthersItem'));
+                const timesFoundOthersItem = userSnapshot.get('timesFoundOthersItem') as number;
                 const userUpdate = {
                     timesFoundOthersItem: !isNaN(timesFoundOthersItem) ? timesFoundOthersItem + 1 : undefined,
                 };
                 transaction.update(doc(db, 'users', user.id), userUpdate);
 
-                const timesOthersFoundItem = parseInt(userSnapshot.get('timesOthersFoundItem'));
+                const timesOthersFoundItem = userSnapshot.get('timesOthersFoundItem') as number;
                 const ownerUpdate = {
                     timesOthersFoundItem: !isNaN(timesOthersFoundItem) ? timesOthersFoundItem + 1 : undefined,
                 };
