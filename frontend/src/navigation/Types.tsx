@@ -32,8 +32,7 @@ export type HomeTabParamList = {
     'Home': undefined;
     'Post Lost Item': undefined;
     'Return Item': undefined;
-    'My Chat Rooms': undefined;
-    'My Items': undefined;
+    'My Stuff': undefined;
 };
 
 export type HomeTabScreenProps<T extends keyof HomeTabParamList> =

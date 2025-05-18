@@ -66,6 +66,7 @@ export function RegisterScreen({navigation, route}: MyStackScreenProps<'Register
                     timesItemLost: 0,
                     timesOwnItemFound: 0,
                     timesOthersItemFound: 0,
+                    timesFoundOthersItem: 0,
                     blockedList: [],
                     friendsList: [],
                     privateStats: false,

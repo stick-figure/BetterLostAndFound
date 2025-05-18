@@ -64,7 +64,7 @@ export function NewLostPostScreen({navigation, route}: MyStackScreenProps<'New L
                 };
                 transaction.set(postRef, postDataToUpload);
                 transaction.update(doc(db, 'items', currentItem!.id), {isLost: true, lostPostId: postRef.id, timesLost: currentItem!.get('timesLost') as number + 1});
-                transaction.update(doc(db, 'users', currentOwner!.id), {timesItemLost: currentOwner.get('timesLostItem') as number + 1});
+                transaction.update(doc(db, 'users', currentOwner!.id), {timesItemLost: currentOwner.get('timesItemLost') as number + 1});
     
                 return [postRef, currentItem, currentOwner];
             } catch (error) {
@@ -91,11 +91,12 @@ export function NewLostPostScreen({navigation, route}: MyStackScreenProps<'New L
                     post: currentPost!.data() as PostData,
                 }
             };
+            console.log(state.routes);
             const routes = [topScreen, thisScreen];
             return CommonActions.reset({
                 ...state,
                 index: routes.length - 1,
-                routes,
+                routes: routes,
             });
         });
         setUploading(false);

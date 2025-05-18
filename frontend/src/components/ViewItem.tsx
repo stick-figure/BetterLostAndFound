@@ -111,7 +111,7 @@ export function ViewItemScreen({navigation, route}: MyStackScreenProps<'View Ite
         
         Promise.all([deleteObject(imageRef!), deleteDoc(itemRef!)]).then(() => {
             // File deleted successfully
-            navigation.navigate('My Drawer', {screen: 'Home Tabs', params: {screen:'My Items'}});
+            navigation.navigate('My Drawer', {screen: 'Home Tabs', params: {screen:'My Stuff'}});
         }).catch((error) => {
             navigateToErrorScreen(navigation, error);
             // Uh-oh, an error occurred!
@@ -468,7 +468,7 @@ export function ViewItemScreen({navigation, route}: MyStackScreenProps<'View Ite
                     <View style={{flex: 1, padding: 5}}>
                         <Image
                             style={styles.itemImage}
-                            source={uriFrom(imageUri ?? item.imageUrl)} 
+                            source={uriFrom(imageUri) ?? uriFrom(item.imageUrl)} 
                             defaultSource={require('../assets/images/defaultimg.jpg')} />
                             {isEditable ? (
                                 <ImagePicker 

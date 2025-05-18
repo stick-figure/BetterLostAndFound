@@ -20,8 +20,14 @@ export function App() {
                 <RootStack.Navigator 
                     initialRouteName={'My Stack'}
                     screenOptions={{headerShown: false}}>
-                    <RootStack.Screen name='My Drawer' component={MyDrawer} options={{title: 'My Drawer'}}/>
-                    <RootStack.Screen name='My Stack' component={MyStack} options={{title: 'My Stack'}}/>
+                    <RootStack.Screen 
+                        name='My Drawer' 
+                        component={MyDrawer} 
+                        options={{title: 'My Drawer'}} />
+                    <RootStack.Screen 
+                        name='My Stack' 
+                        component={MyStack} 
+                        options={{title: 'My Stack'}} />
                 </RootStack.Navigator>
             </NavigationContainer>
         </SafeAreaProvider>

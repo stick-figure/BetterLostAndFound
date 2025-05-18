@@ -13,14 +13,17 @@ import { CoolButton, CoolTextInput, ImagePicker, MyInput, RequiredLabel } from '
 import SafeAreaView from 'react-native-safe-area-view';
 import { request, PERMISSIONS, RESULTS, check, PermissionStatus } from 'react-native-permissions';
 import { useCameraDevices, Camera } from 'react-native-vision-camera';
-import { navigateToErrorScreen } from './Error';
+import { navigateToErrorScreen, popupOnError } from './Error';
 import { MyStackScreenProps } from '../navigation/Types';
 import { uriFrom } from '../utils/SomeFunctions';
+import { LostPostDataUpload, TypeType, ItemData, UserData, PostData } from '../assets/Types';
 
 export function AddItemScreen({ navigation, route }: MyStackScreenProps<'Add Item'>) {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [secretPhrase, setSecretPhrase] = useState('');
+    
+    const [message, setMessage] = useState('');
     const [tags, setTags] = useState([]);
 
     const [imageUri, setImageUri] = useState('');
@@ -39,82 +42,8 @@ export function AddItemScreen({ navigation, route }: MyStackScreenProps<'Add Ite
         return unsubscribe;
     }, []);
 
-    const [hasGalleryPermission, setHasGalleryPermission] = useState<PermissionStatus>(RESULTS.UNAVAILABLE);
-    const [hasCameraPermission, setHasCameraPermission] = useState<PermissionStatus>(RESULTS.UNAVAILABLE);
-    
-    useEffect(() => {
-        check(Platform.OS === 'ios' ? PERMISSIONS.IOS.CAMERA : PERMISSIONS.ANDROID.CAMERA).then((result) => {
-            setHasCameraPermission(result);
-        });
-        check(Platform.OS === 'ios' ? PERMISSIONS.IOS.PHOTO_LIBRARY : PERMISSIONS.ANDROID.READ_MEDIA_IMAGES).then((result) => {
-            setHasGalleryPermission(result);
-        });
-    },[]);
-
     const onImagePicked = (response: ImagePickerResponse) => {
         setImageUri(response.assets![0].uri!);
-    }
-
-    const openImagePicker = () => {
-        if (hasGalleryPermission != RESULTS.GRANTED) {
-            request(Platform.OS === 'ios' ? PERMISSIONS.IOS.CAMERA : PERMISSIONS.ANDROID.CAMERA).then((result) => {
-                setHasGalleryPermission(result);
-                
-                if (result == RESULTS.GRANTED) openImagePicker();
-            });
-            return;
-        }
-
-        const options = {
-            mediaType: 'photo' as MediaType,
-            includeBase64: false,
-            maxHeight: 2000,
-            maxWidth: 2000,
-            selectionLimit: 1,
-        };
-        
-        launchImageLibrary(options, (response) => {
-            if (response.didCancel) {
-                console.log('User cancelled image picker');
-            } else if (response.errorCode) {
-                console.log('ImagePicker Error: ', response.errorMessage);
-            } else if (response.assets) {
-                setImageUri(response.assets![0].uri!);
-            }
-        }).catch(() => { console.log('whoop de doo') });
-    };
-
-    const handleCameraLaunch = () => {
-        if (hasCameraPermission != RESULTS.GRANTED) {
-            check(Platform.OS === 'ios' ? PERMISSIONS.IOS.PHOTO_LIBRARY : PERMISSIONS.ANDROID.READ_MEDIA_IMAGES).then((result) => {
-                setHasGalleryPermission(result);
-                if (result == RESULTS.GRANTED) handleCameraLaunch();
-            });
-            return;    
-        }
-
-        const options = {
-            mediaType: 'photo' as MediaType,
-            includeBase64: false,
-            maxHeight: 2000,
-            maxWidth: 2000,
-        };
-
-        launchCamera(options, (response) => {
-            if (response.didCancel) {
-                console.warn('User cancelled camera');
-            } else if (response.errorCode == 'camera_unavailable') {
-                
-            }else if (response.errorCode) {
-                console.warn('Camera Error', response.errorCode, ': ', response.errorMessage);
-            } else {
-                setImageUri(response.assets![0].uri!);
-            }
-        });
-    }
-    
-    const chooseImageFromWeb = () => {
-
     }
 
     const uploadImage = (imageId: string) => {
@@ -146,66 +75,119 @@ export function AddItemScreen({ navigation, route }: MyStackScreenProps<'Add Ite
         });
     }
 
-    const uploadItem = async () => {
-        try {
-            navigation.navigate('Loading');
-            
-            const ownerData = (await getDoc(doc(db, 'users', auth.currentUser!.uid))).data();
-            
-            const docRef = doc(collection(db, 'items'));
-            
-            const url = await uploadImage(docRef.id);
+    const uploadItem = popupOnError(navigation, async () => {
+        setUploading(true);
+        navigation.navigate('Loading');
 
-            const itemData = {
-                id: docRef.id,
-                name: name,
-                description: description,
-                ownerId: auth.currentUser?.uid,
-                isLost: false,
-                secretPhrase: secretPhrase,
-                createdAt: serverTimestamp(),
-                imageUrl: url,
-                timesLost: 0,
-            };
-            
-            await setDoc(docRef, itemData)
+        const docRef = doc(collection(db, 'items'));
+        
+        const url = await uploadImage(docRef.id);
 
-            if (route.params!.nextScreen !== undefined && route.params!.nextScreen == 'New Lost Post') {
-                navigation.dispatch(
-                    CommonActions.reset({
-                        index: 0,
-                        routes: [
-                            { name: 'New Lost Post', params: {
-                                item: {_id: docRef.id, ...itemData, imageUrl: url}, 
-                                owner: {_id: auth.currentUser!.uid, ...ownerData},
-                            }
-                        }],
-                    })
-                );
-                return;
-            }
+        if (!url) throw new Error('Image URL failed');
+
+        const itemData = {
+            id: docRef.id,
+            name: name,
+            description: description,
+            ownerId: auth.currentUser!.uid,
+            isLost: false,
+            secretPhrase: secretPhrase,
+            createdAt: serverTimestamp(),
+            imageUrl: url,
+            timesLost: 0,
+        };
+        
+        await setDoc(docRef, itemData);
+
+        if (route.params?.nextScreen !== undefined && route.params!.nextScreen == 'View Lost Post') {
+            if (!isLoggedIn || !auth.currentUser) throw new Error('User is not authenticated');
+            if (!itemData?.id) throw new Error('Item is not defined');
+            if (!itemData?.ownerId) throw new Error('Owner is not defined');
+
+            const postRef = await runTransaction(db, async (transaction) => {
+                try {
+                    const currentItem = await transaction.get(doc(db, 'items', itemData!.id));
+                    const currentOwner = await transaction.get(doc(db, 'owners', itemData!.ownerId));
+                    if (currentItem.get('lostPostId') && currentItem.get('lostPostId') !== '') throw new Error(`Post already exists for this item: ${currentItem.get('lostPostId')}`);
+        
+                    const postRef = doc(collection(db, 'posts'));
+        
+                    const postDataToUpload: LostPostDataUpload = {
+                        id: postRef.id,
+                        type: TypeType.LOST,
+                        itemId: itemData!.id,
+                        title: itemData!.name,
+                        message: message,
+                        authorId: auth.currentUser!.uid,
+                        createdAt: serverTimestamp(),
+                        resolved: false,
+                        resolvedAt: null,
+                        foundBy: null,
+                        resolveReason: null,
+                        views: 0,
+                        roomIds: [],
+                        showPhoneNumber: false,
+                        showAddress: false,
+                        imageUrls: [itemData!.imageUrl as string],
+                    };
+                    transaction.set(postRef, postDataToUpload);
+                    transaction.update(doc(db, 'items', currentItem!.id), {isLost: true, lostPostId: postRef.id, timesLost: currentItem!.get('timesLost') as number + 1});
+                    transaction.update(doc(db, 'users', currentOwner!.id), {timesItemLost: currentOwner.get('timesItemLost') as number + 1});
+        
+                    return postRef;
+                } catch (error) {
+                    navigateToErrorScreen(navigation, error);
+                    return null;
+                }
+            });
+
+            const currentPost = await getDoc(postRef!);
+            const currentItem = await getDoc(docRef);
+            const currentOwner = await getDoc(doc(db, 'users', currentItem.get('ownerId')!));
+            console.log(currentOwner?.data());
             navigation.dispatch(
                 CommonActions.reset({
                     index: 0,
                     routes: [
-                        { name: 'View Item', params: {
-                            itemId: docRef.id, itemName: itemData.name 
-                        } 
-                    }],
+                        {
+                            name: 'View Lost Post', 
+                            params: {
+                                item: currentItem!.data() as ItemData, 
+                                owner: currentOwner!.data() as UserData, 
+                                author: currentOwner!.data() as UserData, 
+                                post: currentPost!.data() as PostData,
+                            }
+                        }
+                    ],
                 })
             );
-        } catch (error) {        // An error happened.
-            navigateToErrorScreen(navigation, error);
+            setUploading(false);
+            return;
         }
-    }
+        setUploading(false);
+        navigation.dispatch(
+            CommonActions.reset({
+                index: 0,
+                routes: [
+                    {
+                        name: 'View Item', 
+                        params: {
+                            itemId: docRef.id, itemName: itemData.name 
+                        } 
+                    }
+                ],
+            })
+        );
+    });
 
     const isDarkMode = useColorScheme() === 'dark';
     const colors = isDarkMode ? DarkThemeColors : LightThemeColors;
     const styles = useMemo(() => StyleSheet.create({
         container: {
-            flex: 1,
-            alignItems: 'center',
             backgroundColor: colors.background,
+            flex: 1,
+            minHeight: '100%',
+            padding: 8,
         },
         text: {
             fontSize: 16,
@@ -221,16 +203,13 @@ export function AddItemScreen({ navigation, route }: MyStackScreenProps<'Add Ite
             flexDirection: 'row',
             padding: 10,
         },
-        imagePressableContainer: {
-            width: '100%',
-            alignItems: 'center',
-        },
         imageContainer: {
-            flexDirection: 'row',
+            flex: 1,
             alignItems: 'center',
+            padding: 8, 
         },
         itemImage: {
-            flex: 1,
+            alignSelf:'stretch',
             aspectRatio: 1 / 1,
         },
         imageLabel: {
@@ -270,7 +249,7 @@ export function AddItemScreen({ navigation, route }: MyStackScreenProps<'Add Ite
             margin: 12,
         },
         saveButton: {
-            width: 280,
+            marginTop: 8,
         },
     }), [isDarkMode]);
 
@@ -282,21 +261,105 @@ export function AddItemScreen({ navigation, route }: MyStackScreenProps<'Add Ite
             </View>
         );
     }
+    if (route.params?.nextScreen=='View Lost Post') {
+        return (
+            <SafeAreaView style={{flex: 1, width: '100%', backgroundColor: colors.background}}>
+                <ScrollView contentContainerStyle={styles.container}>
+                    <View style={{width: '100%', flexDirection: 'row', alignSelf: 'stretch'}}>
+                        <View style={styles.imageContainer}>
+                            <Image
+                                style={styles.itemImage}
+                                source={uriFrom(imageUri)}
+                                defaultSource={require('../assets/images/defaultimg.jpg')}/>
+                            <ImagePicker 
+                                onResponse={onImagePicked} 
+                                required />
+                        </View>
+                        <View style={{flex: 2, flexGrow: 2}}>
+                            <CoolTextInput
+                                label='Name'
+                                placeholder='What is this item called?'
+                                onChangeText={text => setName(text)}
+                                containerStyle={{width: '100%'}}
+                                value={name}
+                                editable={!uploading}
+                                required
+                            />
+                            <CoolTextInput
+                                label='Description'
+                                placeholder='Describe some identifying features'
+                                onChangeText={text => setDescription(text)}
+                                style={{height:100}}
+                                containerStyle={{alignContent: 'flex-start', width:'100%'}}
+                                value={description}
+                                editable={!uploading}
+                                multiline
+                                numberOfLines={3}
+                                required
+                            />
+                            <CoolTextInput
+                                label='Secret Passphrase (optional)'
+                                placeholder={'To prove you are the owner'}
+                                onChangeText={text => setSecretPhrase(text)}
+                                containerStyle={{width:'100%'}}
+                                value={secretPhrase}
+                                editable={!uploading}
+                            />
+                        </View>
+                    </View>                
+                    {/* 
+                    <View style={styles.horizontalContainer}>
+                        <TouchableOpacity onPress={handleCameraLaunch} style={styles.iconButton}>
+                            <Icon name='camera-alt' type='material-icons' size={40} color={colors.secondaryContrastText} />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={openImagePicker} style={styles.iconButton}>
+                            <Icon name='photo-library' type='material-icons' size={40} color={colors.secondaryContrastText} />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => {}} style={styles.iconButton}>
+                            <Icon name='web-plus' type='material-community' size={40} color={colors.secondaryContrastText} />
+                        </TouchableOpacity>
+                        <RequiredLabel style={styles.imageLabel}>Select image</RequiredLabel>
+                    </View>
+                    */}
+                    <View style={{flexGrow: 1, alignSelf: 'stretch', alignItems: 'center'}}>
+                        <CoolTextInput
+                            label='Message'
+                            placeholder={'Where was the last place you left this item? When was the last time you had it?'}
+                            onChangeText={text => setMessage(text)}
+                            containerStyle={{width:'100%', flexGrow: 1, minHeight: 120}}
+                            style={{flex: 1}}
+                            value={message}
+                            editable={!uploading}
+                            multiline
+                            required
+                        />
+                        <CoolButton 
+                            title='Add item and post'
+                            disabled={name.trim().length < 1 || description.trim().length < 1 || imageUri == '' || uploading}
+                            onPress={uploadItem}
+                            containerStyle={{width: '75%'}}
+                            style={styles.saveButton}
+                            />
+                    </View>
+                </ScrollView>
+            </SafeAreaView>
+        );
+    }
 
     return (
         <SafeAreaView style={{flex: 1, width: '100%', backgroundColor: colors.background}}>
             <ScrollView contentContainerStyle={styles.container}>
-                <View style={styles.imageContainer}>
-                    <Image
-                        style={styles.itemImage}
-                        source={uriFrom(imageUri)}
-                        defaultSource={require('../assets/images/defaultimg.jpg')}/>
-                    
-                </View>
-                <ImagePicker 
-                        onResponse={onImagePicked} 
-                        required />
-                
+                <View style={{width: '100%', flexDirection: 'row', alignSelf: 'stretch'}}>
+                    <View style={styles.imageContainer}>
+                        <Image
+                            style={styles.itemImage}
+                            source={uriFrom(imageUri)}
+                            defaultSource={require('../assets/images/defaultimg.jpg')}/>
+                        <ImagePicker 
+                            onResponse={onImagePicked} 
+                            required />
+                    </View>
+                </View>                
                 {/* 
                 <View style={styles.horizontalContainer}>
                     <TouchableOpacity onPress={handleCameraLaunch} style={styles.iconButton}>
@@ -311,12 +374,12 @@ export function AddItemScreen({ navigation, route }: MyStackScreenProps<'Add Ite
                     <RequiredLabel style={styles.imageLabel}>Select image</RequiredLabel>
                 </View>
                 */}
-                <View style={{width: '100%', alignItems: 'center'}}>
+                <View style={{flexGrow: 1, alignSelf: 'stretch', alignItems: 'center'}}>
                     <CoolTextInput
                         label='Name'
                         placeholder='What is this item called?'
                         onChangeText={text => setName(text)}
-                        containerStyle={{width: '80%'}}
+                        containerStyle={{width: '100%'}}
                         value={name}
                         editable={!uploading}
                         required
@@ -325,32 +388,34 @@ export function AddItemScreen({ navigation, route }: MyStackScreenProps<'Add Ite
                         label='Description'
                         placeholder='Describe some identifying features'
                         onChangeText={text => setDescription(text)}
-                        containerStyle={{width: '80%'}}
-                        style={{height: 80}}
+                        style={{height:100}}
+                        containerStyle={{alignContent: 'flex-start', width:'100%'}}
                         value={description}
                         editable={!uploading}
                         multiline
-                        numberOfLines={4}
+                        numberOfLines={3}
                         required
                     />
                     <CoolTextInput
-                        label='Secret Phrase (optional)'
-                        placeholder='Phrase to verify you are the owner'
+                        label='Secret Passphrase (optional)'
+                        placeholder={'To prove you are the owner'}
                         onChangeText={text => setSecretPhrase(text)}
-                        containerStyle={{width: '80%'}}
+                        containerStyle={{width:'100%'}}
                         value={secretPhrase}
                         editable={!uploading}
                     />
                     <CoolButton 
-                        title={route.params?.nextScreen ? 'Continue' : 'Add item'}
+                        title='Add item'
                         disabled={name.trim().length < 1 || description.trim().length < 1 || imageUri == '' || uploading}
                         onPress={uploadItem}
+                        containerStyle={{width: '75%'}}
                         style={styles.saveButton}
                         />
                 </View>
             </ScrollView>
         </SafeAreaView>
     );
+
 }
 
 export default AddItemScreen;

@@ -4,7 +4,7 @@ import { ActivityIndicator, Alert, Button, FlatList, Image, Platform, StyleSheet
 import SafeAreaView, { SafeAreaProvider } from 'react-native-safe-area-view';
 import { auth, db } from '../../MyFirebase';
 import { TouchableOpacity } from 'react-native-gesture-handler';
-import { CommonActions, useIsFocused, useNavigation } from '@react-navigation/native';
+import { CommonActions, useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
 import { PressableOpacity } from '../hooks/MyElements';
 import { Icon } from 'react-native-elements';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
@@ -13,9 +13,9 @@ import { ChatRoomTile, GiftedMessageData, PostData, RoomData, UserData } from '.
 import { HomeTabScreenProps } from '../navigation/Types';
 import { truncateText, uriFrom } from '../utils/SomeFunctions';
 
-export function MyChatRoomsScreen({ navigation, route }: HomeTabScreenProps<'My Chat Rooms'> ) {
-//    const navigation = useNavigation<HomeTabScreenProps<'My Chat Rooms'>['navigation']>();
-//    const route = useNavigation<HomeTabScreenProps<'My Chat Rooms'>['route']>();
+export function MyChatRoomsRoute() {
+    const navigation = useNavigation<HomeTabScreenProps<'My Stuff'>['navigation']>();
+    const route = useRoute<HomeTabScreenProps<'My Stuff'>['route']>();
 
     const [lostPostDatas, setLostPostDatas] = useState<PostData[]>([]);
     const [foundPostDatas, setFoundPostDatas] = useState<PostData[]>([]);
@@ -253,7 +253,7 @@ export function MyChatRoomsScreen({ navigation, route }: HomeTabScreenProps<'My 
     }), [isDarkMode]);
     
     return (
-        <SafeAreaView style={styles.container}>
+        <View style={styles.container}>
             <FlatList
                 contentContainerStyle={{width: '100%', flexGrow: 1, minHeight: '100%'}}
                 keyExtractor={(item) => item.room.id}
@@ -291,8 +291,8 @@ export function MyChatRoomsScreen({ navigation, route }: HomeTabScreenProps<'My 
                         </View>
                     </View>
                 } />
-        </SafeAreaView>
+        </View>
     );
 }
 
-export default MyChatRoomsScreen;
+export default MyChatRoomsRoute;

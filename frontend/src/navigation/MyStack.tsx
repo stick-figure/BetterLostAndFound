@@ -40,13 +40,16 @@ export function MyStack() {
             >
             {/* Screens for logged in users */}
             <Stack.Group>
-                <Stack.Screen name='Add Item' component={AddItemScreen} options={{ title: 'Add Item' }} />
-                <Stack.Screen name='View Item' options={({ route }) => ({
-                    title: route.params?.itemName,
-                    headerBackTitle: 'Back',
-                    headerShown: false,
-                })}
-                    component={ViewItemScreen} />
+                <Stack.Screen name='Add Item' component={AddItemScreen} options={{ title: 'Add Item', headerBackTitle: 'Back', }} />
+                <Stack.Screen 
+                    name='View Item' 
+                    options={({ route }) => ({
+                        title: route.params?.itemName,
+                        headerBackTitle: 'Back',
+                        headerShown: false,
+                    })}
+                    component={ViewItemScreen} 
+                />
                 <Stack.Screen name='Scan Code' component={ScanCodeScreen} options={{ title: 'Scan Code' }} />
                 <Stack.Screen name='New Lost Post' component={NewLostPostScreen} options={{ title: 'New Post' }} />
                 <Stack.Screen name='View Lost Post' component={ViewLostPostScreen} options={{ title: 'View Lost Post', headerShown: false }} />

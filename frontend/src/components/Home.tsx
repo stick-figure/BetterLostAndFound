@@ -2,13 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { View, Button, StyleSheet, Text, FlatList, Image, ActivityIndicator, useColorScheme } from 'react-native';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
-import { onSnapshot, query, collection, where, getDoc, DocumentSnapshot, doc, limit, Timestamp } from 'firebase/firestore';
+import { onSnapshot, query, collection, where, getDoc, DocumentSnapshot, doc, limit, Timestamp, getDocs } from 'firebase/firestore';
 import { db, auth } from '../../MyFirebase';
 import { CommonActions, DrawerActions, useIsFocused } from '@react-navigation/native';
 import { Icon } from 'react-native-elements';
 import SafeAreaView from 'react-native-safe-area-view';
 import { CoolButton } from '../hooks/MyElements';
-import { timestampToString, uriFrom } from '../utils/SomeFunctions';
+import { timestampToString, truncateText, uriFrom } from '../utils/SomeFunctions';
 import { navigateToErrorScreen } from './Error';
 import { HomeTabScreenProps } from '../navigation/Types';
 import { ItemData, PostData, UserData } from '../assets/Types';
@@ -30,11 +30,13 @@ export function HomeScreen({ navigation, route }: HomeTabScreenProps<'Home'>) {
     const [isLoading, setIsLoading] = useState(false);
     const [now, setNow] = useState(-1);
     const isFocused = useIsFocused();
+    const [isRefreshing, setIsRefreshing] = useState(false);
     
     useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged((user) => {
             if (user) {
                 setIsLoggedIn(true);
+                getPosts();
             } else {
                 setIsLoggedIn(false);
 //                navigation.replace('My Stack', {screen: 'Login'});
@@ -56,51 +58,45 @@ export function HomeScreen({ navigation, route }: HomeTabScreenProps<'Home'>) {
 
     useEffect(() => setNow(Date.now()), [isFocused, posts]);
 
-    useEffect(() => {
-        if (!isLoggedIn) return;
+    const getPosts = async() => {
+        const snapshot = await getDocs(query(collection(db, 'posts'), limit(20), where('resolved', '==', false), where('type', '==', 'Lost')));
+        try {
+            setIsLoading(true);
+            const promises = snapshot.docs.map(async (postDoc) => {
+                let item;
+                try {
+                    item = await getDoc(doc(db, 'items', postDoc.get('itemId')));
+                } catch (err) {
+                    console.warn(err);
+                }
 
-        const unsubscribe = onSnapshot(query(collection(db, 'posts'), limit(20), where('resolved', '==', false), where('type', '==', 'Lost')), (snapshot: { docs: any[]; }) => {
-            try {
-                setIsLoading(true);
-                const promises = snapshot.docs.map(async (postDoc) => {
-                    let item;
-                    try {
-                        item = await getDoc(doc(db, 'items', postDoc.get('itemId')));
-                    } catch (err) {
-                        console.warn(err);
-                    }
+                let owner;
+                try {
+                    owner = await getDoc(doc(db, 'users', postDoc.get('authorId')));
+                } catch (err) {
+                    console.warn(err);
+                }
+                
+                return {
+                    _id: postDoc.id,
+                    type: postDoc.get('type'),
+                    title: postDoc.get('title'),
+                    message: postDoc.get('message'),
+                    authorName: (owner?.get('name') ? owner.get('name') : postDoc.get('ownerId')) || 'Unknown User',
+                    pfpUrl: owner?.get('pfpUrl'),
+                    imageUrls: postDoc?.get('imageUrls'),
+                    createdAt: postDoc.get('createdAt'),
+                };
+            });
 
-                    let owner;
-                    try {
-                        owner = await getDoc(doc(db, 'users', postDoc.get('authorId')));
-                    } catch (err) {
-                        console.warn(err);
-                    }
-                    
-                    return {
-                        _id: postDoc.id,
-                        type: postDoc.get('type'),
-                        title: postDoc.get('title'),
-                        message: postDoc.get('message'),
-                        authorName: (owner?.get('name') ? owner.get('name') : postDoc.get('ownerId')) || 'Unknown User',
-                        pfpUrl: owner?.get('pfpUrl'),
-                        imageUrls: postDoc?.get('imageUrls'),
-                        createdAt: postDoc.get('createdAt'),
-                    };
-                });
-
-                Promise.all(promises).then((res) => {
-                    setPosts(res.sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0))); setIsLoading(false);
-                }).catch((error) => {
-                    navigateToErrorScreen(navigation, error);
-                });
-            } catch (error) {
-                navigateToErrorScreen(navigation, error);
-            }
-        });
-
-        return unsubscribe;
-    }, [isLoggedIn]);
+            const res = await Promise.all(promises);
+            setPosts(res.sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0))); 
+        } catch (error) {
+            navigateToErrorScreen(navigation, error);
+        } finally {
+            setIsLoading(false);
+        }
+    }
     
     const navigateToPost = async (postId: string) => {
         try {
@@ -113,6 +109,10 @@ export function HomeScreen({ navigation, route }: HomeTabScreenProps<'Home'>) {
             navigateToErrorScreen(navigation, error);
         }
 
+    }
+
+    const onRefresh = async () => {
+        getPosts();
     }
 
     const isDarkMode = useColorScheme() === 'dark';
@@ -203,6 +203,8 @@ export function HomeScreen({ navigation, route }: HomeTabScreenProps<'Home'>) {
                     <FlatList
                         contentContainerStyle={{minHeight: '100%'}}
                         keyExtractor={lostPost => lostPost._id.toString()}
+                        onRefresh={onRefresh}
+                        refreshing={isRefreshing}
                         ListEmptyComponent={
                             <View style={{width: '100%', height: '100%', alignContent: 'center', alignSelf: 'stretch', justifyContent: 'center'}}>
                                 {isLoading ? <ActivityIndicator size='large' /> : <Icon name='cactus' type='material-community' size={40} />}
@@ -226,7 +228,7 @@ export function HomeScreen({ navigation, route }: HomeTabScreenProps<'Home'>) {
                                     </View>
                                     <View style={{margin: 4, maxHeight: 80, overflow: 'hidden'}}>
                                         <Text style={{...styles.itemTitle, fontWeight: '500'}}>{item?.type && item.type + " "}<Text style={styles.itemTitle}>{item.title}</Text></Text>
-                                        <Text style={styles.itemContent}>{item.message}</Text>
+                                        <Text style={styles.itemContent}>{truncateText(item.message, 80, false)}</Text>
                                     </View>
                                     <Image source={uriFrom(item?.imageUrls![0])} style={styles.itemImage} defaultSource={require('../assets/images/defaultimg.jpg')} />
                                 </TouchableOpacity>

@@ -173,7 +173,7 @@ export function PostLostItemScreen({navigation, route}: HomeTabScreenProps<'Post
                 <Text style={styles.text}>Can't find your item in this list?</Text>
                 <CoolButton
                     title='Add new item'
-                    onPress={() => navigation.navigate('My Stack', {screen: 'Add Item', params: {nextScreen: 'New Lost Post'}})}
+                    onPress={() => navigation.navigate('My Stack', {screen: 'Add Item', params: {nextScreen: 'View Lost Post'}})}
                     style={styles.bigButton} />
             </View>
             <Text style={styles.subtitle}>Choose an item</Text>

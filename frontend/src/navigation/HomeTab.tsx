@@ -8,6 +8,7 @@ import MyItemsScreen from "../components/MyItems";
 import PostLostItemScreen from "../components/PostLostItem";
 import ReturnItemScreen from "../components/ReturnItem";
 import { HomeTabParamList } from "./Types";
+import MyStuffScreen from "../components/MyStuff";
 
 export const Tab = createBottomTabNavigator<HomeTabParamList>();
 
@@ -64,18 +65,8 @@ export function HomeTab() {
                     },
                 }} />
             <Tab.Screen 
-                name='My Chat Rooms' 
-                component={MyChatRoomsScreen} 
-                options={{ 
-                    title: 'Chats', 
-                    headerShown: false, 
-                    tabBarIcon({ focused, color, size }) {
-                        return <Icon name={focused ? 'message' : 'message-outline'} type='material-community' size={size} color={color} />;
-                    },
-                }} />
-            <Tab.Screen 
-                name='My Items' 
-                component={MyItemsScreen} 
+                name='My Stuff' 
+                component={MyStuffScreen} 
                 options={{ 
                     title: 'My Stuff', 
                     headerShown: false, 

@@ -148,7 +148,7 @@ export function ViewLostPostScreen({navigation, route}: MyStackScreenProps<'View
             if (typeof roomId === 'number') {
                 roomData = roomTiles[roomId].room;
             }
-            
+
             if (roomData === undefined) throw Error('room is undefined');
             
             navigation.navigate('Chat Room', {post: post, room: roomData});
@@ -276,7 +276,7 @@ export function ViewLostPostScreen({navigation, route}: MyStackScreenProps<'View
 
         setItem(itemData);
         setAuthor(route.params!.author);
-
+        setOwner(route.params!.owner);
         setMessage(route.params!.post.message);
 
         if (route.params.post?.roomIds === undefined) return;
@@ -284,14 +284,17 @@ export function ViewLostPostScreen({navigation, route}: MyStackScreenProps<'View
 
     useEffect(popupOnError(navigation, () => {
         setIsAuthor(author !== undefined && author.id == auth.currentUser!.uid);
+        
         if (author && route.params.item?.ownerId && author.id == route.params.item.ownerId) {
             setOwner(author);
         } else if (route.params.owner) {
             setOwner(route.params.owner);
         }
+        
     }), [author]);
 
     useEffect(popupOnError(navigation, () => {
+        console.log(owner);
         setIsOwner(owner !== undefined && owner.id == route.params.item.ownerId);
     }), [owner]);
     
@@ -340,7 +343,9 @@ export function ViewLostPostScreen({navigation, route}: MyStackScreenProps<'View
 
     const chatOptions = () => {
         if (!isAuthor) {
-            if (roomTiles === undefined || roomTiles.length == 0) {
+            let myRoom = roomTiles.find((tile) => tile.room.userIds.includes(auth.currentUser!.uid));
+
+            if (myRoom === undefined) {
                 return (
                     <View>
                         <CoolButton 
@@ -355,7 +360,7 @@ export function ViewLostPostScreen({navigation, route}: MyStackScreenProps<'View
                         <PressableOpacity
                             style={styles.chatItem}
                             onPress={() => {
-                                navigateToChatRoom(roomTiles.findIndex((tile) => tile.room.userIds.includes(auth.currentUser!.uid)))
+                                navigateToChatRoom(myRoom!.room.id)
                             }} 
                             disabled={isNavigating}>
                             <Image 
@@ -422,13 +427,14 @@ export function ViewLostPostScreen({navigation, route}: MyStackScreenProps<'View
                         <Swipeable 
                             containerStyle={{borderTopWidth: 4, borderColor: colors.border}} 
                             renderLeftActions={() => renderLeftAction(item.room.id)}
-                            renderRightActions={() => renderRightAction(item.room.id)}>
+                            renderRightActions={() => renderRightAction(item.room.id)}
+                            key={item.room.id} >
                             <View
                                 style={{backgroundColor: colors.card}}>
                                 <PressableOpacity
                                     style={styles.chatItem}
                                     onPress={() => {
-                                        navigateToChatRoom(roomTiles!.findIndex(room => item.room.id))
+                                        navigateToChatRoom(item.room.id)
                                     }}
                                     disabled={isNavigating}>
                                     <Image 

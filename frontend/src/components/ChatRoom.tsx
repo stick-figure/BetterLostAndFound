@@ -120,7 +120,7 @@ export function ChatRoomScreen({ navigation, route }: MyStackScreenProps<'Chat R
             messageId: _id, 
             createdAt: serverTimestamp(), 
             text: text, 
-            user: user 
+            user: user, 
         };
         addDoc(collection(db, 'rooms', route.params!.room.id, 'messages'), messageData);
     }, [isLoggedIn]);
@@ -130,12 +130,17 @@ export function ChatRoomScreen({ navigation, route }: MyStackScreenProps<'Chat R
             <InputToolbar
                 {...props}
                 containerStyle={{
-                    backgroundColor: 'white',
+                    backgroundColor: colors.card,
                     borderTopColor: '#E8E8E8',
                     borderTopWidth: 1,
                     padding: 8,
                 }}
-                
+                primaryStyle={{
+                    backgroundColor: colors.card,
+                }}
+                accessoryStyle={{
+                    backgroundColor: colors.card,
+                }}
             />
         );
     }

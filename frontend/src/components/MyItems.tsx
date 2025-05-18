@@ -4,7 +4,7 @@ import { ActivityIndicator, Button, FlatList, Image, StyleSheet, Text, useColorS
 import SafeAreaView, { SafeAreaProvider } from 'react-native-safe-area-view';
 import { auth, db } from '../../MyFirebase';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
-import { CommonActions } from '@react-navigation/native';
+import { CommonActions, useNavigation, useRoute } from '@react-navigation/native';
 import { CoolButton, PressableOpacity } from '../hooks/MyElements';
 import { Icon } from 'react-native-elements';
 import { navigateToErrorScreen } from './Error';
@@ -21,13 +21,14 @@ interface ItemTile {
     imageUrl?: string,
 }
 
-export function MyItemsScreen({navigation, route}: HomeTabScreenProps<'My Items'>) {
+export function MyItemsRoute() {
     const [itemTiles, setItemTiles] = useState<ItemTile[]>([]);
     const [sortedItemTiles, setSortedItemTiles] = useState<ItemTile[]>([]);
-    const [userData, setUserData] = useState<UserData>();
+
+    const navigation = useNavigation<HomeTabScreenProps<'My Stuff'>['navigation']>();
+    const route = useRoute<HomeTabScreenProps<'My Stuff'>['route']>();
 
     const [isLoggedIn, setIsLoggedIn] = useState(false);
-
     const [isLoading, setIsLoading] = useState(false);
     
     useEffect(() => {
@@ -82,22 +83,11 @@ export function MyItemsScreen({navigation, route}: HomeTabScreenProps<'My Items'
         }));
     }, [itemTiles]);
     
-    useEffect(() => {
-        if (!isLoggedIn) return;
-        
-        const unsubscribe = onSnapshot(doc(db, 'users', auth.currentUser!.uid), (snapshot) => {
-            setUserData(snapshot.data() as UserData);
-        });
-
-        return unsubscribe;
-    }, [isLoggedIn]);
-
     const isDarkMode = useColorScheme() === 'dark';
     const colors = isDarkMode ? DarkThemeColors : LightThemeColors;
     const styles = useMemo(() => StyleSheet.create({
         container: {
             flex: 1,
-            alignItems: 'center',
             padding: 10,
             backgroundColor: colors.background,
         },
@@ -117,49 +107,11 @@ export function MyItemsScreen({navigation, route}: HomeTabScreenProps<'My Items'
         smallButtonText: {
             color: colors.primaryContrastText,
         },
-        userName: {
-            fontSize: 25,
-            fontWeight: 'bold',
-            color: colors.text,
-        },
-        userStats: {
-            flexDirection: 'row',
-            justifyContent: 'space-evenly',
-            alignItems: 'center',
-            flexGrow: 1,
-            alignSelf: 'stretch', 
-            marginTop: 5,
-        },
-        userStat: {
-            flexDirection: 'column',
-            alignItems: 'center',
-            alignSelf: 'stretch',
-            justifyContent: 'space-between',
-            color: colors.text,
-        },
-        userStatLabel: {
-            fontSize: 10,
-            width: 60,
-            textAlign: 'center',
-            color: colors.text,
-        },
-        userStatValue: {
-            fontSize: 24,
-            textAlign: 'center',
-            color: colors.text,
-        },
-        pfp: {
-            width: 128,
-            aspectRatio: 1/1,
-            borderRadius: 999999,
-            margin: 8,
-            marginRight: 12,
-            color: colors.text,
-        },
         itemList: {
             width: '100%',
             flexGrow: 1,
             margin: 10,
+            alignSelf: 'center',
             backgroundColor: colors.card,
         },
         itemListItem: {
@@ -198,52 +150,7 @@ export function MyItemsScreen({navigation, route}: HomeTabScreenProps<'My Items'
     }), [isDarkMode]);
 
     return (
-        <SafeAreaView style={styles.container}>
-            <View style={[styles.horizontal, {alignSelf:'flex-start'}]}>
-                <Image 
-                    source={uriFrom(userData?.pfpUrl)} 
-                    style={styles.pfp}
-                    defaultSource={require('../assets/images/defaultpfp.jpg')}
-                    />
-                <View style={{flexGrow: 1, alignItems: 'flex-start'}}>
-                    <Text style={styles.userName}>{userData?.name ?? 'Unknown user'}</Text>
-                    <Text style={styles.text}>Waaagh</Text>
-                    <View style={styles.userStats}>
-                        <View style={styles.userStat}>
-                            <Text style={styles.userStatLabel}>Times own item lost</Text>
-                            <Text style={styles.userStatValue}>{userData?.timesLostItem || 'n/a'}</Text>
-                        </View>
-                        <View style={styles.userStat}>
-                            <Text style={styles.userStatLabel}>Times item found for others</Text>
-                            <Text style={styles.userStatValue}>{userData?.timesFoundOthersItem || 'n/a'}</Text>
-                        </View>
-                    </View>
-                </View>
-            </View>
-            <View style={[styles.horizontal, {width: '100%', justifyContent: 'space-around'}]}>
-                <PressableOpacity onPress={() => {}}>
-                    <Text style={styles.addItemTitle}>My Posts</Text>
-                </PressableOpacity>
-                <PressableOpacity onPress={() => {}}>
-                    <Text style={styles.addItemTitle}>a</Text>
-                </PressableOpacity>
-                <PressableOpacity onPress={() => {}}>
-                    <Text style={styles.addItemTitle}>My Items</Text>
-                </PressableOpacity>
-            </View>
-            
-            <View style={[styles.horizontal, {width:'100%', alignItems: 'flex-end', justifyContent: 'space-between'}]}>
-                <Text style={{fontSize: 16, color: colors.text, margin: 4}}>My Items</Text>
-                <CoolButton 
-                    leftIcon={{
-                        name: 'plus',
-                        type: 'material-community',
-                        size: 20,
-                    }}
-                    onPress={() => navigation.navigate('My Stack', {screen: 'Add Item'})} 
-                    style={{borderRadius: 999999}}
-                    capStyle={{padding: 5}}/>
-            </View>
+        <View style={styles.container}>
             <View style={styles.itemList}>
                 <FlatList
                     style={{flex: 1}}
@@ -256,11 +163,11 @@ export function MyItemsScreen({navigation, route}: HomeTabScreenProps<'My Items'
                     }
                     data={sortedItemTiles}
                     renderItem={({ item }) => (
-                        <View style={[styles.itemListItem, item.isLost ? {backgroundColor: 'red',} : null]}>
+                        <View style={[styles.itemListItem]}>
                             <PressableOpacity
                                 key={item._id.toString()}
                                 onPress={() => { navigation.navigate('My Stack', {screen: 'View Item', params: { itemId: item._id, itemName: item.name } }) }}>
-                                <View style={styles.itemListItemView}>
+                                <View style={[styles.itemListItemView, item.isLost ? {borderWidth: 3, borderColor: colors.red,} : null]}>
                                     <Image source={uriFrom(item.imageUrl)} style={styles.itemImage} defaultSource={require('../assets/images/defaultimg.jpg')}/>
                                     <Text style={styles.itemTitle}>{item.name}</Text>
                                 </View>
@@ -270,8 +177,29 @@ export function MyItemsScreen({navigation, route}: HomeTabScreenProps<'My Items'
                     numColumns={3}
                 />
             </View>
-        </SafeAreaView>
+            <CoolButton 
+                leftIcon={{
+                    name: 'plus',
+                    type: 'material-community',
+                    size: 50,
+                }}
+                onPress={() => navigation.navigate('My Stack', {screen: 'Add Item'})} 
+                style={{
+                    alignSelf: 'flex-end',
+                    borderRadius: 999999,
+                    position: 'absolute',
+                    bottom: 30,
+                    right: 30,
+                }}
+                contentStyle={{
+                    padding: 5,
+                }}
+                containerStyle={{
+                    
+                }}
+                capStyle={{padding: 5}}/>
+        </View>
     );
 }
 
-export default MyItemsScreen;
+export default MyItemsRoute;

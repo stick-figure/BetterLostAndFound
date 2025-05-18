@@ -7,7 +7,7 @@ import { Icon, SearchBar } from 'react-native-elements';
 import { getDoc, doc, onSnapshot, query, collection, where, limit } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import SafeAreaView from 'react-native-safe-area-view';
-import { timestampToString, uriFrom } from '../utils/SomeFunctions';
+import { timestampToString, truncateText, uriFrom } from '../utils/SomeFunctions';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { navigateToErrorScreen } from './Error';
 import { HomeTabScreenProps } from '../navigation/Types';
@@ -275,7 +275,7 @@ export function ReturnItemScreen({navigation, route}: HomeTabScreenProps<'Return
                                 </View>
                                 <View style={{margin: 4, height: 80, overflow: 'hidden'}}>
                                     <Text style={styles.itemTitle}>{item.title}</Text>
-                                    <Text style={styles.itemContent}>{item.message}</Text>
+                                    <Text style={styles.itemContent}>{truncateText(item.message, 80, false)}</Text>
                                 </View>
                                 <Image source={uriFrom(item?.imageUrl)} style={styles.itemImage} defaultSource={require('../assets/images/defaultimg.jpg')} />
                             </PressableOpacity>
