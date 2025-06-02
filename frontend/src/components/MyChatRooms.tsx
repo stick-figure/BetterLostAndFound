@@ -261,7 +261,7 @@ export function MyChatRoomsRoute() {
                 data={roomTiles}
                 style={styles.chatListContainer}
                 renderItem={({ item }) => {
-                    const user = (item.users as any[]).find((user) => user._id != auth.currentUser?.uid);
+                    const user = (item.users as any[]).find((user) => user.id != auth.currentUser?.uid);
                     
                     return (
                         <PressableOpacity 

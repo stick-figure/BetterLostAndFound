@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, StyleSheet, Text, useColorScheme, View } from 'react-native';
-import { auth, db } from '../../MyFirebase';
+import { auth, db, storage } from '../../MyFirebase';
 import { deleteUser, signOut } from 'firebase/auth';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import { collection, deleteDoc, doc, getDocs, namedQuery, Query, query, runTransaction, where, writeBatch } from 'firebase/firestore';
 import { CommonActions, useNavigation } from '@react-navigation/native';
-import { deleteObject } from 'firebase/storage';
+import { deleteObject, ref } from 'firebase/storage';
 import SafeAreaView from 'react-native-safe-area-view';
 import { DarkThemeColors, LightThemeColors } from '../assets/Colors';
 import { MyDrawerScreenProps } from '../navigation/Types';
@@ -47,22 +47,46 @@ export function SettingsScreen({navigation, route}: MyDrawerScreenProps<'Setting
 
             await batch.commit();
         }
-        console.log('deleted');
+        console.log('deleted documents');
     }
 
-    const deleteFirestoreAndStorageImagesRecursively = async (query: Query) => {
-        deleteObject
+    const deleteStorageByFieldId = async (query: Query, fieldName: string) => {
+        const snapshot = await getDocs(query);
+        const promises = snapshot.docs.flatMap(result => {
+            const fieldValue = result.get(fieldName);
+            if (typeof fieldValue == 'string') {
+                return deleteObject(ref(storage, fieldValue));
+            }
+            if (Array.isArray(fieldValue)) {
+                return fieldValue.map(value => deleteObject(ref(storage, value)));
+            }
+        });
+        await Promise.all(promises);
+        console.log('deleted objects');
+    }
+
+    const deleteStorageByDocId = async (query: Query, refFolder: string) => {
+        const snapshot = await getDocs(query);
+        const promises = snapshot.docs.flatMap(result => {
+            return deleteObject(ref(storage, refFolder+'/'+result.id));
+        });
+        await Promise.all(promises);
+        console.log('deleted objects');
     }
 
     const deleteAccount = popupOnError(navigation, async () => {
         navigation.navigate('My Stack', {
             screen: 'Loading'
         });
+        const postQuery = query(collection(db, 'posts'), where('authorId', '==', auth.currentUser!.uid));
+        const itemQuery = query(query(collection(db, 'items'), where('ownerId', '==', auth.currentUser!.uid)));
+        await deleteFirestoreRecursively(postQuery);
+        
+        await deleteStorageByDocId(itemQuery, 'images/items');
+        await deleteFirestoreRecursively(itemQuery);
+        
+        const pfpRef = ref(storage, 'images/pfps/'+auth.currentUser!.uid);
 
-        await deleteFirestoreRecursively(query(collection(db, 'posts'), where('authorId', '==', auth.currentUser!.uid)));
-        
-        await deleteFirestoreRecursively(query(collection(db, 'items'), where('ownerId', '==', auth.currentUser!.uid)));
-        
         await deleteDoc(doc(db, 'users', auth.currentUser!.uid));
         
         await deleteUser(auth.currentUser!)

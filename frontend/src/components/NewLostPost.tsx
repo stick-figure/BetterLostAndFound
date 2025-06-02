@@ -199,6 +199,8 @@ export function NewLostPostScreen({navigation, route}: MyStackScreenProps<'New L
         itemContent: {
             color: colors.text,
             fontSize: 16,
+            flexGrow: 1,
+            overflow: 'hidden',
         },
         imageLabel: {
             fontSize: 16,
@@ -240,7 +242,7 @@ export function NewLostPostScreen({navigation, route}: MyStackScreenProps<'New L
                                 <View style={styles.itemListItemView}>
                                     <Text style={styles.itemTitle}>{item!.name}</Text>
                                     <Text style={styles.itemSubtitle}>{owner!.name}</Text>
-                                    <Text style={styles.itemSubtitle}>{item!.description !== undefined && item!.description!.slice(0,140)}</Text>
+                                    <Text style={styles.itemContent}>{item!.description !== undefined && item!.description!.slice(0,140)}</Text>
                                 </View>
                             </View>
                     </PressableOpacity>
