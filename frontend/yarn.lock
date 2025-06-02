@@ -8435,7 +8435,7 @@ react-native-ratings@8.0.4:
   dependencies:
     lodash "^4.17.15"
 
-react-native-reanimated@*, react-native-reanimated@^3.13.0, "react-native-reanimated@>= 1.0.0":
+react-native-reanimated@^3.13.0, "react-native-reanimated@>= 1.0.0":
   version "3.13.0"
   resolved "https://registry.npmjs.org/react-native-reanimated/-/react-native-reanimated-3.13.0.tgz"
   integrity sha512-7vl3NMEiuVIV0vYjr/TbL9bXVes+GcfnhK/A3X02LQ+QFbSZp1xfAxOmePabgyjyz3GIALeXcx5fldo3kOM3gA==
@@ -8511,11 +8511,6 @@ react-native-vector-icons@^10.2.0, react-native-vector-icons@>7.0.0:
     prop-types "^15.7.2"
     yargs "^16.1.1"
 
-react-native-vision-camera@^4.4.1:
-  version "4.4.1"
-  resolved "https://registry.npmjs.org/react-native-vision-camera/-/react-native-vision-camera-4.4.1.tgz"
-  integrity sha512-pWuO+AMwQzMoZ85pOHv4P4G1kPdYGA1QAC26rtGfVBbjZt5UyEpYRTirzRhetkQ7meaBjHIWEE/5Qmo0VockHA==
-
 react-native-web@*, react-native-web@0.9.x:
   version "0.9.13"
   resolved "https://registry.npmjs.org/react-native-web/-/react-native-web-0.9.13.tgz"
@@ -8532,7 +8527,7 @@ react-native-web@*, react-native-web@0.9.x:
     prop-types "^15.6.0"
     react-timer-mixin "^0.13.4"
 
-react-native-worklets-core@*, react-native-worklets-core@^1.5.0:
+react-native-worklets-core@^1.5.0:
   version "1.5.0"
   resolved "https://registry.npmjs.org/react-native-worklets-core/-/react-native-worklets-core-1.5.0.tgz"
   integrity sha512-LtXzd08140dK4Y5YIir6oALz+28tkAEZfFZgwaxOh1FnmJ/oGKeNoX+SBWOIQoe12C4i5BvGvh+X/bRGO9mEmQ==

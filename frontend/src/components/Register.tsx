@@ -24,6 +24,7 @@ export function RegisterScreen({navigation, route}: MyStackScreenProps<'Register
     const [phoneNumber, setPhoneNumber] = useState('');
     const [formattedPhoneNumber, setFormattedPhoneNumber] = useState('');
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [errorText, setErrorText] = useState('');
 
     const [pfpUri, setPfpUri] = useState('');
@@ -393,8 +394,8 @@ export function RegisterScreen({navigation, route}: MyStackScreenProps<'Register
                     }}
                     placeholder='Type password again'
                     containerStyle={{width: '80%'}}
-                    value={password} 
-                    onChangeText={(text: string) => setPassword(text)}
+                    value={confirmPassword} 
+                    onChangeText={(text: string) => setConfirmPassword(text)}
                     editable={!registering}
                     secureTextEntry 
                     required/>
@@ -403,7 +404,7 @@ export function RegisterScreen({navigation, route}: MyStackScreenProps<'Register
                 <CoolButton
                     title='Register'
                     style={styles.registerButton} 
-                    disabled={name == '' || email == '' || password.length < 5 || (phoneNumber != '' && !phoneInput.current?.isValidNumber(phoneNumber)) || registering} 
+                    disabled={name == '' || email == '' || password.length < 5 || password != confirmPassword || registering} 
                     onPress={register} />
             </ScrollView>
         </SafeAreaView>

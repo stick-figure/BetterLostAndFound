@@ -9,7 +9,6 @@ import LoginScreen from "../components/Login";
 import NewFoundPostScreen from "../components/NewFoundPost";
 import NewLostPostScreen from "../components/NewLostPost";
 import RegisterScreen from "../components/Register";
-import ScanCodeScreen from "../components/ScanCode";
 import SearchItemsScreen from "../components/SearchItems";
 import ViewItemScreen from "../components/ViewItem";
 import ViewLostPostScreen from "../components/ViewLostPost";
@@ -50,8 +49,7 @@ export function MyStack() {
                     })}
                     component={ViewItemScreen} 
                 />
-                <Stack.Screen name='Scan Code' component={ScanCodeScreen} options={{ title: 'Scan Code', headerBackTitle: 'Back', }} />
-                <Stack.Screen name='New Lost Post' component={NewLostPostScreen} options={{ title: 'New Post', headerBackTitle: 'Back', }} />
+                <Stack.Screen name='New Lost Post' component={NewLostPostScreen} options={{ title: 'New Post' }} />
                 <Stack.Screen name='View Lost Post' component={ViewLostPostScreen} options={{ title: 'View Lost Post', headerShown: false }} />
                 <Stack.Screen name='Search Items' component={SearchItemsScreen} options={{ 
                     title: 'Search Items', 

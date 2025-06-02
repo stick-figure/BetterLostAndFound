@@ -55,7 +55,7 @@ export const MyInput = ({ ...props }) => {
             alignSelf: 'flex-start',
         },
         textInput: {
-            fontWeight: 600,
+            fontWeight: '600',
             fontSize: 18,
             overflow: 'hidden',
             color: colors.text,
@@ -114,7 +114,7 @@ export const CoolTextInput: FC<CoolTextInputProps> = ({ ...props }) => {
         textInput: {
 //            flexGrow: 1,
             padding: 8,
-            fontWeight: 600,
+            fontWeight: '600',
             fontSize: 18,
             overflow: 'hidden',
             borderTopWidth: 3,
@@ -402,7 +402,7 @@ export const ImagePicker: FC<ImagePickerProps> = ({ ...props }) => {
         },
         textInput: {
             padding: 8,
-            fontWeight: 600,
+            fontWeight: '600',
             fontSize: 18,
             overflow: 'hidden',
             borderTopWidth: 3,
