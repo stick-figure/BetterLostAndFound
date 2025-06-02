@@ -193,11 +193,15 @@ export function MyItemsRoute() {
                 }}
                 contentStyle={{
                     padding: 5,
+                    borderRadius: 999999,
                 }}
                 containerStyle={{
-                    
+                    borderRadius: 999999,
                 }}
-                capStyle={{padding: 5}}/>
+                capStyle={{
+                    padding: 5, borderRadius: 999999,
+                }}
+            />
         </View>
     );
 }

@@ -50,14 +50,14 @@ export function MyStack() {
                     })}
                     component={ViewItemScreen} 
                 />
-                <Stack.Screen name='Scan Code' component={ScanCodeScreen} options={{ title: 'Scan Code' }} />
-                <Stack.Screen name='New Lost Post' component={NewLostPostScreen} options={{ title: 'New Post' }} />
+                <Stack.Screen name='Scan Code' component={ScanCodeScreen} options={{ title: 'Scan Code', headerBackTitle: 'Back', }} />
+                <Stack.Screen name='New Lost Post' component={NewLostPostScreen} options={{ title: 'New Post', headerBackTitle: 'Back', }} />
                 <Stack.Screen name='View Lost Post' component={ViewLostPostScreen} options={{ title: 'View Lost Post', headerShown: false }} />
                 <Stack.Screen name='Search Items' component={SearchItemsScreen} options={{ 
                     title: 'Search Items', 
                     headerShown: false}} />
-                <Stack.Screen name='New Found Post' component={NewFoundPostScreen} options={{ title: 'New Post' }} />
-                <Stack.Screen name='Chat Room' component={ChatRoomScreen} options={{title: 'Chat Room'}} />
+                <Stack.Screen name='New Found Post' component={NewFoundPostScreen} options={{ title: 'New Post', headerBackTitle: 'Back', }} />
+                <Stack.Screen name='Chat Room' component={ChatRoomScreen} options={{title: 'Chat Room', headerBackTitle: 'Back', }} />
             </Stack.Group>
             
             {/* Auth screens */}
